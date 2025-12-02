@@ -1,13 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-ryyt-blue: #0052FF;
+  --color-ryyt-black: #000000;
+  --font-inter: var(--font-inter);
+}
 
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 255, 255, 255;
   --background-end-rgb: 255, 255, 255;
-  --ryyt-blue: #0052FF; /* Approximated from logo, can adjust */
-  --ryyt-black: #000000;
 }
 
 body {
@@ -16,12 +18,12 @@ body {
   font-family: var(--font-inter), sans-serif;
 }
 
+@utility glass-panel {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
-  }
-  
-  .glass-panel {
-    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
   }
 }
