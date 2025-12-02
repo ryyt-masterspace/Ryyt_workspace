@@ -1,7 +1,14 @@
 export default function Home() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <h1 className="text-2xl font-bold text-gray-400">Refund App - Ready to Build</h1>
-    </div>
+    <main className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center bg-white">
+      <div className="max-w-5xl mx-auto text-center px-6">
+        <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-gray-900 mb-8 hover:scale-105 transition-transform duration-700 ease-out cursor-default select-none">
+          The Trust Layer for <span className="text-[#0052FF]">Refunds</span>
+        </h1>
+        <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
+          Turn refund anxiety into customer loyalty with transparent tracking and instant updates.
+        </p>
+      </div>
+    </main>
   );
 }
