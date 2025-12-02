@@ -1,0 +1,30 @@
+export const mockRefunds = [
+  {
+    id: "REF-1001",
+    customerName: "Aarav Sharma",
+    amount: 1299,
+    status: "Processing",
+    date: "2025-12-01",
+    paymentMode: "UPI",
+    slaBreached: false,
+  },
+  {
+    id: "REF-1002",
+    customerName: "Priya Patel",
+    amount: 850,
+    status: "Completed",
+    date: "2025-11-28",
+    paymentMode: "COD",
+    utr: "SBI1234567890",
+    slaBreached: false,
+  },
+  {
+    id: "REF-1003",
+    customerName: "Rahul Verma",
+    amount: 2499,
+    status: "Info Requested",
+    date: "2025-12-02",
+    paymentMode: "COD",
+    slaBreached: true,
+  },
+];
