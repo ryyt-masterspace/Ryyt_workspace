@@ -1,6 +1,4 @@
-@import "@tailwind base";
-@import "@tailwind components";
-@import "@tailwind utilities";
+@import "tailwindcss";
 
 @theme {
   --color-bg-dark: #050505;
@@ -54,6 +52,21 @@ body {
 
   100% {
     background-position: 0% 50%;
+  }
+}
+
+/* Marquee Animation */
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
   }
 }
 
