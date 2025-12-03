@@ -27,7 +27,7 @@ export default function Home() {
             </p>
 
             <div className="flex items-center gap-4">
-              <button className="px-8 py-4 bg-white text-black rounded-full font-medium hover:bg-gray-100 transition-colors">
+              <button className="text-white font-medium hover:text-gray-300 transition-colors px-6 py-3">
                 Request demo
               </button>
               <button className="px-8 py-4 glass-button rounded-full font-medium flex items-center gap-2 group">
