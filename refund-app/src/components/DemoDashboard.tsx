@@ -141,8 +141,11 @@ export default function DemoDashboard() {
     };
 
     return (
-        <div className="w-full max-w-5xl relative z-10 animate-float mx-auto">
-            <div className="rounded-[24px] border border-white/10 bg-[#050505] shadow-2xl overflow-hidden relative group">
+        <div className="w-full max-w-5xl relative z-10 animate-float mx-auto group">
+            {/* Glow Effect */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-[30px] blur-xl opacity-75 transition duration-1000 group-hover:opacity-100 group-hover:blur-2xl"></div>
+
+            <div className="rounded-[24px] border border-white/10 bg-[#050505] shadow-2xl overflow-hidden relative">
                 {/* Top Glow Line */}
                 <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-50"></div>
 
