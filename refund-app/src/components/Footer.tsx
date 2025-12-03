@@ -5,21 +5,7 @@ import Image from "next/image";
 
 export default function Footer() {
     return (
-        <footer className="bg-[#050505] border-t border-white/5 pt-20 pb-10 px-6 relative z-10">
-            <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-                    {/* Brand Column */}
-                    <div className="col-span-1 md:col-span-1">
-                        <div className="mb-6">
-                            <div className="relative h-10 w-32">
-                                <Image
-                                    src="/assets/ryyt-logo-white-full.png"
-                                    alt="Ryyt Logo"
-                                    fill
-                                    className="object-contain object-left"
-                                />
-                            </div>
-                        </div>
+                        </div >
                         <p className="text-gray-400 text-sm leading-relaxed mb-6">
                             The single source of truth for refunds. Build trust, reduce anxiety, and automate your support.
                         </p>
@@ -31,10 +17,10 @@ export default function Footer() {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </div >
 
-                    {/* Links Columns */}
-                    <div>
+        {/* Links Columns */ }
+        < div >
                         <h4 className="text-white font-bold mb-6">Product</h4>
                         <ul className="space-y-4 text-sm text-gray-400">
                             <li><Link href="#" className="hover:text-blue-400 transition-colors">Features</Link></li>
@@ -42,7 +28,7 @@ export default function Footer() {
                             <li><Link href="#" className="hover:text-blue-400 transition-colors">Pricing</Link></li>
                             <li><Link href="#" className="hover:text-blue-400 transition-colors">Changelog</Link></li>
                         </ul>
-                    </div>
+                    </div >
 
                     <div>
                         <h4 className="text-white font-bold mb-6">Company</h4>
@@ -62,18 +48,18 @@ export default function Footer() {
                             <li><Link href="#" className="hover:text-blue-400 transition-colors">Cookie Policy</Link></li>
                         </ul>
                     </div>
-                </div>
+                </div >
 
-                <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-gray-500 text-xs">
-                        © {new Date().getFullYear()} Ryyt Inc. All rights reserved.
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        All Systems Operational
-                    </div>
-                </div>
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-gray-500 text-xs">
+                © {new Date().getFullYear()} Ryyt Inc. All rights reserved.
+            </p>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                All Systems Operational
             </div>
-        </footer>
+        </div>
+            </div >
+        </footer >
     );
 }
