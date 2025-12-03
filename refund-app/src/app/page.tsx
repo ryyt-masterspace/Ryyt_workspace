@@ -2,6 +2,7 @@ import Image from "next/image";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import DemoDashboard from "@/components/DemoDashboard";
 import SocialProof from "@/components/SocialProof";
+import ProblemSection from "@/components/ProblemSection";
 
 export default function Home() {
   return (
@@ -42,6 +43,9 @@ export default function Home() {
 
           {/* Social Proof */}
           <SocialProof />
+
+          {/* Problem Section */}
+          <ProblemSection />
         </div>
       </section>
     </main>
