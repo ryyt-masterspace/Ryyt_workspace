@@ -33,59 +33,7 @@ export default function Home() {
       </div>
 
       {/* Dashboard Feature Image (Mockup) */}
-      <div className="w-full max-w-6xl relative z-10 animate-float">
-        <div className="rounded-[24px] border border-white/10 bg-[#050505] shadow-2xl overflow-hidden relative group">
-          {/* Top Glow Line */}
-          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-50"></div>
-
-          {/* Mock UI Container */}
-          <div className="relative bg-[#0A0A0A] p-1">
-            <div className="bg-[#0f0f0f] rounded-[20px] overflow-hidden border border-white/5">
-              {/* Header of Mockup */}
-              <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-[#111]">
-                <div className="flex items-center gap-4">
-                  <div className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium border border-blue-500/20">Refund Process</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-20 h-2 rounded-full bg-white/10"></div>
-                </div>
-              </div>
-
-              {/* Body of Mockup */}
-              <div className="p-8 grid grid-cols-3 gap-8 h-[400px]">
-                {/* Left Col */}
-                <div className="col-span-2 space-y-6">
-                  <div className="space-y-2">
-                    <div className="h-4 w-1/3 bg-white/10 rounded"></div>
-                    <div className="h-10 w-full bg-[#1a1a1a] rounded border border-white/5"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-4 w-1/4 bg-white/10 rounded"></div>
-                    <div className="h-10 w-full bg-[#1a1a1a] rounded border border-white/5"></div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-24 w-full bg-[#1a1a1a] rounded border border-white/5"></div>
-                    <div className="h-24 w-full bg-[#1a1a1a] rounded border border-white/5"></div>
-                  </div>
-                </div>
-                {/* Right Col (Chat/Status) */}
-                <div className="col-span-1 bg-[#161616] rounded-xl border border-white/5 p-4 space-y-4">
-                  <div className="flex justify-end">
-                    <div className="bg-blue-600/20 text-blue-400 p-3 rounded-l-xl rounded-tr-xl text-xs max-w-[80%] border border-blue-500/10">
-                      Refund initiated. Waiting for bank confirmation.
-                    </div>
-                  </div>
-                  <div className="flex justify-start">
-                    <div className="bg-[#222] text-gray-400 p-3 rounded-r-xl rounded-tl-xl text-xs max-w-[80%] border border-white/5">
-                      Customer notified via WhatsApp.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <DemoDashboard />
 
     </main>
   );
