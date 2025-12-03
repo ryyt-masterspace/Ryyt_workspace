@@ -1,5 +1,6 @@
 import Image from "next/image";
 import InteractiveBackground from "@/components/InteractiveBackground";
+import DemoDashboard from "@/components/DemoDashboard";
 
 export default function Home() {
   return (
