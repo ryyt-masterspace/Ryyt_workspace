@@ -24,21 +24,21 @@ export default function HowItWorks() {
                 </svg>
             ),
             visual: (
-                <div className="bg-[#111] border border-white/10 rounded-xl p-6 w-full max-w-sm mx-auto">
-                    <div className="flex items-center justify-between mb-4">
+                <div className="w-full max-w-sm mx-auto px-4">
+                    <div className="flex items-center justify-between mb-4 px-2">
                         <div className="text-sm font-medium text-white">New Refund</div>
                         <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                     </div>
                     <div className="space-y-3">
-                        <div className="bg-[#1A1A1A] p-2 rounded border border-white/5">
+                        <div className="bg-[#1A1A1A] p-3 rounded-lg border border-white/5 shadow-lg">
                             <div className="text-[10px] text-gray-500 mb-1">Customer Name</div>
                             <div className="text-xs text-gray-300">Amit Sharma</div>
                         </div>
-                        <div className="bg-[#1A1A1A] p-2 rounded border border-white/5">
+                        <div className="bg-[#1A1A1A] p-3 rounded-lg border border-white/5 shadow-lg">
                             <div className="text-[10px] text-gray-500 mb-1">Amount</div>
                             <div className="text-xs text-gray-300">₹2,499.00</div>
                         </div>
-                        <div className="w-full bg-blue-600/20 border border-blue-600/50 text-blue-400 text-xs font-medium py-2 rounded text-center">
+                        <div className="w-full bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.2)] text-white text-xs font-medium py-3 rounded-lg text-center mt-2">
                             Create Entry
                         </div>
                     </div>
@@ -55,18 +55,18 @@ export default function HowItWorks() {
                 </svg>
             ),
             visual: (
-                <div className="bg-[#111] border border-white/10 rounded-xl p-6 w-full max-w-sm mx-auto relative overflow-hidden">
+                <div className="w-full max-w-sm mx-auto px-4 relative">
                     <div className="space-y-4">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">R</div>
+                        <div className="flex items-center gap-3 pb-3 px-2">
+                            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-blue-900/20">R</div>
                             <div>
-                                <div className="text-xs text-white font-medium">Refund Started</div>
-                                <div className="text-[10px] text-gray-500">Track your request</div>
+                                <div className="text-sm text-white font-medium">Refund Started</div>
+                                <div className="text-xs text-gray-500">Track your request</div>
                             </div>
                         </div>
-                        <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 text-center">
-                            <div className="text-[10px] text-blue-300 mb-2">Secure Tracking Link</div>
-                            <div className="text-xs text-blue-400 font-mono bg-black/20 py-1 rounded">ryyt.io/tr/8821</div>
+                        <div className="bg-gradient-to-r from-blue-500/10 to-transparent border-l-2 border-blue-500 p-4 rounded-r-lg">
+                            <div className="text-xs text-blue-300 mb-2 font-medium">Secure Tracking Link</div>
+                            <div className="text-sm text-blue-400 font-mono">ryyt.io/tr/8821</div>
                         </div>
                     </div>
                 </div>
@@ -82,18 +82,20 @@ export default function HowItWorks() {
                 </svg>
             ),
             visual: (
-                <div className="bg-[#111] border border-white/10 rounded-xl p-6 w-full max-w-sm mx-auto">
-                    <div className="space-y-4">
+                <div className="w-full max-w-sm mx-auto px-4">
+                    <div className="space-y-4 bg-[#1A1A1A] p-4 rounded-xl border border-white/5 shadow-2xl">
                         <div className="flex items-center justify-between">
                             <div className="text-xs text-gray-400">Current Status</div>
                             <div className="px-2 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] rounded border border-yellow-500/20">Processing</div>
                         </div>
-                        <div className="h-0.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full w-2/3 bg-blue-500"></div>
+                        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full w-2/3 bg-blue-500 relative">
+                                <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/50 animate-pulse"></div>
+                            </div>
                         </div>
                         <div className="flex justify-between items-center pt-2">
                             <div className="text-[10px] text-gray-500">Action</div>
-                            <div className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-medium rounded cursor-pointer transition-colors">
+                            <div className="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg cursor-pointer transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)]">
                                 Mark Paid
                             </div>
                         </div>
