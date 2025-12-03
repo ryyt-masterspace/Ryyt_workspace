@@ -2,7 +2,7 @@
 
 export default function FeaturesBento() {
     return (
-        <section className="py-32 px-6 relative z-10">
+        <section id="features" className="py-32 px-6 relative z-10">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-20 text-center">
                     <h2 className="text-4xl md:text-5xl font-bold mb-6">
