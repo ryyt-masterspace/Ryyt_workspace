@@ -1,15 +1,13 @@
-```javascript
 import Image from "next/image";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import DemoDashboard from "@/components/DemoDashboard";
-
 import SocialProof from "@/components/SocialProof";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#050505] text-white overflow-x-hidden selection:bg-blue-500/30">
       <InteractiveBackground />
-      
+
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
@@ -22,9 +20,9 @@ export default function Home() {
                 for Refunds
               </span>
             </h1>
-            
+
             <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-10 leading-relaxed">
-              Turn refund anxiety into customer loyalty. The single source of truth 
+              Turn refund anxiety into customer loyalty. The single source of truth
               for every transaction, powered by transparency.
             </p>
 
@@ -33,7 +31,7 @@ export default function Home() {
                 Request demo
               </button>
               <button className="px-8 py-4 glass-button rounded-full font-medium flex items-center gap-2 group">
-                Get Started 
+                Get Started
                 <span className="group-hover:translate-x-1 transition-transform">›</span>
               </button>
             </div>
@@ -45,9 +43,7 @@ export default function Home() {
           {/* Social Proof */}
           <SocialProof />
         </div>
-      {/* Dashboard Feature Image (Mockup) */}
-      <DemoDashboard />
-
+      </section>
     </main>
   );
 }
