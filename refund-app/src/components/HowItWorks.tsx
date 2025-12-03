@@ -25,21 +25,35 @@ export default function HowItWorks() {
             ),
             visual: (
                 <div className="w-full max-w-sm mx-auto px-4">
-                    <div className="flex items-center justify-between mb-4 px-2">
-                        <div className="text-sm font-medium text-white">New Refund</div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    {/* Floating Header */}
+                    <div className="flex items-center justify-between mb-6 px-2 opacity-80">
+                        <div className="text-sm font-medium text-white/60 uppercase tracking-widest">New Refund</div>
                     </div>
-                    <div className="space-y-3">
-                        <div className="bg-[#1A1A1A] p-3 rounded-lg border border-white/5 shadow-lg">
-                            <div className="text-[10px] text-gray-500 mb-1">Customer Name</div>
-                            <div className="text-xs text-gray-300">Amit Sharma</div>
+
+                    {/* Floating Inputs */}
+                    <div className="space-y-4">
+                        <div className="group relative">
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                            <div className="relative flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-4 backdrop-blur-sm">
+                                <span className="text-sm text-gray-400">Customer</span>
+                                <span className="text-sm text-white font-medium">Amit Sharma</span>
+                            </div>
                         </div>
-                        <div className="bg-[#1A1A1A] p-3 rounded-lg border border-white/5 shadow-lg">
-                            <div className="text-[10px] text-gray-500 mb-1">Amount</div>
-                            <div className="text-xs text-gray-300">₹2,499.00</div>
+
+                        <div className="group relative">
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                            <div className="relative flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-4 backdrop-blur-sm">
+                                <span className="text-sm text-gray-400">Amount</span>
+                                <span className="text-sm text-white font-medium">₹2,499.00</span>
+                            </div>
                         </div>
-                        <div className="w-full bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.2)] text-white text-xs font-medium py-3 rounded-lg text-center mt-2">
-                            Create Entry
+
+                        {/* Floating Button */}
+                        <div className="relative mt-6">
+                            <div className="absolute -inset-1 bg-blue-500/30 rounded-lg blur-md opacity-50 animate-pulse"></div>
+                            <div className="relative w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-3 rounded-lg text-center cursor-pointer transition-colors shadow-xl">
+                                Create Entry
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -56,17 +70,34 @@ export default function HowItWorks() {
             ),
             visual: (
                 <div className="w-full max-w-sm mx-auto px-4 relative">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3 pb-3 px-2">
-                            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-blue-900/20">R</div>
-                            <div>
-                                <div className="text-sm text-white font-medium">Refund Started</div>
-                                <div className="text-xs text-gray-500">Track your request</div>
+                    {/* Floating Notification */}
+                    <div className="relative">
+                        <div className="absolute -inset-1 bg-gradient-to-b from-blue-500/10 to-transparent rounded-2xl blur-xl"></div>
+                        <div className="relative space-y-6">
+                            {/* Email Header */}
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-[0_0_20px_rgba(37,99,235,0.3)] ring-4 ring-black">R</div>
+                                <div>
+                                    <div className="text-base text-white font-medium">Refund Started</div>
+                                    <div className="text-xs text-blue-400">Track your request</div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="bg-gradient-to-r from-blue-500/10 to-transparent border-l-2 border-blue-500 p-4 rounded-r-lg">
-                            <div className="text-xs text-blue-300 mb-2 font-medium">Secure Tracking Link</div>
-                            <div className="text-sm text-blue-400 font-mono">ryyt.io/tr/8821</div>
+
+                            {/* The Link Itself */}
+                            <div className="pl-8">
+                                <div className="relative group cursor-pointer">
+                                    <div className="absolute -inset-0.5 bg-blue-500/30 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+                                    <div className="relative bg-[#050505] border border-blue-500/30 rounded-lg p-4 flex items-center justify-between group-hover:border-blue-500/50 transition-colors">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-blue-400/70 uppercase tracking-wider mb-1">Secure Link</span>
+                                            <span className="text-sm text-blue-400 font-mono">ryyt.io/tr/8821</span>
+                                        </div>
+                                        <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -83,20 +114,32 @@ export default function HowItWorks() {
             ),
             visual: (
                 <div className="w-full max-w-sm mx-auto px-4">
-                    <div className="space-y-4 bg-[#1A1A1A] p-4 rounded-xl border border-white/5 shadow-2xl">
+                    <div className="relative space-y-8">
+                        {/* Status Indicator */}
                         <div className="flex items-center justify-between">
-                            <div className="text-xs text-gray-400">Current Status</div>
-                            <div className="px-2 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] rounded border border-yellow-500/20">Processing</div>
-                        </div>
-                        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full w-2/3 bg-blue-500 relative">
-                                <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/50 animate-pulse"></div>
+                            <div className="text-sm text-gray-400">Status</div>
+                            <div className="flex items-center gap-2">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                                </span>
+                                <span className="text-yellow-500 font-medium text-sm">Processing</span>
                             </div>
                         </div>
-                        <div className="flex justify-between items-center pt-2">
-                            <div className="text-[10px] text-gray-500">Action</div>
-                            <div className="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg cursor-pointer transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)]">
-                                Mark Paid
+
+                        {/* Progress Bar */}
+                        <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className="absolute top-0 left-0 h-full w-2/3 bg-gradient-to-r from-blue-500 to-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                        </div>
+
+                        {/* Action Toggle */}
+                        <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-full p-1.5 backdrop-blur-sm">
+                            <span className="text-xs text-gray-500 pl-3">Mark as:</span>
+                            <div className="flex items-center gap-1">
+                                <div className="px-4 py-1.5 rounded-full text-xs font-medium text-gray-500 hover:text-white cursor-pointer transition-colors">Failed</div>
+                                <div className="px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded-full shadow-lg shadow-green-900/20 cursor-pointer hover:bg-green-500 transition-colors">
+                                    Paid
+                                </div>
                             </div>
                         </div>
                     </div>
