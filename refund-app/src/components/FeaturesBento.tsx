@@ -51,20 +51,67 @@ export default function FeaturesBento() {
 
                             {/* Data Rows */}
                             <div className="space-y-3">
-                                <div className="bg-[#1A1A1A] rounded-lg p-4 border border-white/5 flex justify-between items-center group/row hover:bg-[#222] transition-colors cursor-default">
-                                    <div>
-                                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Gateway Ref ID</div>
-                                        <div className="text-white font-mono text-sm">rf_3k92...92j1</div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5 group/row hover:bg-[#222] transition-colors">
+                                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Gateway Ref ID</div>
+                                        <div className="text-white font-mono text-xs flex items-center gap-2">
+                                            rf_3k92...92j1
+                                            <span className="text-blue-400 opacity-0 group-hover/row:opacity-100 transition-opacity text-[10px]">Copy</span>
+                                        </div>
                                     </div>
-                                    <div className="text-xs text-blue-400 opacity-0 group-hover/row:opacity-100 transition-opacity">Copied</div>
+                                    <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
+                                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Est. Settlement</div>
+                                        <div className="text-white font-mono text-xs">Dec 12 - Dec 14</div>
+                                    </div>
                                 </div>
-                                <div className="bg-[#1A1A1A] rounded-lg p-4 border border-white/5 flex justify-between items-center">
-                                    <div>
-                                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Est. Settlement</div>
-                                        <div className="text-white font-mono text-sm">Dec 12 - Dec 14</div>
+
+                                <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Payment Source</div>
+                                    <div className="text-white font-mono text-xs flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[8px]">H</div>
+                                        HDFC Bank **** 8821
                                     </div>
-                                    <div className="w-20 h-1 bg-gray-800 rounded-full overflow-hidden">
-                                        <div className="w-1/3 h-full bg-blue-500 rounded-full"></div>
+                                </div>
+
+                                <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Merchant Note</div>
+                                    <div className="text-gray-300 text-xs italic">"Return received. Quality check passed. Refund processed."</div>
+                                </div>
+
+                                {/* Timeline Steps */}
+                                <div className="pt-4 mt-2 border-t border-white/5">
+                                    <div className="flex items-center justify-between relative">
+                                        {/* Connecting Line */}
+                                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-800 -z-10"></div>
+
+                                        {/* Step 1 */}
+                                        <div className="flex flex-col items-center gap-2 bg-[#111] px-2">
+                                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50">
+                                                <svg className="w-3 h-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <div className="text-[10px] text-gray-400">Picked Up</div>
+                                        </div>
+
+                                        {/* Step 2 */}
+                                        <div className="flex flex-col items-center gap-2 bg-[#111] px-2">
+                                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50">
+                                                <svg className="w-3 h-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <div className="text-[10px] text-gray-400">QC Passed</div>
+                                        </div>
+
+                                        {/* Step 3 */}
+                                        <div className="flex flex-col items-center gap-2 bg-[#111] px-2">
+                                            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500 relative">
+                                                <div className="absolute inset-0 rounded-full animate-ping bg-blue-500/20"></div>
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                            </div>
+                                            <div className="text-[10px] text-white font-medium">Processing</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
