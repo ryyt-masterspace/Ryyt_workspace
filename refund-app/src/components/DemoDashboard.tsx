@@ -20,14 +20,17 @@ export default function DemoDashboard() {
 
     // Refs for animation coordination
     const isAnimating = useRef(false);
+    const isMounted = useRef(true);
 
     useEffect(() => {
+        isMounted.current = true;
         if (isAnimating.current) return;
         isAnimating.current = true;
 
         const runSequence = async () => {
-            while (true) {
+            while (isMounted.current) {
                 // --- RESET STATE ---
+                if (!isMounted.current) break;
                 setScreen("LOGIN");
                 setEmail("");
                 setPassword("");
@@ -39,38 +42,50 @@ export default function DemoDashboard() {
                 setCursorPos({ x: "50%", y: "110%" });
 
                 await wait(1000);
+                if (!isMounted.current) break;
 
                 // --- SCENE 1: LOGIN ---
                 // Move to Email
                 setCursorPos({ x: "50%", y: "42%" });
                 await wait(1000);
+                if (!isMounted.current) break;
                 await typeText("merchant@ryyt.com", setEmail);
+                if (!isMounted.current) break;
 
                 // Move to Password
                 setCursorPos({ x: "50%", y: "55%" });
                 await wait(500);
+                if (!isMounted.current) break;
                 await typeText("********", setPassword);
+                if (!isMounted.current) break;
 
                 // Click Login
                 setCursorPos({ x: "50%", y: "68%" });
                 await wait(800);
+                if (!isMounted.current) break;
                 await click();
+                if (!isMounted.current) break;
 
                 // Transition
                 await wait(500);
+                if (!isMounted.current) break;
                 setScreen("DASHBOARD");
 
                 // --- SCENE 2: DASHBOARD OVERVIEW ---
                 // Move cursor around to show "looking"
                 setCursorPos({ x: "20%", y: "30%" }); // Stats
                 await wait(800);
+                if (!isMounted.current) break;
                 setCursorPos({ x: "70%", y: "40%" }); // Recent refunds
                 await wait(800);
+                if (!isMounted.current) break;
 
                 // Click "New Refund"
                 setCursorPos({ x: "88%", y: "15%" }); // Top right button
                 await wait(1000);
+                if (!isMounted.current) break;
                 await click();
+                if (!isMounted.current) break;
 
                 // Transition
                 setScreen("CREATE");
@@ -79,17 +94,23 @@ export default function DemoDashboard() {
                 // Type Customer Name
                 setCursorPos({ x: "30%", y: "35%" });
                 await wait(800);
+                if (!isMounted.current) break;
                 await typeText("Ananya Gupta", setCustomerName);
+                if (!isMounted.current) break;
 
                 // Type Amount
                 setCursorPos({ x: "70%", y: "35%" });
                 await wait(500);
+                if (!isMounted.current) break;
                 await typeText("4500", setAmount);
+                if (!isMounted.current) break;
 
                 // Click Create
                 setCursorPos({ x: "85%", y: "85%" }); // Bottom right action
                 await wait(1000);
+                if (!isMounted.current) break;
                 await click();
+                if (!isMounted.current) break;
 
                 // Transition
                 setScreen("DETAILS");
@@ -98,19 +119,26 @@ export default function DemoDashboard() {
                 // Move to Update Status
                 setCursorPos({ x: "85%", y: "20%" });
                 await wait(1500);
+                if (!isMounted.current) break;
                 await click();
+                if (!isMounted.current) break;
                 setShowUtrModal(true);
 
                 // Enter UTR
                 setCursorPos({ x: "50%", y: "50%" });
                 await wait(800);
+                if (!isMounted.current) break;
                 await click();
+                if (!isMounted.current) break;
                 await typeText("HDFC00088219", setUtr);
+                if (!isMounted.current) break;
 
                 // Confirm
                 setCursorPos({ x: "50%", y: "70%" });
                 await wait(800);
+                if (!isMounted.current) break;
                 await click();
+                if (!isMounted.current) break;
 
                 setShowUtrModal(false);
                 setStatus("Completed");
@@ -122,6 +150,10 @@ export default function DemoDashboard() {
         };
 
         runSequence();
+
+        return () => {
+            isMounted.current = false;
+        };
     }, []);
 
     // --- HELPER FUNCTIONS ---
