@@ -144,15 +144,15 @@ export default function TestimonialsMarquee() {
             </div>
 
             {/* Marquee Container */}
-            <div className="relative flex overflow-x-hidden group">
+            <div className="relative w-full overflow-hidden group">
                 {/* Gradient Masks */}
                 <div className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-black to-transparent z-20 pointer-events-none"></div>
                 <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-black to-transparent z-20 pointer-events-none"></div>
 
                 {/* Scrolling Track */}
                 <div
-                    className="animate-marquee flex gap-6 whitespace-nowrap py-4"
-                    style={{ animationDuration: "120s" }} // Slowed down for readability
+                    className="animate-marquee flex w-max gap-6 py-4"
+                    style={{ animationDuration: "120s" }}
                 >
                     {[...testimonials, ...testimonials].map((testimonial, index) => (
                         <div
@@ -161,11 +161,10 @@ export default function TestimonialsMarquee() {
                         >
                             <div className="flex items-center gap-4 mb-4">
                                 <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-                                    <Image
+                                    <img
                                         src={testimonial.image}
                                         alt={testimonial.name}
-                                        fill
-                                        className="object-cover"
+                                        className="w-full h-full object-cover"
                                     />
                                 </div>
                                 <div>
