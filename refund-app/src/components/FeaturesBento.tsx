@@ -166,10 +166,16 @@ export default function FeaturesBento() {
                                 </div>
                             </div>
                             {/* Simulated Email Body */}
-                            <div className="space-y-2">
-                                <div className="h-2 w-3/4 bg-gray-800 rounded animate-pulse"></div>
-                                <div className="h-2 w-full bg-gray-800 rounded animate-pulse delay-75"></div>
-                                <div className="h-2 w-5/6 bg-gray-800 rounded animate-pulse delay-150"></div>
+                            <div className="space-y-1.5 min-h-[60px]">
+                                <div className="overflow-hidden w-0 group-hover:w-full transition-[width] duration-700 ease-out whitespace-nowrap">
+                                    <p className="text-xs text-gray-300">Hi Shuva,</p>
+                                </div>
+                                <div className="overflow-hidden w-0 group-hover:w-full transition-[width] duration-1000 delay-500 ease-out whitespace-nowrap">
+                                    <p className="text-xs text-gray-300">Your refund of <span className="text-white font-medium">₹2,499</span> is processed.</p>
+                                </div>
+                                <div className="overflow-hidden w-0 group-hover:w-full transition-[width] duration-700 delay-[1200ms] ease-out whitespace-nowrap">
+                                    <p className="text-[10px] text-gray-500">Ref ID: <span className="font-mono">rf_3k92...92j1</span></p>
+                                </div>
                             </div>
                             <div className="mt-4 pt-4 border-t border-white/5">
                                 <div className="h-8 w-full bg-blue-500/10 rounded flex items-center justify-center text-xs text-blue-400 font-medium">
