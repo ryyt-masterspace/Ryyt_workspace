@@ -51,7 +51,7 @@ export default function SocialProof() {
                 {count}+
             </div>
             <p className="text-gray-400 text-lg md:text-xl font-medium tracking-wide">
-                Brands work with us
+                Trusted by leading brands
             </p>
         </div>
     );
