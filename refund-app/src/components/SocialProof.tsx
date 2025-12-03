@@ -28,7 +28,7 @@ export default function SocialProof() {
         if (!isVisible) return;
 
         let start = 0;
-        const end = 500;
+        const end = 1200;
         const duration = 2000;
         const increment = end / (duration / 16);
 
@@ -46,9 +46,17 @@ export default function SocialProof() {
     }, [isVisible]);
 
     // Reusable Avatar Circle Component
-    const AvatarCircle = ({ children, color = "bg-[#111]" }: { children: React.ReactNode, color?: string }) => (
+    const AvatarCircle = ({ src, alt, color = "bg-[#111]" }: { src?: string, alt?: string, color?: string }) => (
         <div className={`w-12 h-12 rounded-full ${color} border-2 border-[#050505] flex items-center justify-center shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300`}>
-            {children}
+            {src ? (
+                <img src={src} alt={alt} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+            ) : (
+                <div className="flex items-center justify-center w-full h-full">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                </div>
+            )}
         </div>
     );
 
@@ -57,58 +65,20 @@ export default function SocialProof() {
 
             {/* Text */}
             <p className="text-lg text-gray-400 font-medium">
-                Join <span className="text-white font-bold tabular-nums">{count}+</span> brands building trust
+                Join <span className="text-white font-bold tabular-nums">{count}+</span> founders who trust us
             </p>
 
             {/* Overlapping Avatars Row */}
             <div className="flex items-center -space-x-4">
 
-                {/* Avatar 1: Hex */}
-                <AvatarCircle>
-                    <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-                        <path d="M20 5L33 12.5V27.5L20 35L7 27.5V12.5L20 5Z" stroke="white" strokeWidth="3" />
-                    </svg>
-                </AvatarCircle>
-
-                {/* Avatar 2: Wave */}
-                <AvatarCircle>
-                    <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
-                        <path d="M2 20C8 20 8 10 14 10C20 10 20 30 26 30C32 30 32 20 38 20" stroke="white" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                </AvatarCircle>
-
-                {/* Avatar 3: Dots */}
-                <AvatarCircle>
-                    <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-                        <circle cx="8" cy="8" r="4" fill="white" />
-                        <circle cx="32" cy="8" r="4" fill="white" />
-                        <circle cx="8" cy="32" r="4" fill="white" />
-                        <circle cx="32" cy="32" r="4" fill="white" />
-                    </svg>
-                </AvatarCircle>
-
-                {/* Avatar 4: Layers */}
-                <AvatarCircle>
-                    <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-                        <rect x="5" y="5" width="20" height="20" rx="4" stroke="white" strokeWidth="3" />
-                        <rect x="15" y="15" width="20" height="20" rx="4" fill="white" fillOpacity="0.5" />
-                    </svg>
-                </AvatarCircle>
-
-                {/* Avatar 5: Orbit */}
-                <AvatarCircle>
-                    <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-                        <circle cx="20" cy="20" r="16" stroke="white" strokeWidth="3" strokeDasharray="6 6" />
-                        <circle cx="20" cy="20" r="6" fill="white" />
-                    </svg>
-                </AvatarCircle>
+                <AvatarCircle src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" alt="Founder 1" />
+                <AvatarCircle src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=faces" alt="Founder 2" />
+                <AvatarCircle src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces" alt="Founder 3" />
+                <AvatarCircle src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces" alt="Founder 4" />
+                <AvatarCircle src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces" alt="Founder 5" />
 
                 {/* Avatar 6: Lightning (Accent) */}
-                <AvatarCircle color="bg-blue-600">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                    </svg>
-                </AvatarCircle>
+                <AvatarCircle color="bg-blue-600" />
 
             </div>
         </div>
