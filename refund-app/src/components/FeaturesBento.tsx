@@ -188,25 +188,46 @@ export default function FeaturesBento() {
                             </p>
                         </div>
 
-                        {/* Visual: Failure -> Success Input */}
-                        <div className="flex-1 relative mt-4">
-                            {/* State 1: Failed (Visible initially) */}
-                            <div className="absolute inset-0 bg-[#1A0505] border border-red-500/20 rounded-xl p-4 flex flex-col justify-center group-hover:opacity-0 transition-opacity duration-300">
-                                <div className="flex items-center gap-2 text-red-400 text-sm font-medium mb-2">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Refund Failed
+                        {/* Visual: Live Activity Feed */}
+                        <div className="flex-1 relative mt-4 bg-[#111] rounded-xl border border-white/10 p-4 overflow-hidden">
+                            <div className="space-y-3">
+                                {/* Step 1: Failure (Always Visible) */}
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-1 w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-red-400 font-medium">Refund Failed</div>
+                                        <div className="text-[10px] text-gray-500">Invalid UPI ID</div>
+                                    </div>
                                 </div>
-                                <div className="text-xs text-red-500/60">Invalid UPI ID provided.</div>
-                            </div>
 
-                            {/* State 2: Success Input (Visible on Hover) */}
-                            <div className="absolute inset-0 bg-[#051A05] border border-green-500/20 rounded-xl p-4 flex flex-col justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className="text-xs text-green-400 mb-2 font-medium">✓ Secure Link Sent</div>
-                                <div className="bg-[#0A0A0A] border border-white/10 rounded px-3 py-2 flex items-center justify-between">
-                                    <div className="text-xs text-white">shuva@okhdfcbank</div>
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                {/* Step 2: Sending Link (Animated) */}
+                                <div className="flex items-start gap-3 opacity-50 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                                    <div className="mt-1 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-blue-400 font-medium">Auto-Recovery</div>
+                                        <div className="text-[10px] text-gray-500">Sending secure link via SMS...</div>
+                                    </div>
+                                </div>
+
+                                {/* Step 3: Success (Animated) */}
+                                <div className="flex items-start gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-300 translate-y-2 group-hover:translate-y-0">
+                                    <div className="mt-1 w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-3 h-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-green-400 font-medium">Customer Updated</div>
+                                        <div className="text-[10px] text-gray-500">shuva@okhdfcbank</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
