@@ -10,16 +10,15 @@ export default function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
                     {/* Brand Column */}
                     <div className="col-span-1 md:col-span-1">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="relative w-8 h-8">
+                        <div className="mb-6">
+                            <div className="relative h-10 w-32">
                                 <Image
-                                    src="/assets/ryyt-icon-blue.png"
-                                    alt="Ryyt Icon"
+                                    src="/assets/ryyt-logo-white-full.png"
+                                    alt="Ryyt Logo"
                                     fill
-                                    className="object-contain"
+                                    className="object-contain object-left"
                                 />
                             </div>
-                            <span className="text-xl font-bold text-white tracking-tight">Ryyt</span>
                         </div>
                         <p className="text-gray-400 text-sm leading-relaxed mb-6">
                             The single source of truth for refunds. Build trust, reduce anxiety, and automate your support.
