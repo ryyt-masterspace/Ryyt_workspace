@@ -70,32 +70,33 @@ export default function HowItWorks() {
             ),
             visual: (
                 <div className="w-full max-w-sm mx-auto px-4 relative">
-                    {/* Floating Notification */}
+                    {/* Floating Notification / Email Context */}
                     <div className="relative">
                         <div className="absolute -inset-1 bg-gradient-to-b from-blue-500/10 to-transparent rounded-2xl blur-xl"></div>
-                        <div className="relative space-y-6">
-                            {/* Email Header */}
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-[0_0_20px_rgba(37,99,235,0.3)] ring-4 ring-black">R</div>
-                                <div>
-                                    <div className="text-base text-white font-medium">Refund Started</div>
-                                    <div className="text-xs text-blue-400">Track your request</div>
+                        <div className="relative space-y-4">
+                            {/* Email Header (New Filler) */}
+                            <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">R</div>
+                                    <div>
+                                        <div className="text-xs text-white font-medium">Refund Started</div>
+                                        <div className="text-[10px] text-gray-500">To: amit@gmail.com</div>
+                                    </div>
                                 </div>
+                                <div className="text-[10px] text-gray-600">Just now</div>
                             </div>
 
                             {/* The Link Itself */}
-                            <div className="pl-8">
-                                <div className="relative group cursor-pointer">
-                                    <div className="absolute -inset-0.5 bg-blue-500/30 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
-                                    <div className="relative bg-[#050505] border border-blue-500/30 rounded-lg p-4 flex items-center justify-between group-hover:border-blue-500/50 transition-colors">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-blue-400/70 uppercase tracking-wider mb-1">Secure Link</span>
-                                            <span className="text-sm text-blue-400 font-mono">ryyt.io/tr/8821</span>
-                                        </div>
-                                        <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                        </svg>
+                            <div className="relative group cursor-pointer">
+                                <div className="absolute -inset-0.5 bg-blue-500/30 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+                                <div className="relative bg-[#050505] border border-blue-500/30 rounded-lg p-4 flex items-center justify-between group-hover:border-blue-500/50 transition-colors">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-blue-400/70 uppercase tracking-wider mb-1">Secure Link</span>
+                                        <span className="text-sm text-blue-400 font-mono">ryyt.io/tr/8821</span>
                                     </div>
+                                    <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
                                 </div>
                             </div>
                         </div>
@@ -114,7 +115,7 @@ export default function HowItWorks() {
             ),
             visual: (
                 <div className="w-full max-w-sm mx-auto px-4">
-                    <div className="relative space-y-8">
+                    <div className="relative space-y-6">
                         {/* Status Indicator */}
                         <div className="flex items-center justify-between">
                             <div className="text-sm text-gray-400">Status</div>
@@ -140,6 +141,18 @@ export default function HowItWorks() {
                                 <div className="px-4 py-1.5 bg-green-600 text-white text-xs font-medium rounded-full shadow-lg shadow-green-900/20 cursor-pointer hover:bg-green-500 transition-colors">
                                     Paid
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Recent Activity (New Filler) */}
+                        <div className="pt-4 border-t border-white/5 space-y-3">
+                            <div className="flex items-center gap-3 opacity-50">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                <div className="text-[10px] text-gray-400">Link sent to customer • 10:23 AM</div>
+                            </div>
+                            <div className="flex items-center gap-3 opacity-50">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                <div className="text-[10px] text-gray-400">Viewed by customer • 10:25 AM</div>
                             </div>
                         </div>
                     </div>
