@@ -1,8 +1,10 @@
 import Image from "next/image";
+import InteractiveBackground from "@/components/InteractiveBackground";
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center pt-32 px-6 bg-starfield relative overflow-hidden">
+    <main className="min-h-screen flex flex-col items-center pt-32 px-6 relative overflow-hidden">
+      <InteractiveBackground />
 
       {/* Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
