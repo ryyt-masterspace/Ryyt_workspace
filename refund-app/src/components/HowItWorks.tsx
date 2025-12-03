@@ -160,38 +160,47 @@ export default function HowItWorks() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                    {/* Connecting Line (Desktop) */}
-                    <div className="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-gradient-to-r from-blue-500/20 via-blue-500/20 to-blue-500/20 -z-10"></div>
-
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
                     {steps.map((step, index) => (
                         <div
                             key={step.id}
-                            className={`relative flex flex-col items-center cursor-pointer group transition-all duration-500 ${activeStep === index ? 'opacity-100 scale-105' : 'opacity-50 hover:opacity-80'
+                            className={`bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 md:p-8 flex flex-col relative overflow-hidden group hover:border-white/10 transition-all duration-500 ${activeStep === index ? 'ring-1 ring-blue-500/20' : ''
                                 }`}
                             onClick={() => setActiveStep(index)}
                         >
-                            {/* Step Number Bubble */}
-                            <div className={`w-24 h-24 rounded-full bg-[#0A0A0A] border-4 flex items-center justify-center mb-6 z-10 transition-colors duration-500 ${activeStep === index ? 'border-blue-500 text-white shadow-[0_0_30px_rgba(59,130,246,0.3)]' : 'border-[#222] text-gray-600'
-                                }`}>
-                                <span className="text-2xl font-bold">{step.id}</span>
-                            </div>
+                            {/* Hover Gradient */}
+                            <div className={`absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent transition-opacity duration-500 ${activeStep === index ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                }`}></div>
 
-                            {/* Content */}
-                            <div className="text-center mb-8 px-4">
-                                <h3 className={`text-xl font-bold mb-2 transition-colors duration-300 ${activeStep === index ? 'text-white' : 'text-gray-500'
+                            {/* Header: Number & Title */}
+                            <div className="relative z-10 mb-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold transition-colors duration-300 ${activeStep === index ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-500 group-hover:bg-white/10'
+                                        }`}>
+                                        {step.id}
+                                    </div>
+                                    {activeStep === index && (
+                                        <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                                            <span className="text-[10px] font-medium text-blue-400 uppercase tracking-wider">Active</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <h3 className={`text-xl font-bold mb-2 transition-colors duration-300 ${activeStep === index ? 'text-white' : 'text-gray-300 group-hover:text-white'
                                     }`}>
                                     {step.title}
                                 </h3>
-                                <p className="text-sm text-gray-400 leading-relaxed">
+                                <p className="text-sm text-gray-500 leading-relaxed">
                                     {step.description}
                                 </p>
                             </div>
 
                             {/* Visual Preview */}
-                            <div className={`w-full transition-all duration-500 transform ${activeStep === index ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-50 grayscale'
-                                }`}>
-                                {step.visual}
+                            <div className="relative z-10 mt-auto pt-4">
+                                <div className={`transition-all duration-500 transform ${activeStep === index ? 'translate-y-0 opacity-100 grayscale-0' : 'translate-y-2 opacity-70 grayscale group-hover:grayscale-0 group-hover:opacity-100 group-hover:translate-y-0'
+                                    }`}>
+                                    {step.visual}
+                                </div>
                             </div>
                         </div>
                     ))}
