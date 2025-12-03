@@ -4,7 +4,7 @@ import DemoDashboard from "@/components/DemoDashboard";
 import SocialProof from "@/components/SocialProof";
 import ProblemSection from "@/components/ProblemSection";
 import FeaturesBento from "@/components/FeaturesBento";
-import HowItWorks from "@/components/HowItWorks";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -56,6 +56,9 @@ export default function Home() {
           <HowItWorks />
         </div>
       </section>
+
+      {/* Footer */}
+      <Footer />
     </main>
   );
 }
