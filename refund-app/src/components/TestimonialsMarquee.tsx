@@ -133,7 +133,7 @@ const testimonials = [
 
 export default function TestimonialsMarquee() {
     return (
-        <section className="py-24 relative z-10 overflow-hidden bg-red-900/20 border-y border-red-500">
+        <section className="py-24 relative z-10 overflow-hidden">
             <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">
                     Loved by <span className="text-blue-500">modern founders.</span>

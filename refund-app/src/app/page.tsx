@@ -59,6 +59,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Testimonials Marquee */}
+      <TestimonialsMarquee />
+
       {/* Footer */}
       <Footer />
     </main>
