@@ -1,3 +1,9 @@
+import Image from "next/image";
+import InteractiveBackground from "@/components/InteractiveBackground";
+import DemoDashboard from "@/components/DemoDashboard";
+import SocialProof from "@/components/SocialProof";
+import ProblemSection from "@/components/ProblemSection";
+import FeaturesBento from "@/components/FeaturesBento";
 import HowItWorks from "@/components/HowItWorks";
 
 export default function Home() {
