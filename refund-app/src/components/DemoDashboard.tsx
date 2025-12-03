@@ -140,8 +140,50 @@ export default function DemoDashboard() {
         }
     };
 
+    // --- SCROLL ANIMATION ---
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [transformStyle, setTransformStyle] = useState({});
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (!containerRef.current) return;
+
+            const rect = containerRef.current.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+
+            // Calculate progress: 0 when element is at bottom, 1 when at center
+            // We want it to start untiliting as it enters view
+            const elementCenter = rect.top + rect.height / 2;
+            const triggerPoint = windowHeight * 0.8; // Start animating when it's 80% down the screen
+
+            let progress = (triggerPoint - rect.top) / (windowHeight * 0.5);
+            progress = Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
+
+            // Tilt: 45deg at start, 0deg at end
+            const rotateX = 45 * (1 - progress);
+            // Scale: 0.8 at start, 1 at end
+            const scale = 0.8 + (0.2 * progress);
+            // Opacity: Fade in slightly
+            const opacity = 0.5 + (0.5 * progress);
+
+            setTransformStyle({
+                transform: `perspective(1000px) rotateX(${rotateX}deg) scale(${scale})`,
+                opacity: opacity,
+                transition: "transform 0.1s ease-out" // Smooth out the scroll updates
+            });
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        handleScroll(); // Initial check
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
     return (
-        <div className="w-full max-w-5xl relative z-10 animate-float mx-auto group">
+        <div
+            ref={containerRef}
+            className="w-full max-w-5xl relative z-10 mx-auto group"
+            style={transformStyle}
+        >
             {/* Glow Effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/30 via-white/20 to-purple-500/30 rounded-[30px] blur-2xl opacity-90 transition duration-1000 group-hover:opacity-100 group-hover:blur-3xl group-hover:via-white/30"></div>
 
