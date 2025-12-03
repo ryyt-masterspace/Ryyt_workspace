@@ -49,6 +49,25 @@ export default function FeaturesBento() {
                                 </div>
                             </div>
 
+                            {/* Order Summary */}
+                            <div className="flex gap-4 mb-6 bg-[#1A1A1A] p-4 rounded-xl border border-white/5">
+                                <div className="w-16 h-16 bg-white/5 rounded-lg flex-shrink-0 overflow-hidden relative">
+                                    <img
+                                        src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop"
+                                        alt="Product"
+                                        className="w-full h-full object-cover opacity-80"
+                                    />
+                                </div>
+                                <div>
+                                    <div className="text-white font-medium text-sm">Nike Air Max 90</div>
+                                    <div className="text-xs text-gray-500 mt-1">Order #8821 • Size 9</div>
+                                    <div className="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                                        Return Reason: Size too small
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Data Rows */}
                             <div className="space-y-3">
                                 <div className="grid grid-cols-2 gap-3">
