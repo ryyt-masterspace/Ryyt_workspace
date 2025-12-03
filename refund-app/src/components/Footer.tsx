@@ -40,7 +40,6 @@ export default function Footer() {
                             <li><Link href="#" className="hover:text-blue-400 transition-colors">Features</Link></li>
                             <li><Link href="#" className="hover:text-blue-400 transition-colors">How it Works</Link></li>
                             <li><Link href="#" className="hover:text-blue-400 transition-colors">Pricing</Link></li>
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Changelog</Link></li>
                         </ul>
                     </div>
 
