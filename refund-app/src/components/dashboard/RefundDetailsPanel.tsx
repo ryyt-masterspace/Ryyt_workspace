@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { doc, updateDoc, arrayUnion, serverTimestamp, Timestamp } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, serverTimestamp, Timestamp, deleteField } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -20,6 +20,7 @@ interface Refund {
     paymentMethod?: string;
     createdAt?: any;
     targetUpi?: string;
+    previousFailedUpi?: string;
     proofs?: {
         utr?: string;
     };
@@ -79,7 +80,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
 
             // Calculate new SLA Due Date
             const selectedDate = new Date(refundDate);
-            // Preserve time from original if possible, else use noon to avoid timezone shifts
             selectedDate.setHours(12, 0, 0, 0);
 
             const daysToAdd = SLA_DAYS[paymentMethod] || 7;
@@ -94,6 +94,13 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                 updatedAt: serverTimestamp(),
             };
 
+            // Failure Recovery Logic
+            // If marking as FAILED and we have a targetUpi, move it to history and clear it
+            if (status === "FAILED" && refund.targetUpi) {
+                updateData.previousFailedUpi = refund.targetUpi;
+                updateData.targetUpi = deleteField();
+            }
+
             // If status is SETTLED, save the UTR
             if (status === "SETTLED" && utr) {
                 updateData["proofs.utr"] = utr;
@@ -105,7 +112,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                     status: status,
                     title: STATUS_OPTIONS.find(o => o.value === status)?.label || status,
                     date: new Date().toISOString(),
-                    description: status === "SETTLED" ? `UTR: ${utr}` : "Status updated by merchant",
+                    description: status === "SETTLED" ? `UTR: ${utr}` :
+                        status === "FAILED" ? "Refund Failed. UPI ID cleared for re-collection." :
+                            "Status updated by merchant",
                 };
                 updateData.timeline = arrayUnion(timelineEntry);
             }
@@ -173,6 +182,22 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                             {refund.customerName} ({refund.customerEmail})
                         </div>
                     </div>
+
+                    {/* Previous Failed ID Alert */}
+                    {refund.previousFailedUpi && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-red-500/20 rounded-lg text-red-500">
+                                    <AlertCircle size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-medium text-red-400 mb-1">Previous Failed ID</p>
+                                    <code className="text-sm text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded">{refund.previousFailedUpi}</code>
+                                    <p className="text-[10px] text-red-400/60 mt-1">This ID failed processing. Please request a new one.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Payout Details Section */}
                     <div className="space-y-4">
