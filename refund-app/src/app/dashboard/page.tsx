@@ -9,7 +9,11 @@ import { useAuth } from "@/lib/AuthContext";
 import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
-import { Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight, TrendingUp, AlertTriangle, Activity } from "lucide-react";
+import {
+    Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight,
+    TrendingUp, AlertTriangle, Activity, Clock, CreditCard, Smartphone,
+    Landmark, Banknote, Wallet
+} from "lucide-react";
 
 interface Refund {
     id: string;
@@ -19,6 +23,8 @@ interface Refund {
     amount: number;
     status: string;
     createdAt: any;
+    slaDueDate?: string;
+    paymentMethod?: string;
     proofs?: {
         utr?: string;
     };
@@ -36,8 +42,8 @@ export default function DashboardPage() {
     // Stats State
     const [stats, setStats] = useState({
         activeCount: 0,
-        pendingValue: 0,
-        riskCount: 0,
+        riskValue: 0,
+        avgTime: 0,
     });
 
     useEffect(() => {
@@ -58,7 +64,7 @@ export default function DashboardPage() {
                     ...doc.data(),
                 })) as Refund[];
 
-                // Sort
+                // Sort by creation date desc
                 refundList.sort((a, b) => {
                     const dateA = a.createdAt?.seconds || 0;
                     const dateB = b.createdAt?.seconds || 0;
@@ -77,28 +83,42 @@ export default function DashboardPage() {
     const calculateStats = (data: Refund[]) => {
         const now = new Date();
         let active = 0;
-        let value = 0;
-        let risk = 0;
+        let riskVal = 0;
+        let totalDays = 0;
+        let countForAvg = 0;
 
         data.forEach(r => {
-            if (r.status !== "SETTLED" && r.status !== "FAILED") {
+            // Active means not settled and not failed (assuming failed is closed)
+            // Or maybe failed needs attention? Let's assume Active = Not Settled.
+            if (r.status !== "SETTLED") {
                 active++;
-                value += Number(r.amount);
 
-                // Check SLA (5 days)
+                // Avg Time (Days Open)
                 if (r.createdAt?.seconds) {
-                    const createdDate = new Date(r.createdAt.seconds * 1000);
-                    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    if (diffDays > 5) risk++;
+                    const created = new Date(r.createdAt.seconds * 1000);
+                    const diff = now.getTime() - created.getTime();
+                    const days = diff / (1000 * 3600 * 24);
+                    totalDays += days;
+                    countForAvg++;
+                }
+
+                // Risk Value (Overdue)
+                if (r.slaDueDate) {
+                    const due = new Date(r.slaDueDate);
+                    // Check if overdue
+                    if (now > due) {
+                        riskVal += Number(r.amount);
+                    }
                 }
             }
         });
 
+        const avg = countForAvg > 0 ? Math.round(totalDays / countForAvg) : 0;
+
         setStats({
             activeCount: active,
-            pendingValue: value,
-            riskCount: risk
+            riskValue: riskVal,
+            avgTime: avg
         });
     };
 
@@ -124,16 +144,21 @@ export default function DashboardPage() {
         window.open(`/t/${id}`, '_blank');
     };
 
-    const isSlaBreach = (refund: Refund) => {
-        if (refund.status === "SETTLED" || refund.status === "FAILED") return false;
-        if (!refund.createdAt?.seconds) return false;
+    const getMethodIcon = (method?: string) => {
+        switch (method) {
+            case 'UPI': return <Smartphone size={16} className="text-blue-400" />;
+            case 'CREDIT_CARD':
+            case 'DEBIT_CARD': return <CreditCard size={16} className="text-purple-400" />;
+            case 'NETBANKING': return <Landmark size={16} className="text-orange-400" />;
+            case 'WALLET': return <Wallet size={16} className="text-pink-400" />;
+            case 'COD': return <Banknote size={16} className="text-green-400" />;
+            default: return <CreditCard size={16} className="text-gray-400" />;
+        }
+    };
 
-        const now = new Date();
-        const createdDate = new Date(refund.createdAt.seconds * 1000);
-        const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        return diffDays > 5;
+    const isOverdue = (refund: Refund) => {
+        if (refund.status === "SETTLED" || !refund.slaDueDate) return false;
+        return new Date() > new Date(refund.slaDueDate);
     };
 
     if (loading) {
@@ -148,7 +173,7 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white p-8">
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
@@ -180,25 +205,25 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 flex items-center justify-between">
+                    <div className={`bg-[#0A0A0A] border rounded-xl p-5 flex items-center justify-between ${stats.riskValue > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-white/5'}`}>
                         <div>
-                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Value at Risk</p>
-                            <h3 className="text-2xl font-bold text-white">
-                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(stats.pendingValue)}
+                            <p className={`text-xs uppercase tracking-wider mb-1 ${stats.riskValue > 0 ? 'text-red-400' : 'text-gray-400'}`}>Value at Risk</p>
+                            <h3 className={`text-2xl font-bold ${stats.riskValue > 0 ? 'text-red-500' : 'text-white'}`}>
+                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(stats.riskValue)}
                             </h3>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-400">
-                            <TrendingUp size={20} />
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stats.riskValue > 0 ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-400'}`}>
+                            <AlertTriangle size={20} />
                         </div>
                     </div>
 
-                    <div className={`bg-[#0A0A0A] border rounded-xl p-5 flex items-center justify-between ${stats.riskCount > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-white/5'}`}>
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 flex items-center justify-between">
                         <div>
-                            <p className={`text-xs uppercase tracking-wider mb-1 ${stats.riskCount > 0 ? 'text-red-400' : 'text-gray-400'}`}>Compliance Alerts</p>
-                            <h3 className={`text-2xl font-bold ${stats.riskCount > 0 ? 'text-red-500' : 'text-white'}`}>{stats.riskCount}</h3>
+                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Avg. Settlement</p>
+                            <h3 className="text-2xl font-bold text-white">{stats.avgTime} Days</h3>
                         </div>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stats.riskCount > 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-400'}`}>
-                            <AlertTriangle size={20} />
+                        <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400">
+                            <Clock size={20} />
                         </div>
                     </div>
                 </div>
@@ -225,72 +250,103 @@ export default function DashboardPage() {
                     </div>
                 ) : (
                     // Refund List
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
+                        {/* Table Header */}
+                        <div className="grid grid-cols-12 gap-4 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div className="col-span-4 md:col-span-3">Customer & Order</div>
+                            <div className="col-span-2 hidden md:block">Method</div>
+                            <div className="col-span-3 md:col-span-2">Amount</div>
+                            <div className="col-span-3 md:col-span-2">Status</div>
+                            <div className="col-span-2 hidden md:block text-right">SLA Deadline</div>
+                            <div className="col-span-2 md:col-span-1"></div>
+                        </div>
+
                         {refunds.map((refund) => {
-                            const breach = isSlaBreach(refund);
+                            const overdue = isOverdue(refund);
+                            const settled = refund.status === "SETTLED";
+
                             return (
                                 <div
                                     key={refund.id}
                                     onClick={() => setSelectedRefund(refund)}
-                                    className={`bg-[#0A0A0A] border rounded-xl p-5 hover:bg-white/5 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group relative ${breach ? 'border-red-500/30 bg-red-500/5 hover:bg-red-500/10' : 'border-white/5 hover:border-white/20'
+                                    className={`grid grid-cols-12 gap-4 items-center bg-[#0A0A0A] border rounded-xl p-4 hover:bg-white/5 transition-all cursor-pointer group relative ${overdue ? 'border-l-4 border-l-red-500 border-y-white/5 border-r-white/5 bg-red-500/5' : 'border-white/5 hover:border-white/20'
                                         }`}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-xs">
+                                    {/* Customer & Order */}
+                                    <div className="col-span-4 md:col-span-3 flex items-center gap-3 overflow-hidden">
+                                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-xs shrink-0">
                                             {refund.customerName.charAt(0).toUpperCase()}
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-medium text-white">{refund.customerName}</h4>
-                                                <span className="text-xs text-gray-500">•</span>
-                                                <span className="text-xs text-gray-400">{refund.orderId}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${refund.status === 'CREATED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                        refund.status === 'PROCESSING_AT_BANK' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                                            refund.status === 'SETTLED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                                                'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                                                    }`}>
-                                                    {refund.status.replace(/_/g, " ")}
-                                                </span>
-                                                <span className="text-xs text-gray-600">
-                                                    {refund.createdAt?.toDate().toLocaleDateString()}
-                                                </span>
-                                                {breach && (
-                                                    <span className="flex items-center gap-1 text-[10px] text-red-400 font-medium bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
-                                                        <AlertTriangle size={10} /> SLA Breach
-                                                    </span>
-                                                )}
-                                            </div>
+                                        <div className="min-w-0">
+                                            <h4 className="font-medium text-white truncate">{refund.customerName}</h4>
+                                            <p className="text-xs text-gray-500 truncate">{refund.orderId}</p>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
-                                        <div className="text-right mr-4">
-                                            <p className="text-lg font-bold text-white">
-                                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
-                                            </p>
-                                            <p className="text-xs text-gray-500">Refund Amount</p>
-                                        </div>
+                                    {/* Method */}
+                                    <div className="col-span-2 hidden md:flex items-center gap-2 text-sm text-gray-400">
+                                        {getMethodIcon(refund.paymentMethod)}
+                                        <span className="capitalize">{refund.paymentMethod?.replace('_', ' ').toLowerCase() || 'Unknown'}</span>
+                                    </div>
 
-                                        <div className="flex items-center gap-2 z-10">
-                                            <button
-                                                onClick={(e) => copyToClipboard(e, refund.id)}
-                                                className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                                title="Copy Tracking Link"
-                                            >
-                                                {copiedId === refund.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                                            </button>
-                                            <button
-                                                onClick={(e) => openTracking(e, refund.id)}
-                                                className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                                title="Open Tracking Page"
-                                            >
-                                                <ExternalLink size={18} />
-                                            </button>
-                                            <div className="w-px h-6 bg-white/10 mx-1"></div>
-                                            <ChevronRight size={20} className="text-gray-600 group-hover:text-white transition-colors" />
-                                        </div>
+                                    {/* Amount */}
+                                    <div className="col-span-3 md:col-span-2">
+                                        <p className="font-bold text-white">
+                                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
+                                        </p>
+                                    </div>
+
+                                    {/* Status */}
+                                    <div className="col-span-3 md:col-span-2">
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border inline-flex items-center gap-1 ${refund.status === 'CREATED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                refund.status === 'PROCESSING_AT_BANK' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                    refund.status === 'SETTLED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                                        'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                                            }`}>
+                                            {refund.status === 'SETTLED' && <Check size={10} />}
+                                            {refund.status.replace(/_/g, " ")}
+                                        </span>
+                                    </div>
+
+                                    {/* SLA Deadline */}
+                                    <div className="col-span-2 hidden md:flex flex-col items-end justify-center text-right">
+                                        {refund.slaDueDate ? (
+                                            <>
+                                                <span className={`text-sm font-medium ${overdue ? 'text-red-500' : 'text-gray-400'}`}>
+                                                    {new Date(refund.slaDueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                </span>
+                                                {overdue && (
+                                                    <span className="text-[10px] text-red-400 flex items-center gap-1">
+                                                        <AlertTriangle size={10} /> Overdue
+                                                    </span>
+                                                )}
+                                                {settled && (
+                                                    <span className="text-[10px] text-green-500 flex items-center gap-1">
+                                                        On Time
+                                                    </span>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span className="text-xs text-gray-600">-</span>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="col-span-2 md:col-span-1 flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={(e) => copyToClipboard(e, refund.id)}
+                                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                            title="Copy Tracking Link"
+                                        >
+                                            {copiedId === refund.id ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                                        </button>
+                                        <button
+                                            onClick={(e) => openTracking(e, refund.id)}
+                                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                            title="Open Tracking Page"
+                                        >
+                                            <ExternalLink size={16} />
+                                        </button>
                                     </div>
                                 </div>
                             );
