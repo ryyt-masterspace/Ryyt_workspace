@@ -8,15 +8,20 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
-import { Plus, LogOut, Search, ExternalLink, Copy, Check } from "lucide-react";
+import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
+import { Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight } from "lucide-react";
 
 interface Refund {
     id: string;
     orderId: string;
     customerName: string;
+    customerEmail: string;
     amount: number;
     status: string;
     createdAt: any;
+    proofs?: {
+        utr?: string;
+    };
 }
 
 export default function DashboardPage() {
@@ -24,6 +29,7 @@ export default function DashboardPage() {
     const router = useRouter();
     const [refunds, setRefunds] = useState<Refund[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedRefund, setSelectedRefund] = useState<Refund | null>(null);
     const [isLoadingRefunds, setIsLoadingRefunds] = useState(true);
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -45,7 +51,7 @@ export default function DashboardPage() {
                     id: doc.id,
                     ...doc.data(),
                 })) as Refund[];
-                // Client-side sort since we removed orderBy from query
+                // Client-side sort
                 refundList.sort((a, b) => {
                     const dateA = a.createdAt?.seconds || 0;
                     const dateB = b.createdAt?.seconds || 0;
@@ -68,11 +74,17 @@ export default function DashboardPage() {
         }
     };
 
-    const copyToClipboard = (id: string) => {
+    const copyToClipboard = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
         const url = `${window.location.origin}/t/${id}`;
         navigator.clipboard.writeText(url);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const openTracking = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        window.open(`/t/${id}`, '_blank');
     };
 
     if (loading) {
@@ -133,7 +145,8 @@ export default function DashboardPage() {
                         {refunds.map((refund) => (
                             <div
                                 key={refund.id}
-                                className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                                onClick={() => setSelectedRefund(refund)}
+                                className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group relative"
                             >
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-xs">
@@ -147,10 +160,11 @@ export default function DashboardPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${refund.status === 'CREATED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                    refund.status === 'COMPLETED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                                        'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                                                    refund.status === 'PROCESSING_AT_BANK' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                        refund.status === 'SETTLED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                                            'bg-gray-500/10 text-gray-400 border-gray-500/20'
                                                 }`}>
-                                                {refund.status}
+                                                {refund.status.replace(/_/g, " ")}
                                             </span>
                                             <span className="text-xs text-gray-600">
                                                 {refund.createdAt?.toDate().toLocaleDateString()}
@@ -167,23 +181,23 @@ export default function DashboardPage() {
                                         <p className="text-xs text-gray-500">Refund Amount</p>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 z-10">
                                         <button
-                                            onClick={() => copyToClipboard(refund.id)}
-                                            className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                            onClick={(e) => copyToClipboard(e, refund.id)}
+                                            className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
                                             title="Copy Tracking Link"
                                         >
                                             {copiedId === refund.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
                                         </button>
-                                        <a
-                                            href={`/t/${refund.id}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                        <button
+                                            onClick={(e) => openTracking(e, refund.id)}
+                                            className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
                                             title="Open Tracking Page"
                                         >
                                             <ExternalLink size={18} />
-                                        </a>
+                                        </button>
+                                        <div className="w-px h-6 bg-white/10 mx-1"></div>
+                                        <ChevronRight size={20} className="text-gray-600 group-hover:text-white transition-colors" />
                                     </div>
                                 </div>
                             </div>
@@ -192,6 +206,14 @@ export default function DashboardPage() {
                 )}
 
                 <CreateRefundModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+                {/* Detail Panel */}
+                {selectedRefund && (
+                    <RefundDetailsPanel
+                        refund={selectedRefund}
+                        onClose={() => setSelectedRefund(null)}
+                    />
+                )}
             </div>
         </div>
     );
