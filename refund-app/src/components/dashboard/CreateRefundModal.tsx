@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Card from "@/components/ui/Card";
@@ -22,6 +22,7 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
         customerName: "",
         customerEmail: "",
         amount: "",
+        refundDate: new Date().toISOString().split('T')[0], // Default to today
     });
 
     if (!isOpen) return null;
@@ -32,6 +33,12 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
 
         setIsLoading(true);
         try {
+            // Create date object from the selected string (YYYY-MM-DD)
+            const selectedDate = new Date(formData.refundDate);
+            const now = new Date();
+            // Preserve current time for better sorting, but use selected date
+            selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
             await addDoc(collection(db, "refunds"), {
                 merchantId: user.uid,
                 orderId: formData.orderId,
@@ -39,17 +46,23 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                 customerEmail: formData.customerEmail,
                 amount: Number(formData.amount),
                 status: "CREATED",
-                createdAt: serverTimestamp(),
+                createdAt: Timestamp.fromDate(selectedDate),
                 timeline: [
                     {
                         status: "CREATED",
                         title: "Refund Initiated",
-                        date: new Date().toISOString(),
+                        date: selectedDate.toISOString(),
                     },
                 ],
             });
             onClose();
-            setFormData({ orderId: "", customerName: "", customerEmail: "", amount: "" });
+            setFormData({
+                orderId: "",
+                customerName: "",
+                customerEmail: "",
+                amount: "",
+                refundDate: new Date().toISOString().split('T')[0]
+            });
         } catch (error) {
             console.error("Error creating refund:", error);
             alert("Failed to create refund. Please try again.");
@@ -96,15 +109,25 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                         value={formData.customerEmail}
                         onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                     />
-                    <Input
-                        label="Amount (₹)"
-                        type="number"
-                        placeholder="1000"
-                        required
-                        min="1"
-                        value={formData.amount}
-                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Amount (₹)"
+                            type="number"
+                            placeholder="1000"
+                            required
+                            min="1"
+                            value={formData.amount}
+                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        />
+                        <Input
+                            label="Refund Requested On"
+                            type="date"
+                            required
+                            value={formData.refundDate}
+                            onChange={(e) => setFormData({ ...formData, refundDate: e.target.value })}
+                            className="[color-scheme:dark]"
+                        />
+                    </div>
 
                     <div className="pt-4 flex gap-3">
                         <Button
