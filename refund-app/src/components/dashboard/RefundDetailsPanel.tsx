@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { X, CheckCircle2, Clock, Building2, AlertCircle } from "lucide-react";
+import { X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock } from "lucide-react";
 
 interface Refund {
     id: string;
@@ -14,6 +14,8 @@ interface Refund {
     customerEmail: string;
     amount: number;
     status: string;
+    paymentMethod?: string;
+    createdAt?: any;
     proofs?: {
         utr?: string;
     };
@@ -31,15 +33,34 @@ const STATUS_OPTIONS = [
     { value: "FAILED", label: "Failed", icon: AlertCircle },
 ];
 
+const SLA_DAYS: Record<string, number> = {
+    UPI: 2,
+    WALLET: 2,
+    NETBANKING: 7,
+    DEBIT_CARD: 7,
+    CREDIT_CARD: 7,
+    COD: 5,
+};
+
 export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPanelProps) {
     const [status, setStatus] = useState("");
     const [utr, setUtr] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("UPI");
+    const [refundDate, setRefundDate] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (refund) {
             setStatus(refund.status);
             setUtr(refund.proofs?.utr || "");
+            setPaymentMethod(refund.paymentMethod || "UPI");
+
+            if (refund.createdAt?.seconds) {
+                const date = new Date(refund.createdAt.seconds * 1000);
+                setRefundDate(date.toISOString().split('T')[0]);
+            } else {
+                setRefundDate(new Date().toISOString().split('T')[0]);
+            }
         }
     }, [refund]);
 
@@ -50,8 +71,20 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         try {
             const refundRef = doc(db, "refunds", refund.id);
 
+            // Calculate new SLA Due Date
+            const selectedDate = new Date(refundDate);
+            // Preserve time from original if possible, else use noon to avoid timezone shifts
+            selectedDate.setHours(12, 0, 0, 0);
+
+            const daysToAdd = SLA_DAYS[paymentMethod] || 7;
+            const dueDate = new Date(selectedDate);
+            dueDate.setDate(dueDate.getDate() + daysToAdd);
+
             const updateData: any = {
                 status: status,
+                paymentMethod: paymentMethod,
+                createdAt: Timestamp.fromDate(selectedDate),
+                slaDueDate: dueDate.toISOString(),
                 updatedAt: serverTimestamp(),
             };
 
@@ -60,18 +93,18 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                 updateData["proofs.utr"] = utr;
             }
 
-            // Add to timeline
-            const timelineEntry = {
-                status: status,
-                title: STATUS_OPTIONS.find(o => o.value === status)?.label || status,
-                date: new Date().toISOString(),
-                description: status === "SETTLED" ? `UTR: ${utr}` : "Status updated by merchant",
-            };
+            // Add to timeline only if status changed
+            if (status !== refund.status) {
+                const timelineEntry = {
+                    status: status,
+                    title: STATUS_OPTIONS.find(o => o.value === status)?.label || status,
+                    date: new Date().toISOString(),
+                    description: status === "SETTLED" ? `UTR: ${utr}` : "Status updated by merchant",
+                };
+                updateData.timeline = arrayUnion(timelineEntry);
+            }
 
-            await updateDoc(refundRef, {
-                ...updateData,
-                timeline: arrayUnion(timelineEntry)
-            });
+            await updateDoc(refundRef, updateData);
 
             onClose();
         } catch (error) {
@@ -120,9 +153,48 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         </div>
                     </div>
 
+                    {/* Data Correction Section */}
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Refund Data</h4>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">
+                                    Payment Mode
+                                </label>
+                                <select
+                                    className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all appearance-none"
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
+                                >
+                                    {Object.keys(SLA_DAYS).map(method => (
+                                        <option key={method} value={method} className="bg-[#0A0A0A] text-white">
+                                            {method.replace('_', ' ')}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">
+                                    Requested On
+                                </label>
+                                <input
+                                    type="date"
+                                    className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all [color-scheme:dark]"
+                                    value={refundDate}
+                                    onChange={(e) => setRefundDate(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-gray-500 ml-1">
+                            Changing these will recalculate the SLA deadline.
+                        </p>
+                    </div>
+
                     {/* Status Control */}
                     <div className="space-y-4">
-                        <label className="text-sm font-medium text-gray-300">Update Status</label>
+                        <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Update Status</h4>
                         <div className="grid gap-3">
                             {STATUS_OPTIONS.map((option) => {
                                 const Icon = option.icon;
@@ -169,7 +241,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         onClick={handleUpdate}
                         isLoading={isLoading}
                     >
-                        Update Refund
+                        Save Changes
                     </Button>
                 </div>
             </div>

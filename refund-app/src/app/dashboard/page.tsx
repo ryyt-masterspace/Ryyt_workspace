@@ -12,7 +12,7 @@ import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
 import {
     Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight,
     TrendingUp, AlertTriangle, Activity, Clock, CreditCard, Smartphone,
-    Landmark, Banknote, Wallet
+    Landmark, Banknote, Wallet, Edit2
 } from "lucide-react";
 
 interface Refund {
@@ -88,12 +88,9 @@ export default function DashboardPage() {
         let countForAvg = 0;
 
         data.forEach(r => {
-            // Active means not settled and not failed (assuming failed is closed)
-            // Or maybe failed needs attention? Let's assume Active = Not Settled.
             if (r.status !== "SETTLED") {
                 active++;
 
-                // Avg Time (Days Open)
                 if (r.createdAt?.seconds) {
                     const created = new Date(r.createdAt.seconds * 1000);
                     const diff = now.getTime() - created.getTime();
@@ -102,10 +99,8 @@ export default function DashboardPage() {
                     countForAvg++;
                 }
 
-                // Risk Value (Overdue)
                 if (r.slaDueDate) {
                     const due = new Date(r.slaDueDate);
-                    // Check if overdue
                     if (now > due) {
                         riskVal += Number(r.amount);
                     }
@@ -333,6 +328,13 @@ export default function DashboardPage() {
 
                                     {/* Actions */}
                                     <div className="col-span-2 md:col-span-1 flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setSelectedRefund(refund); }}
+                                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                            title="Edit Refund"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
                                         <button
                                             onClick={(e) => copyToClipboard(e, refund.id)}
                                             className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
