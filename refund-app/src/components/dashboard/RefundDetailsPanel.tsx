@@ -5,7 +5,10 @@ import { doc, updateDoc, arrayUnion, serverTimestamp, Timestamp } from "firebase
 import { db } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock } from "lucide-react";
+import {
+    X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock,
+    Copy, ExternalLink, AlertTriangle, Check
+} from "lucide-react";
 
 interface Refund {
     id: string;
@@ -16,6 +19,7 @@ interface Refund {
     status: string;
     paymentMethod?: string;
     createdAt?: any;
+    targetUpi?: string;
     proofs?: {
         utr?: string;
     };
@@ -48,6 +52,8 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     const [paymentMethod, setPaymentMethod] = useState("UPI");
     const [refundDate, setRefundDate] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [copiedLink, setCopiedLink] = useState(false);
+    const [copiedUpi, setCopiedUpi] = useState(false);
 
     useEffect(() => {
         if (refund) {
@@ -115,6 +121,21 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         }
     };
 
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}/pay/${refund.id}`;
+        navigator.clipboard.writeText(url);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+    };
+
+    const handleCopyUpi = () => {
+        if (refund.targetUpi) {
+            navigator.clipboard.writeText(refund.targetUpi);
+            setCopiedUpi(true);
+            setTimeout(() => setCopiedUpi(false), 2000);
+        }
+    };
+
     return (
         <>
             {/* Backdrop */}
@@ -151,6 +172,68 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                             <div className="w-2 h-2 rounded-full bg-blue-500" />
                             {refund.customerName} ({refund.customerEmail})
                         </div>
+                    </div>
+
+                    {/* Payout Details Section */}
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Payout Details</h4>
+
+                        {refund.targetUpi ? (
+                            // Scenario A: Customer provided UPI
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
+                                        <CheckCircle2 size={18} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs font-medium text-green-400 mb-1">Customer provided payment details</p>
+                                        <div className="flex items-center gap-2">
+                                            <code className="bg-black/30 px-2 py-1 rounded text-sm text-white font-mono">
+                                                {refund.targetUpi}
+                                            </code>
+                                            <button
+                                                onClick={handleCopyUpi}
+                                                className="p-1.5 hover:bg-green-500/20 rounded-md text-green-400 transition-colors"
+                                                title="Copy UPI ID"
+                                            >
+                                                {copiedUpi ? <Check size={14} /> : <Copy size={14} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            // Scenario B: UPI Missing
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
+                                        <AlertTriangle size={18} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs font-medium text-yellow-400 mb-2">Payment details missing</p>
+                                        <p className="text-xs text-gray-400 mb-3">
+                                            The customer hasn't provided their UPI ID yet. Send them the collection link.
+                                        </p>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300"
+                                            onClick={handleCopyLink}
+                                        >
+                                            {copiedLink ? (
+                                                <>
+                                                    <Check size={14} className="mr-2" /> Link Copied
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy size={14} className="mr-2" /> Copy Collection Link
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Data Correction Section */}
