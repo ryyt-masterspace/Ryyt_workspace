@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import {
     X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock,
-    Copy, ExternalLink, AlertTriangle, Check
+    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2
 } from "lucide-react";
 
 interface Refund {
@@ -31,11 +31,14 @@ interface RefundDetailsPanelProps {
     onClose: () => void;
 }
 
-const STATUS_OPTIONS = [
-    { value: "CREATED", label: "Refund Initiated", icon: Clock },
-    { value: "PROCESSING_AT_BANK", label: "Processing at Bank", icon: Building2 },
-    { value: "SETTLED", label: "Settled (Credited)", icon: CheckCircle2 },
-    { value: "FAILED", label: "Failed", icon: AlertCircle },
+// Extended Status Options including System States
+const STATUS_HIERARCHY = [
+    { value: "DRAFT", label: "Draft (Missing Info)", icon: FileEdit, color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" },
+    { value: "GATHERING_DATA", label: "Gathering Data", icon: Loader2, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+    { value: "CREATED", label: "Refund Initiated", icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+    { value: "PROCESSING_AT_BANK", label: "Processing at Bank", icon: Building2, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+    { value: "SETTLED", label: "Settled (Credited)", icon: CheckCircle2, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" },
+    { value: "FAILED", label: "Failed", icon: AlertCircle, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
 ];
 
 const SLA_DAYS: Record<string, number> = {
@@ -47,6 +50,8 @@ const SLA_DAYS: Record<string, number> = {
     COD: 5,
 };
 
+const METHODS_REQUIRING_UPI = ['UPI', 'WALLET', 'COD'];
+
 export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPanelProps) {
     const [status, setStatus] = useState("");
     const [utr, setUtr] = useState("");
@@ -56,8 +61,13 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     const [copiedLink, setCopiedLink] = useState(false);
     const [copiedUpi, setCopiedUpi] = useState(false);
 
+    // Derived State for Gates
+    const [isDraft, setIsDraft] = useState(false);
+    const [isGathering, setIsGathering] = useState(false);
+
     useEffect(() => {
         if (refund) {
+            // Initialize local state
             setStatus(refund.status);
             setUtr(refund.proofs?.utr || "");
             setPaymentMethod(refund.paymentMethod || "UPI");
@@ -70,6 +80,43 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             }
         }
     }, [refund]);
+
+    // Gate Logic Effect
+    useEffect(() => {
+        if (!refund) return;
+
+        // Level 1: Draft Gate
+        const missingInfo = !paymentMethod || !refundDate;
+        setIsDraft(missingInfo);
+
+        // Level 2: Gathering Gate
+        // Only applies if not Draft, and method requires UPI, and UPI is missing
+        // AND we are not already in a "terminal" state like SETTLED (unless we want to allow editing settled refunds to fix data?)
+        // Actually, if it's SETTLED, we probably shouldn't force Gathering Data unless the user explicitly changes something?
+        // The prompt says: "If Entry Details are OK, but paymentMethod is COD/UPI/WALLET and targetUpi is empty: Force displayed status to GATHERING_DATA."
+        // We'll apply this strictly.
+        const needsUpi = METHODS_REQUIRING_UPI.includes(paymentMethod);
+        const upiMissing = !refund.targetUpi; // Look at prop, not local state for UPI (since we don't edit UPI here directly, only via link)
+
+        // Exception: If status is FAILED, we might be in the process of resetting.
+        // But generally, if UPI is missing and needed, we are gathering.
+        const gathering = !missingInfo && needsUpi && upiMissing;
+        setIsGathering(gathering);
+
+        // Force Display Status based on Gates
+        if (missingInfo) {
+            setStatus("DRAFT");
+        } else if (gathering) {
+            setStatus("GATHERING_DATA");
+        } else {
+            // If we were forced before, revert to refund status, OR keep current selection if valid
+            // If the current local status is DRAFT/GATHERING but gates are cleared, reset to CREATED or refund.status
+            if (status === "DRAFT" || status === "GATHERING_DATA") {
+                setStatus(refund.status === "DRAFT" || refund.status === "GATHERING_DATA" ? "CREATED" : refund.status);
+            }
+        }
+    }, [paymentMethod, refundDate, refund?.targetUpi, refund?.status]);
+
 
     if (!refund) return null;
 
@@ -94,10 +141,15 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                 updatedAt: serverTimestamp(),
             };
 
-            // Failure Recovery Logic
-            if (status === "FAILED" && refund.targetUpi) {
-                updateData.previousFailedUpi = refund.targetUpi;
-                updateData.targetUpi = deleteField();
+            // Failure Logic: The Reset
+            if (status === "FAILED") {
+                // Move UPI to history
+                if (refund.targetUpi) {
+                    updateData.previousFailedUpi = refund.targetUpi;
+                    updateData.targetUpi = deleteField();
+                }
+                // Auto-set status back to GATHERING_DATA
+                updateData.status = "GATHERING_DATA";
             }
 
             // If status is SETTLED, save the UTR
@@ -105,14 +157,14 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                 updateData["proofs.utr"] = utr;
             }
 
-            // Add to timeline only if status changed
-            if (status !== refund.status) {
+            // Add to timeline only if status changed (or we are resetting from FAILED)
+            if (status !== refund.status || status === "FAILED") {
                 const timelineEntry = {
-                    status: status,
-                    title: STATUS_OPTIONS.find(o => o.value === status)?.label || status,
+                    status: status === "FAILED" ? "GATHERING_DATA" : status, // Record the resulting status
+                    title: status === "FAILED" ? "Refund Failed & Reset" : STATUS_HIERARCHY.find(o => o.value === status)?.label || status,
                     date: new Date().toISOString(),
                     description: status === "SETTLED" ? `UTR: ${utr}` :
-                        status === "FAILED" ? "Refund Failed. UPI ID cleared for re-collection." :
+                        status === "FAILED" ? "Processing failed. UPI cleared. Reverting to Gathering Data." :
                             "Status updated by merchant",
                 };
                 updateData.timeline = arrayUnion(timelineEntry);
@@ -144,10 +196,15 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         }
     };
 
-    // Reactive UI Logic
-    const isFailedState = status === "FAILED";
-    const effectiveFailedUpi = isFailedState && refund.targetUpi ? refund.targetUpi : refund.previousFailedUpi;
-    const showActiveUpi = refund.targetUpi && !isFailedState;
+    // Reactive UI Logic for FAILED selection
+    // If user selects FAILED, we simulate the reset state visually
+    const isFailedSelected = status === "FAILED";
+    const effectiveFailedUpi = isFailedSelected && refund.targetUpi ? refund.targetUpi : refund.previousFailedUpi;
+    const showActiveUpi = refund.targetUpi && !isFailedSelected;
+
+    // Determine if we should show the "Missing Details" box
+    // Show if: Gathering Gate is active OR Failed is selected (which implies we are about to go back to gathering)
+    const showMissingDetails = isGathering || isFailedSelected;
 
     return (
         <>
@@ -226,7 +283,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                             </div>
                         ) : (
                             // Scenario B: UPI Missing OR Failed (Show Yellow Box)
-                            status !== "SETTLED" && (
+                            showMissingDetails && (
                                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 animate-in fade-in duration-300">
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
@@ -235,7 +292,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                         <div className="flex-1">
                                             <p className="text-xs font-medium text-yellow-400 mb-2">Payment details missing</p>
                                             <p className="text-xs text-gray-400 mb-3">
-                                                {isFailedState
+                                                {isFailedSelected
                                                     ? "The previous UPI ID failed. Please collect a new one."
                                                     : "The customer hasn't provided their UPI ID yet."}
                                             </p>
@@ -304,22 +361,57 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                     {/* Status Control */}
                     <div className="space-y-4">
                         <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Update Status</h4>
+
+                        {/* Gate Warnings */}
+                        {isDraft && (
+                            <p className="text-xs text-gray-400 mb-2 flex items-center gap-2">
+                                <AlertCircle size={12} className="text-gray-400" />
+                                Update missing Entry Details to proceed.
+                            </p>
+                        )}
+                        {isGathering && (
+                            <p className="text-xs text-yellow-400 mb-2 flex items-center gap-2">
+                                <Loader2 size={12} className="animate-spin" />
+                                Waiting for customer payment details...
+                            </p>
+                        )}
+
                         <div className="grid gap-3">
-                            {STATUS_OPTIONS.map((option) => {
+                            {STATUS_HIERARCHY.map((option) => {
+                                // Filter out system states from manual selection unless we are already in them
+                                if ((option.value === "DRAFT" || option.value === "GATHERING_DATA") && status !== option.value) {
+                                    return null;
+                                }
+
                                 const Icon = option.icon;
                                 const isSelected = status === option.value;
+
+                                // Disable Logic
+                                let isDisabled = false;
+                                if (isDraft) isDisabled = true; // Block everything in Draft
+                                if (isGathering && (option.value === "PROCESSING_AT_BANK" || option.value === "SETTLED")) isDisabled = true; // Block progress in Gathering
+
+                                // Always allow FAILED (to reset) or CREATED (to step back)
+                                if (option.value === "FAILED" || option.value === "CREATED") isDisabled = false;
+
+                                // If we are currently in DRAFT/GATHERING, we can't select them manually (they are forced), 
+                                // but we show them as the active state.
+
                                 return (
                                     <button
                                         key={option.value}
-                                        onClick={() => setStatus(option.value)}
+                                        onClick={() => !isDisabled && setStatus(option.value)}
+                                        disabled={isDisabled}
                                         className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${isSelected
-                                                ? "bg-blue-500/10 border-blue-500/50 text-white"
-                                                : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10"
+                                                ? `${option.bg} ${option.border} ${option.color}`
+                                                : isDisabled
+                                                    ? "bg-white/5 border-white/5 text-gray-600 cursor-not-allowed opacity-50"
+                                                    : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10"
                                             }`}
                                     >
-                                        <Icon size={20} className={isSelected ? "text-blue-400" : "text-gray-500"} />
+                                        <Icon size={20} className={isSelected ? option.color : isDisabled ? "text-gray-600" : "text-gray-500"} />
                                         <span className="font-medium">{option.label}</span>
-                                        {isSelected && <CheckCircle2 size={16} className="ml-auto text-blue-400" />}
+                                        {isSelected && <CheckCircle2 size={16} className={`ml-auto ${option.color}`} />}
                                     </button>
                                 );
                             })}
@@ -349,8 +441,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         className="w-full"
                         onClick={handleUpdate}
                         isLoading={isLoading}
+                        disabled={isDraft} // Disable save if in Draft (must fix data first)
                     >
-                        Save Changes
+                        {status === "FAILED" ? "Confirm Failure & Reset" : "Save Changes"}
                     </Button>
                 </div>
             </div>
