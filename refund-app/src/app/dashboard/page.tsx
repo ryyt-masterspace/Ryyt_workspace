@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/AuthContext";
 import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
-import { Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight } from "lucide-react";
+import { Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight, TrendingUp, AlertTriangle, Activity } from "lucide-react";
 
 interface Refund {
     id: string;
@@ -33,6 +33,13 @@ export default function DashboardPage() {
     const [isLoadingRefunds, setIsLoadingRefunds] = useState(true);
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
+    // Stats State
+    const [stats, setStats] = useState({
+        activeCount: 0,
+        pendingValue: 0,
+        riskCount: 0,
+    });
+
     useEffect(() => {
         if (!loading && !user) {
             router.push("/login");
@@ -40,7 +47,6 @@ export default function DashboardPage() {
         }
 
         if (user) {
-            // Real-time listener for refunds
             const q = query(
                 collection(db, "refunds"),
                 where("merchantId", "==", user.uid)
@@ -51,19 +57,50 @@ export default function DashboardPage() {
                     id: doc.id,
                     ...doc.data(),
                 })) as Refund[];
-                // Client-side sort
+
+                // Sort
                 refundList.sort((a, b) => {
                     const dateA = a.createdAt?.seconds || 0;
                     const dateB = b.createdAt?.seconds || 0;
                     return dateB - dateA;
                 });
+
                 setRefunds(refundList);
+                calculateStats(refundList);
                 setIsLoadingRefunds(false);
             });
 
             return () => unsubscribe();
         }
     }, [user, loading, router]);
+
+    const calculateStats = (data: Refund[]) => {
+        const now = new Date();
+        let active = 0;
+        let value = 0;
+        let risk = 0;
+
+        data.forEach(r => {
+            if (r.status !== "SETTLED" && r.status !== "FAILED") {
+                active++;
+                value += Number(r.amount);
+
+                // Check SLA (5 days)
+                if (r.createdAt?.seconds) {
+                    const createdDate = new Date(r.createdAt.seconds * 1000);
+                    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays > 5) risk++;
+                }
+            }
+        });
+
+        setStats({
+            activeCount: active,
+            pendingValue: value,
+            riskCount: risk
+        });
+    };
 
     const handleLogout = async () => {
         try {
@@ -87,6 +124,18 @@ export default function DashboardPage() {
         window.open(`/t/${id}`, '_blank');
     };
 
+    const isSlaBreach = (refund: Refund) => {
+        if (refund.status === "SETTLED" || refund.status === "FAILED") return false;
+        if (!refund.createdAt?.seconds) return false;
+
+        const now = new Date();
+        const createdDate = new Date(refund.createdAt.seconds * 1000);
+        const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays > 5;
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
@@ -101,7 +150,7 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-[#050505] text-white p-8">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-2xl font-bold mb-1">Refunds</h1>
                         <p className="text-gray-400 text-sm">Manage and track all your refund requests.</p>
@@ -116,6 +165,41 @@ export default function DashboardPage() {
                             <Plus size={18} className="mr-2" />
                             New Refund
                         </Button>
+                    </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Active Refunds</p>
+                            <h3 className="text-2xl font-bold text-white">{stats.activeCount}</h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
+                            <Activity size={20} />
+                        </div>
+                    </div>
+
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Value at Risk</p>
+                            <h3 className="text-2xl font-bold text-white">
+                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(stats.pendingValue)}
+                            </h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-400">
+                            <TrendingUp size={20} />
+                        </div>
+                    </div>
+
+                    <div className={`bg-[#0A0A0A] border rounded-xl p-5 flex items-center justify-between ${stats.riskCount > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-white/5'}`}>
+                        <div>
+                            <p className={`text-xs uppercase tracking-wider mb-1 ${stats.riskCount > 0 ? 'text-red-400' : 'text-gray-400'}`}>Compliance Alerts</p>
+                            <h3 className={`text-2xl font-bold ${stats.riskCount > 0 ? 'text-red-500' : 'text-white'}`}>{stats.riskCount}</h3>
+                        </div>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stats.riskCount > 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-400'}`}>
+                            <AlertTriangle size={20} />
+                        </div>
                     </div>
                 </div>
 
@@ -142,66 +226,75 @@ export default function DashboardPage() {
                 ) : (
                     // Refund List
                     <div className="grid gap-4">
-                        {refunds.map((refund) => (
-                            <div
-                                key={refund.id}
-                                onClick={() => setSelectedRefund(refund)}
-                                className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group relative"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-xs">
-                                        {refund.customerName.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h4 className="font-medium text-white">{refund.customerName}</h4>
-                                            <span className="text-xs text-gray-500">•</span>
-                                            <span className="text-xs text-gray-400">{refund.orderId}</span>
+                        {refunds.map((refund) => {
+                            const breach = isSlaBreach(refund);
+                            return (
+                                <div
+                                    key={refund.id}
+                                    onClick={() => setSelectedRefund(refund)}
+                                    className={`bg-[#0A0A0A] border rounded-xl p-5 hover:bg-white/5 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group relative ${breach ? 'border-red-500/30 bg-red-500/5 hover:bg-red-500/10' : 'border-white/5 hover:border-white/20'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-xs">
+                                            {refund.customerName.charAt(0).toUpperCase()}
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${refund.status === 'CREATED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                    refund.status === 'PROCESSING_AT_BANK' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                                        refund.status === 'SETTLED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                                            'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                                                }`}>
-                                                {refund.status.replace(/_/g, " ")}
-                                            </span>
-                                            <span className="text-xs text-gray-600">
-                                                {refund.createdAt?.toDate().toLocaleDateString()}
-                                            </span>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-medium text-white">{refund.customerName}</h4>
+                                                <span className="text-xs text-gray-500">•</span>
+                                                <span className="text-xs text-gray-400">{refund.orderId}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${refund.status === 'CREATED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                        refund.status === 'PROCESSING_AT_BANK' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                            refund.status === 'SETTLED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                                                'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                                                    }`}>
+                                                    {refund.status.replace(/_/g, " ")}
+                                                </span>
+                                                <span className="text-xs text-gray-600">
+                                                    {refund.createdAt?.toDate().toLocaleDateString()}
+                                                </span>
+                                                {breach && (
+                                                    <span className="flex items-center gap-1 text-[10px] text-red-400 font-medium bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                                                        <AlertTriangle size={10} /> SLA Breach
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
+                                        <div className="text-right mr-4">
+                                            <p className="text-lg font-bold text-white">
+                                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
+                                            </p>
+                                            <p className="text-xs text-gray-500">Refund Amount</p>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 z-10">
+                                            <button
+                                                onClick={(e) => copyToClipboard(e, refund.id)}
+                                                className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                                title="Copy Tracking Link"
+                                            >
+                                                {copiedId === refund.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                                            </button>
+                                            <button
+                                                onClick={(e) => openTracking(e, refund.id)}
+                                                className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                                title="Open Tracking Page"
+                                            >
+                                                <ExternalLink size={18} />
+                                            </button>
+                                            <div className="w-px h-6 bg-white/10 mx-1"></div>
+                                            <ChevronRight size={20} className="text-gray-600 group-hover:text-white transition-colors" />
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
-                                    <div className="text-right mr-4">
-                                        <p className="text-lg font-bold text-white">
-                                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
-                                        </p>
-                                        <p className="text-xs text-gray-500">Refund Amount</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 z-10">
-                                        <button
-                                            onClick={(e) => copyToClipboard(e, refund.id)}
-                                            className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                            title="Copy Tracking Link"
-                                        >
-                                            {copiedId === refund.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                                        </button>
-                                        <button
-                                            onClick={(e) => openTracking(e, refund.id)}
-                                            className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                            title="Open Tracking Page"
-                                        >
-                                            <ExternalLink size={18} />
-                                        </button>
-                                        <div className="w-px h-6 bg-white/10 mx-1"></div>
-                                        <ChevronRight size={20} className="text-gray-600 group-hover:text-white transition-colors" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
