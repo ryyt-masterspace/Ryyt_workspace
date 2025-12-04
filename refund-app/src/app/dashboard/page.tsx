@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Button from "@/components/ui/Button";
@@ -34,10 +34,10 @@ export default function DashboardPage() {
 
         if (user) {
             // Real-time listener for refunds
+            // Removed orderBy to fix missing index issue
             const q = query(
                 collection(db, "refunds"),
-                where("merchantId", "==", user.uid),
-                orderBy("createdAt", "desc")
+                where("merchantId", "==", user.uid)
             );
 
             const unsubscribe = onSnapshot(q, (snapshot) => {
