@@ -1,12 +1,12 @@
 import Image from "next/image";
-import InteractiveBackground from "@/components/InteractiveBackground";
-import DemoDashboard from "@/components/DemoDashboard";
-import SocialProof from "@/components/SocialProof";
-import ProblemSection from "@/components/ProblemSection";
-import FeaturesBento from "@/components/FeaturesBento";
-import HowItWorks from "@/components/HowItWorks";
-import TestimonialsMarquee from "@/components/TestimonialsMarquee";
-import Footer from "@/components/Footer";
+import InteractiveBackground from "@/components/marketing/InteractiveBackground";
+import DemoDashboard from "@/components/marketing/DemoDashboard";
+import SocialProof from "@/components/marketing/SocialProof";
+import ProblemSection from "@/components/marketing/ProblemSection";
+import FeaturesBento from "@/components/marketing/FeaturesBento";
+import HowItWorks from "@/components/marketing/HowItWorks";
+import TestimonialsMarquee from "@/components/marketing/TestimonialsMarquee";
+import Footer from "@/components/marketing/Footer";
 
 export default function Home() {
   return (
