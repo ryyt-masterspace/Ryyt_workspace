@@ -95,7 +95,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             };
 
             // Failure Recovery Logic
-            // If marking as FAILED and we have a targetUpi, move it to history and clear it
             if (status === "FAILED" && refund.targetUpi) {
                 updateData.previousFailedUpi = refund.targetUpi;
                 updateData.targetUpi = deleteField();
@@ -145,6 +144,11 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         }
     };
 
+    // Reactive UI Logic
+    const isFailedState = status === "FAILED";
+    const effectiveFailedUpi = isFailedState && refund.targetUpi ? refund.targetUpi : refund.previousFailedUpi;
+    const showActiveUpi = refund.targetUpi && !isFailedState;
+
     return (
         <>
             {/* Backdrop */}
@@ -184,15 +188,15 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                     </div>
 
                     {/* Previous Failed ID Alert */}
-                    {refund.previousFailedUpi && (
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                    {effectiveFailedUpi && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-red-500/20 rounded-lg text-red-500">
                                     <AlertCircle size={18} />
                                 </div>
                                 <div>
                                     <p className="text-xs font-medium text-red-400 mb-1">Previous Failed ID</p>
-                                    <code className="text-sm text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded">{refund.previousFailedUpi}</code>
+                                    <code className="text-sm text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded">{effectiveFailedUpi}</code>
                                     <p className="text-[10px] text-red-400/60 mt-1">This ID failed processing. Please request a new one.</p>
                                 </div>
                             </div>
@@ -203,9 +207,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                     <div className="space-y-4">
                         <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Payout Details</h4>
 
-                        {refund.targetUpi ? (
-                            // Scenario A: UPI Exists - Show clean input
-                            <div className="relative">
+                        {showActiveUpi ? (
+                            // Scenario A: UPI Exists AND Not Failed
+                            <div className="relative animate-in fade-in duration-300">
                                 <Input
                                     label="Customer UPI ID"
                                     value={refund.targetUpi}
@@ -221,9 +225,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 </button>
                             </div>
                         ) : (
-                            // Scenario B: UPI Missing (and not settled)
-                            refund.status !== "SETTLED" && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                            // Scenario B: UPI Missing OR Failed (Show Yellow Box)
+                            status !== "SETTLED" && (
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 animate-in fade-in duration-300">
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
                                             <AlertTriangle size={18} />
@@ -231,7 +235,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                         <div className="flex-1">
                                             <p className="text-xs font-medium text-yellow-400 mb-2">Payment details missing</p>
                                             <p className="text-xs text-gray-400 mb-3">
-                                                The customer hasn't provided their UPI ID yet.
+                                                {isFailedState
+                                                    ? "The previous UPI ID failed. Please collect a new one."
+                                                    : "The customer hasn't provided their UPI ID yet."}
                                             </p>
                                             <Button
                                                 size="sm"
