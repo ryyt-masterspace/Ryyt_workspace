@@ -8,7 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
-import { Plus, LogOut, Search } from "lucide-react";
+import { Plus, LogOut, Search, ExternalLink, Copy, Check } from "lucide-react";
 
 interface Refund {
     id: string;
@@ -25,6 +25,7 @@ export default function DashboardPage() {
     const [refunds, setRefunds] = useState<Refund[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoadingRefunds, setIsLoadingRefunds] = useState(true);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -34,7 +35,6 @@ export default function DashboardPage() {
 
         if (user) {
             // Real-time listener for refunds
-            // Removed orderBy to fix missing index issue
             const q = query(
                 collection(db, "refunds"),
                 where("merchantId", "==", user.uid)
@@ -45,6 +45,12 @@ export default function DashboardPage() {
                     id: doc.id,
                     ...doc.data(),
                 })) as Refund[];
+                // Client-side sort since we removed orderBy from query
+                refundList.sort((a, b) => {
+                    const dateA = a.createdAt?.seconds || 0;
+                    const dateB = b.createdAt?.seconds || 0;
+                    return dateB - dateA;
+                });
                 setRefunds(refundList);
                 setIsLoadingRefunds(false);
             });
@@ -60,6 +66,13 @@ export default function DashboardPage() {
         } catch (error) {
             console.error("Logout failed", error);
         }
+    };
+
+    const copyToClipboard = (id: string) => {
+        const url = `${window.location.origin}/t/${id}`;
+        navigator.clipboard.writeText(url);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
     };
 
     if (loading) {
@@ -147,14 +160,30 @@ export default function DashboardPage() {
                                 </div>
 
                                 <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
-                                    <div className="text-right">
+                                    <div className="text-right mr-4">
                                         <p className="text-lg font-bold text-white">
                                             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
                                         </p>
                                         <p className="text-xs text-gray-500">Refund Amount</p>
                                     </div>
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="sm">View Details</Button>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => copyToClipboard(refund.id)}
+                                            className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                            title="Copy Tracking Link"
+                                        >
+                                            {copiedId === refund.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                                        </button>
+                                        <a
+                                            href={`/t/${refund.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                            title="Open Tracking Page"
+                                        >
+                                            <ExternalLink size={18} />
+                                        </a>
                                     </div>
                                 </div>
                             </div>
