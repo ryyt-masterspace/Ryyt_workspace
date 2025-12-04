@@ -179,60 +179,55 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Payout Details</h4>
 
                         {refund.targetUpi ? (
-                            // Scenario A: Customer provided UPI
-                            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
-                                        <CheckCircle2 size={18} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-xs font-medium text-green-400 mb-1">Customer provided payment details</p>
-                                        <div className="flex items-center gap-2">
-                                            <code className="bg-black/30 px-2 py-1 rounded text-sm text-white font-mono">
-                                                {refund.targetUpi}
-                                            </code>
-                                            <button
-                                                onClick={handleCopyUpi}
-                                                className="p-1.5 hover:bg-green-500/20 rounded-md text-green-400 transition-colors"
-                                                title="Copy UPI ID"
+                            // Scenario A: UPI Exists - Show clean input
+                            <div className="relative">
+                                <Input
+                                    label="Customer UPI ID"
+                                    value={refund.targetUpi}
+                                    readOnly
+                                    className="pr-10"
+                                />
+                                <button
+                                    onClick={handleCopyUpi}
+                                    className="absolute right-3 top-[34px] text-gray-400 hover:text-white transition-colors"
+                                    title="Copy UPI ID"
+                                >
+                                    {copiedUpi ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                                </button>
+                            </div>
+                        ) : (
+                            // Scenario B: UPI Missing (and not settled)
+                            refund.status !== "SETTLED" && (
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
+                                            <AlertTriangle size={18} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-xs font-medium text-yellow-400 mb-2">Payment details missing</p>
+                                            <p className="text-xs text-gray-400 mb-3">
+                                                The customer hasn't provided their UPI ID yet.
+                                            </p>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300"
+                                                onClick={handleCopyLink}
                                             >
-                                                {copiedUpi ? <Check size={14} /> : <Copy size={14} />}
-                                            </button>
+                                                {copiedLink ? (
+                                                    <>
+                                                        <Check size={14} className="mr-2" /> Link Copied
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy size={14} className="mr-2" /> Copy Collection Link
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            // Scenario B: UPI Missing
-                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
-                                        <AlertTriangle size={18} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-xs font-medium text-yellow-400 mb-2">Payment details missing</p>
-                                        <p className="text-xs text-gray-400 mb-3">
-                                            The customer hasn't provided their UPI ID yet. Send them the collection link.
-                                        </p>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="w-full border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300"
-                                            onClick={handleCopyLink}
-                                        >
-                                            {copiedLink ? (
-                                                <>
-                                                    <Check size={14} className="mr-2" /> Link Copied
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Copy size={14} className="mr-2" /> Copy Collection Link
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
+                            )
                         )}
                     </div>
 
