@@ -202,6 +202,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     // Determine if we should show the "Missing Details" box
     const showMissingDetails = computedStatus === "GATHERING_DATA" || isFailedSelected;
 
+    // Validation Logic for Settlement
+    const isSaveDisabled = computedStatus === "DRAFT" || (status === "SETTLED" && (!utr || utr.trim() === ""));
+
     return (
         <>
             {/* Backdrop */}
@@ -381,22 +384,12 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 let isDisabled = false;
 
                                 if (computedStatus === "DRAFT") {
-                                    // If Draft, disable everything except Draft itself (and maybe Failed/Created if we want to allow reset, but Draft is foundational)
-                                    // Actually, if it's Draft, we can't move forward.
                                     if (option.value !== "DRAFT") isDisabled = true;
                                 } else if (computedStatus === "GATHERING_DATA") {
-                                    // If Gathering, disable Processing and Settled
                                     if (option.value === "PROCESSING_AT_BANK" || option.value === "SETTLED") isDisabled = true;
-                                } else if (computedStatus === "CREATED") {
-                                    // If Created, everything is open (except maybe Draft/Gathering which are backward steps handled by logic)
-                                    // But we want to allow selecting them? No, they are system states.
-                                    // Actually, user might want to manually set back to Created.
                                 }
 
-                                // Always allow selecting the current status (so it doesn't look broken)
                                 if (isSelected) isDisabled = false;
-
-                                // Always allow FAILED (to reset) or CREATED (to step back) unless in Draft
                                 if (computedStatus !== "DRAFT" && (option.value === "FAILED" || option.value === "CREATED")) isDisabled = false;
 
                                 return (
@@ -424,7 +417,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                     {status === "SETTLED" && (
                         <div className="animate-in fade-in slide-in-from-top-4 duration-300">
                             <Input
-                                label="UTR / Reference Number"
+                                label="UTR / Reference No * (Required)"
                                 placeholder="e.g. CMS123456789"
                                 value={utr}
                                 onChange={(e) => setUtr(e.target.value)}
@@ -443,7 +436,8 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         className="w-full"
                         onClick={handleUpdate}
                         isLoading={isLoading}
-                        disabled={computedStatus === "DRAFT"} // Disable save if in Draft (must fix data first)
+                        disabled={isSaveDisabled}
+                        className={isSaveDisabled ? "opacity-50 cursor-not-allowed" : ""}
                     >
                         {status === "FAILED" ? "Confirm Failure & Reset" : "Save Changes"}
                     </Button>
