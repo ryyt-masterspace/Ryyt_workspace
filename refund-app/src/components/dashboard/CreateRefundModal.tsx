@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { X } from "lucide-react";
+import { X, CalendarClock } from "lucide-react";
 
 interface CreateRefundModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
+
+const SLA_DAYS: Record<string, number> = {
+    UPI: 2,
+    WALLET: 1,
+    NETBANKING: 5,
+    DEBIT_CARD: 5,
+    COD: 5,
+    CREDIT_CARD: 7,
+};
 
 export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModalProps) {
     const { user } = useAuth();
@@ -22,8 +31,15 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
         customerName: "",
         customerEmail: "",
         amount: "",
-        refundDate: new Date().toISOString().split('T')[0], // Default to today
+        paymentMethod: "UPI",
+        refundDate: new Date().toISOString().split('T')[0],
     });
+    const [slaHint, setSlaHint] = useState("");
+
+    useEffect(() => {
+        const days = SLA_DAYS[formData.paymentMethod] || 5;
+        setSlaHint(`Estimated SLA: ${days} Days`);
+    }, [formData.paymentMethod]);
 
     if (!isOpen) return null;
 
@@ -33,11 +49,14 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
 
         setIsLoading(true);
         try {
-            // Create date object from the selected string (YYYY-MM-DD)
             const selectedDate = new Date(formData.refundDate);
             const now = new Date();
-            // Preserve current time for better sorting, but use selected date
             selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
+            // Calculate SLA Due Date
+            const daysToAdd = SLA_DAYS[formData.paymentMethod] || 5;
+            const dueDate = new Date(selectedDate);
+            dueDate.setDate(dueDate.getDate() + daysToAdd);
 
             await addDoc(collection(db, "refunds"), {
                 merchantId: user.uid,
@@ -45,8 +64,10 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                 customerName: formData.customerName,
                 customerEmail: formData.customerEmail,
                 amount: Number(formData.amount),
+                paymentMethod: formData.paymentMethod,
                 status: "CREATED",
                 createdAt: Timestamp.fromDate(selectedDate),
+                slaDueDate: dueDate.toISOString(),
                 timeline: [
                     {
                         status: "CREATED",
@@ -61,6 +82,7 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                 customerName: "",
                 customerEmail: "",
                 amount: "",
+                paymentMethod: "UPI",
                 refundDate: new Date().toISOString().split('T')[0]
             });
         } catch (error) {
@@ -109,6 +131,7 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                         value={formData.customerEmail}
                         onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                     />
+
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Amount (₹)"
@@ -119,15 +142,35 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                             value={formData.amount}
                             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                         />
-                        <Input
-                            label="Refund Requested On"
-                            type="date"
-                            required
-                            value={formData.refundDate}
-                            onChange={(e) => setFormData({ ...formData, refundDate: e.target.value })}
-                            className="[color-scheme:dark]"
-                        />
+
+                        <div className="space-y-1.5 w-full">
+                            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">
+                                Payment Mode
+                            </label>
+                            <select
+                                className="w-full bg-[#0A0A0A] border border-white/10 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-blue-500/50 focus:bg-[#111] transition-all appearance-none"
+                                value={formData.paymentMethod}
+                                onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                            >
+                                {Object.keys(SLA_DAYS).map(method => (
+                                    <option key={method} value={method}>{method.replace('_', ' ')}</option>
+                                ))}
+                            </select>
+                            <div className="flex items-center gap-1 text-[10px] text-blue-400 ml-1">
+                                <CalendarClock size={10} />
+                                {slaHint}
+                            </div>
+                        </div>
                     </div>
+
+                    <Input
+                        label="Refund Requested On"
+                        type="date"
+                        required
+                        value={formData.refundDate}
+                        onChange={(e) => setFormData({ ...formData, refundDate: e.target.value })}
+                        className="[color-scheme:dark]"
+                    />
 
                     <div className="pt-4 flex gap-3">
                         <Button
