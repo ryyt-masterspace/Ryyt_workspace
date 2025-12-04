@@ -14,13 +14,14 @@ interface CreateRefundModalProps {
     onClose: () => void;
 }
 
+// Verified Indian Payment Matrix
 const SLA_DAYS: Record<string, number> = {
     UPI: 2,
-    WALLET: 1,
-    NETBANKING: 5,
-    DEBIT_CARD: 5,
-    COD: 5,
+    WALLET: 2,
+    NETBANKING: 7,
+    DEBIT_CARD: 7,
     CREDIT_CARD: 7,
+    COD: 5,
 };
 
 export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModalProps) {
@@ -34,12 +35,21 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
         paymentMethod: "UPI",
         refundDate: new Date().toISOString().split('T')[0],
     });
-    const [slaHint, setSlaHint] = useState("");
+    const [settlementHint, setSettlementHint] = useState("");
 
     useEffect(() => {
-        const days = SLA_DAYS[formData.paymentMethod] || 5;
-        setSlaHint(`Estimated SLA: ${days} Days`);
-    }, [formData.paymentMethod]);
+        if (formData.refundDate && formData.paymentMethod) {
+            const days = SLA_DAYS[formData.paymentMethod] || 7;
+            const date = new Date(formData.refundDate);
+            date.setDate(date.getDate() + days);
+
+            setSettlementHint(`Expected Settlement: ${date.toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            })}`);
+        }
+    }, [formData.paymentMethod, formData.refundDate]);
 
     if (!isOpen) return null;
 
@@ -51,10 +61,11 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
         try {
             const selectedDate = new Date(formData.refundDate);
             const now = new Date();
+            // Keep current time for sorting precision
             selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
             // Calculate SLA Due Date
-            const daysToAdd = SLA_DAYS[formData.paymentMethod] || 5;
+            const daysToAdd = SLA_DAYS[formData.paymentMethod] || 7;
             const dueDate = new Date(selectedDate);
             dueDate.setDate(dueDate.getDate() + daysToAdd);
 
@@ -77,6 +88,7 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                 ],
             });
             onClose();
+            // Reset form
             setFormData({
                 orderId: "",
                 customerName: "",
@@ -145,32 +157,39 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
 
                         <div className="space-y-1.5 w-full">
                             <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">
-                                Payment Mode
+                                Original Payment Source
                             </label>
-                            <select
-                                className="w-full bg-[#0A0A0A] border border-white/10 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-blue-500/50 focus:bg-[#111] transition-all appearance-none"
-                                value={formData.paymentMethod}
-                                onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                            >
-                                {Object.keys(SLA_DAYS).map(method => (
-                                    <option key={method} value={method}>{method.replace('_', ' ')}</option>
-                                ))}
-                            </select>
-                            <div className="flex items-center gap-1 text-[10px] text-blue-400 ml-1">
-                                <CalendarClock size={10} />
-                                {slaHint}
+                            <div className="relative">
+                                <select
+                                    className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all appearance-none"
+                                    value={formData.paymentMethod}
+                                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                                >
+                                    {Object.keys(SLA_DAYS).map(method => (
+                                        <option key={method} value={method} className="bg-[#0A0A0A] text-white">
+                                            {method.replace('_', ' ')}
+                                        </option>
+                                    ))}
+                                </select>
+                                {/* Custom arrow could go here, but default is fine for now or handled by browser */}
                             </div>
                         </div>
                     </div>
 
-                    <Input
-                        label="Refund Requested On"
-                        type="date"
-                        required
-                        value={formData.refundDate}
-                        onChange={(e) => setFormData({ ...formData, refundDate: e.target.value })}
-                        className="[color-scheme:dark]"
-                    />
+                    <div className="space-y-1.5">
+                        <Input
+                            label="Refund Requested On"
+                            type="date"
+                            required
+                            value={formData.refundDate}
+                            onChange={(e) => setFormData({ ...formData, refundDate: e.target.value })}
+                            className="[color-scheme:dark]"
+                        />
+                        <div className="flex items-center gap-1.5 text-xs text-blue-400 ml-1 mt-1">
+                            <CalendarClock size={12} />
+                            <span>{settlementHint}</span>
+                        </div>
+                    </div>
 
                     <div className="pt-4 flex gap-3">
                         <Button
