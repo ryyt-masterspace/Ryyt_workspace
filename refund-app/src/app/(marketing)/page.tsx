@@ -6,7 +6,7 @@ import ProblemSection from "@/components/marketing/ProblemSection";
 import FeaturesBento from "@/components/marketing/FeaturesBento";
 import HowItWorks from "@/components/marketing/HowItWorks";
 import TestimonialsMarquee from "@/components/marketing/TestimonialsMarquee";
-import Footer from "@/components/marketing/Footer";
+
 
 export default function Home() {
   return (
@@ -62,8 +62,7 @@ export default function Home() {
       {/* Testimonials Marquee */}
       <TestimonialsMarquee />
 
-      {/* Footer */}
-      <Footer />
+
     </main>
   );
 }
