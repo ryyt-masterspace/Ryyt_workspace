@@ -12,7 +12,7 @@ import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
 import {
     Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight,
     TrendingUp, AlertTriangle, Activity, Clock, CreditCard, Smartphone,
-    Landmark, Banknote, Wallet, Edit2
+    Landmark, Banknote, Wallet, Edit2, ShieldAlert
 } from "lucide-react";
 
 interface Refund {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
     const [stats, setStats] = useState({
         activeCount: 0,
         riskValue: 0,
-        avgTime: 0,
+        breachCount: 0,
     });
 
     useEffect(() => {
@@ -84,36 +84,26 @@ export default function DashboardPage() {
         const now = new Date();
         let active = 0;
         let riskVal = 0;
-        let totalDays = 0;
-        let countForAvg = 0;
+        let breaches = 0;
 
         data.forEach(r => {
             if (r.status !== "SETTLED") {
                 active++;
 
-                if (r.createdAt?.seconds) {
-                    const created = new Date(r.createdAt.seconds * 1000);
-                    const diff = now.getTime() - created.getTime();
-                    const days = diff / (1000 * 3600 * 24);
-                    totalDays += days;
-                    countForAvg++;
-                }
-
                 if (r.slaDueDate) {
                     const due = new Date(r.slaDueDate);
                     if (now > due) {
                         riskVal += Number(r.amount);
+                        breaches++;
                     }
                 }
             }
         });
 
-        const avg = countForAvg > 0 ? Math.round(totalDays / countForAvg) : 0;
-
         setStats({
             activeCount: active,
             riskValue: riskVal,
-            avgTime: avg
+            breachCount: breaches
         });
     };
 
@@ -212,13 +202,13 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 flex items-center justify-between">
+                    <div className={`bg-[#0A0A0A] border rounded-xl p-5 flex items-center justify-between ${stats.breachCount > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-white/5'}`}>
                         <div>
-                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Avg. Settlement</p>
-                            <h3 className="text-2xl font-bold text-white">{stats.avgTime} Days</h3>
+                            <p className={`text-xs uppercase tracking-wider mb-1 ${stats.breachCount > 0 ? 'text-red-400' : 'text-gray-400'}`}>SLA Breaches</p>
+                            <h3 className={`text-2xl font-bold ${stats.breachCount > 0 ? 'text-red-500' : 'text-white'}`}>{stats.breachCount}</h3>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400">
-                            <Clock size={20} />
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stats.breachCount > 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-400'}`}>
+                            <ShieldAlert size={20} />
                         </div>
                     </div>
                 </div>
