@@ -31,13 +31,13 @@ interface RefundDetailsPanelProps {
     onClose: () => void;
 }
 
-// Extended Status Options including System States
-const STATUS_HIERARCHY = [
-    { value: "DRAFT", label: "Draft (Missing Info)", icon: FileEdit, color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" },
-    { value: "GATHERING_DATA", label: "Gathering Data", icon: Loader2, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+// Full 6-Step Roadmap
+const STATUS_STEPS = [
+    { value: "DRAFT", label: "⚠️ Entry Incomplete", icon: FileEdit, color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" },
     { value: "CREATED", label: "Refund Initiated", icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+    { value: "GATHERING_DATA", label: "⏳ Gathering Data", icon: Loader2, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
     { value: "PROCESSING_AT_BANK", label: "Processing at Bank", icon: Building2, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-    { value: "SETTLED", label: "Settled (Credited)", icon: CheckCircle2, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" },
+    { value: "SETTLED", label: "Credited / Settled", icon: CheckCircle2, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" },
     { value: "FAILED", label: "Failed", icon: AlertCircle, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
 ];
 
@@ -62,8 +62,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     const [copiedUpi, setCopiedUpi] = useState(false);
 
     // Derived State for Gates
-    const [isDraft, setIsDraft] = useState(false);
-    const [isGathering, setIsGathering] = useState(false);
+    const [computedStatus, setComputedStatus] = useState("");
 
     useEffect(() => {
         if (refund) {
@@ -87,21 +86,21 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
 
         // Level 1: Draft Gate
         const missingInfo = !paymentMethod || !refundDate;
-        setIsDraft(missingInfo);
 
         // Level 2: Gathering Gate
-        // Only applies if not Draft, and method requires UPI, and UPI is missing
-        // AND we are not already in a "terminal" state like SETTLED (unless we want to allow editing settled refunds to fix data?)
-        // Actually, if it's SETTLED, we probably shouldn't force Gathering Data unless the user explicitly changes something?
-        // The prompt says: "If Entry Details are OK, but paymentMethod is COD/UPI/WALLET and targetUpi is empty: Force displayed status to GATHERING_DATA."
-        // We'll apply this strictly.
         const needsUpi = METHODS_REQUIRING_UPI.includes(paymentMethod);
-        const upiMissing = !refund.targetUpi; // Look at prop, not local state for UPI (since we don't edit UPI here directly, only via link)
-
-        // Exception: If status is FAILED, we might be in the process of resetting.
-        // But generally, if UPI is missing and needed, we are gathering.
+        const upiMissing = !refund.targetUpi;
         const gathering = !missingInfo && needsUpi && upiMissing;
-        setIsGathering(gathering);
+
+        // Compute Status
+        let currentComputed = refund.status;
+        if (missingInfo) {
+            currentComputed = "DRAFT";
+        } else if (gathering) {
+            currentComputed = "GATHERING_DATA";
+        }
+
+        setComputedStatus(currentComputed);
 
         // Force Display Status based on Gates
         if (missingInfo) {
@@ -110,7 +109,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             setStatus("GATHERING_DATA");
         } else {
             // If we were forced before, revert to refund status, OR keep current selection if valid
-            // If the current local status is DRAFT/GATHERING but gates are cleared, reset to CREATED or refund.status
             if (status === "DRAFT" || status === "GATHERING_DATA") {
                 setStatus(refund.status === "DRAFT" || refund.status === "GATHERING_DATA" ? "CREATED" : refund.status);
             }
@@ -161,7 +159,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             if (status !== refund.status || status === "FAILED") {
                 const timelineEntry = {
                     status: status === "FAILED" ? "GATHERING_DATA" : status, // Record the resulting status
-                    title: status === "FAILED" ? "Refund Failed & Reset" : STATUS_HIERARCHY.find(o => o.value === status)?.label || status,
+                    title: status === "FAILED" ? "Refund Failed & Reset" : STATUS_STEPS.find(o => o.value === status)?.label || status,
                     date: new Date().toISOString(),
                     description: status === "SETTLED" ? `UTR: ${utr}` :
                         status === "FAILED" ? "Processing failed. UPI cleared. Reverting to Gathering Data." :
@@ -197,14 +195,12 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     };
 
     // Reactive UI Logic for FAILED selection
-    // If user selects FAILED, we simulate the reset state visually
     const isFailedSelected = status === "FAILED";
     const effectiveFailedUpi = isFailedSelected && refund.targetUpi ? refund.targetUpi : refund.previousFailedUpi;
     const showActiveUpi = refund.targetUpi && !isFailedSelected;
 
     // Determine if we should show the "Missing Details" box
-    // Show if: Gathering Gate is active OR Failed is selected (which implies we are about to go back to gathering)
-    const showMissingDetails = isGathering || isFailedSelected;
+    const showMissingDetails = computedStatus === "GATHERING_DATA" || isFailedSelected;
 
     return (
         <>
@@ -363,13 +359,13 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Update Status</h4>
 
                         {/* Gate Warnings */}
-                        {isDraft && (
+                        {computedStatus === "DRAFT" && (
                             <p className="text-xs text-gray-400 mb-2 flex items-center gap-2">
                                 <AlertCircle size={12} className="text-gray-400" />
                                 Update missing Entry Details to proceed.
                             </p>
                         )}
-                        {isGathering && (
+                        {computedStatus === "GATHERING_DATA" && (
                             <p className="text-xs text-yellow-400 mb-2 flex items-center gap-2">
                                 <Loader2 size={12} className="animate-spin" />
                                 Waiting for customer payment details...
@@ -377,25 +373,31 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         )}
 
                         <div className="grid gap-3">
-                            {STATUS_HIERARCHY.map((option) => {
-                                // Filter out system states from manual selection unless we are already in them
-                                if ((option.value === "DRAFT" || option.value === "GATHERING_DATA") && status !== option.value) {
-                                    return null;
-                                }
-
+                            {STATUS_STEPS.map((option) => {
                                 const Icon = option.icon;
                                 const isSelected = status === option.value;
 
-                                // Disable Logic
+                                // Disable Logic (The Gates)
                                 let isDisabled = false;
-                                if (isDraft) isDisabled = true; // Block everything in Draft
-                                if (isGathering && (option.value === "PROCESSING_AT_BANK" || option.value === "SETTLED")) isDisabled = true; // Block progress in Gathering
 
-                                // Always allow FAILED (to reset) or CREATED (to step back)
-                                if (option.value === "FAILED" || option.value === "CREATED") isDisabled = false;
+                                if (computedStatus === "DRAFT") {
+                                    // If Draft, disable everything except Draft itself (and maybe Failed/Created if we want to allow reset, but Draft is foundational)
+                                    // Actually, if it's Draft, we can't move forward.
+                                    if (option.value !== "DRAFT") isDisabled = true;
+                                } else if (computedStatus === "GATHERING_DATA") {
+                                    // If Gathering, disable Processing and Settled
+                                    if (option.value === "PROCESSING_AT_BANK" || option.value === "SETTLED") isDisabled = true;
+                                } else if (computedStatus === "CREATED") {
+                                    // If Created, everything is open (except maybe Draft/Gathering which are backward steps handled by logic)
+                                    // But we want to allow selecting them? No, they are system states.
+                                    // Actually, user might want to manually set back to Created.
+                                }
 
-                                // If we are currently in DRAFT/GATHERING, we can't select them manually (they are forced), 
-                                // but we show them as the active state.
+                                // Always allow selecting the current status (so it doesn't look broken)
+                                if (isSelected) isDisabled = false;
+
+                                // Always allow FAILED (to reset) or CREATED (to step back) unless in Draft
+                                if (computedStatus !== "DRAFT" && (option.value === "FAILED" || option.value === "CREATED")) isDisabled = false;
 
                                 return (
                                     <button
@@ -441,7 +443,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         className="w-full"
                         onClick={handleUpdate}
                         isLoading={isLoading}
-                        disabled={isDraft} // Disable save if in Draft (must fix data first)
+                        disabled={computedStatus === "DRAFT"} // Disable save if in Draft (must fix data first)
                     >
                         {status === "FAILED" ? "Confirm Failure & Reset" : "Save Changes"}
                     </Button>
