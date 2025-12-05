@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { CheckCircle2, Clock, Building2, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
-import Link from "next/link";
-import Button from "@/components/ui/Button";
+import { CheckCircle2, Clock, Building2, AlertCircle, Loader2 } from "lucide-react";
 
 // Mapping status to user-friendly labels (The Language of Trust)
 const STATUS_LABELS: any = {
@@ -18,9 +16,11 @@ const STATUS_LABELS: any = {
 
 export default function TrackingPage() {
     const params = useParams();
+    const router = useRouter();
     const [refund, setRefund] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
 
     useEffect(() => {
         const fetchRefund = async () => {
@@ -30,7 +30,18 @@ export default function TrackingPage() {
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    setRefund({ id: docSnap.id, ...docSnap.data() });
+                    const data = { id: docSnap.id, ...docSnap.data() };
+                    setRefund(data);
+
+                    // --- SMART REDIRECTION LOGIC ---
+                    const needsUpi = (['UPI', 'COD', 'WALLET'].includes(data.paymentMethod)) && (!data.targetUpi);
+
+                    if (needsUpi) {
+                        setIsRedirecting(true);
+                        router.push(`/pay/${data.id}`);
+                        return; // Stop further processing
+                    }
+
                 } else {
                     setError(true);
                 }
@@ -43,11 +54,15 @@ export default function TrackingPage() {
         };
 
         fetchRefund();
-    }, [params.id]);
+    }, [params.id, router]);
 
-    if (loading) return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+    // Combined Loading & Redirecting State
+    if (loading || isRedirecting) return (
+        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm text-gray-500 animate-pulse">
+                {isRedirecting ? "Redirecting to secure gateway..." : "Checking status..."}
+            </p>
         </div>
     );
 
@@ -59,49 +74,8 @@ export default function TrackingPage() {
         </div>
     );
 
-    // --- SMART LINK LOGIC ---
-
-    // Condition: If Gathering Data (or Draft), hijack the view
-    if (refund.status === 'GATHERING_DATA' || refund.status === 'DRAFT') {
-        return (
-            <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30 flex flex-col">
-                <Navbar />
-
-                <main className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto w-full">
-                    {/* Visual Icon */}
-                    <div className="relative mb-8">
-                        <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
-                        <div className="relative w-20 h-20 bg-gradient-to-br from-gray-800 to-black border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl">
-                            <ShieldCheck size={32} className="text-blue-500" />
-                        </div>
-                        {/* Notify Badge */}
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full border-4 border-black flex items-center justify-center">
-                            <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                        </div>
-                    </div>
-
-                    <h1 className="text-2xl font-bold mb-2">Action Required</h1>
-                    <p className="text-gray-400 mb-8 max-w-xs mx-auto leading-relaxed">
-                        We need a few details to process your refund of <span className="text-white font-medium">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}</span> efficiently.
-                    </p>
-
-                    <Link href={`/pay/${refund.id}`} className="w-full">
-                        <Button className="w-full h-12 text-base shadow-blue-500/20 shadow-lg">
-                            Enter Payment Details Securely
-                            <ArrowRight size={18} className="ml-2" />
-                        </Button>
-                    </Link>
-
-                    <div className="mt-6 flex items-center gap-2 text-xs text-gray-500">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-4 opacity-50 grayscale" />
-                        <span>Secured by Ryyt</span>
-                    </div>
-                </main>
-            </div>
-        );
-    }
-
     // --- STANDARD TIMELINE VIEW ---
+    // Only reachable if NO redirection happened
 
     // Timeline Helper Logic
     const getStepStatus = (stepIndex: number) => {
