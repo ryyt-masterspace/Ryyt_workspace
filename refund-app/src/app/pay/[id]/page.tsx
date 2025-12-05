@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
@@ -20,6 +20,7 @@ interface Refund {
 
 export default function PayPage() {
     const params = useParams();
+    const router = useRouter(); // Initialize router
     const id = params.id as string;
 
     const [refund, setRefund] = useState<Refund | null>(null);
@@ -65,6 +66,12 @@ export default function PayPage() {
                 updatedAt: new Date(), // Using client date for simplicity here, ideally serverTimestamp
             });
             setSuccess(true);
+
+            // Redirect after 1.5 seconds to show success message briefly
+            setTimeout(() => {
+                router.push(`/t/${refund.id}`);
+            }, 1500);
+
         } catch (err) {
             console.error("Error updating UPI:", err);
             alert("Failed to submit details. Please try again.");
@@ -120,6 +127,11 @@ export default function PayPage() {
                         <ShieldCheck size={14} className="text-green-500" />
                         <span>Details Securely Stored</span>
                     </div>
+                    <div className="mt-8">
+                        <Button variant="outline" onClick={() => router.push(`/t/${refund.id}`)}>
+                            Track Refund Status
+                        </Button>
+                    </div>
                 </Card>
             </div>
         );
@@ -154,7 +166,7 @@ export default function PayPage() {
                             </div>
                             <h3 className="text-xl font-bold text-white mb-2">Details Sent!</h3>
                             <p className="text-gray-400 text-sm mb-6">
-                                Your UPI ID has been securely sent to the merchant. The refund process will begin shortly.
+                                Redirecting you to the timeline...
                             </p>
                             <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full bg-green-500 w-1/2 animate-[progress_2s_ease-in-out_infinite]" />
