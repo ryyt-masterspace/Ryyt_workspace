@@ -10,9 +10,9 @@ import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
 import {
-    Plus, LogOut, Search, ExternalLink, Copy, Check, ChevronRight,
+    Plus, LogOut, Search, ExternalLink, Check,
     TrendingUp, AlertTriangle, Activity, Clock, CreditCard, Smartphone,
-    Landmark, Banknote, Wallet, Edit2, ShieldAlert, Filter
+    Landmark, Banknote, Wallet, ShieldAlert, Filter
 } from "lucide-react";
 
 interface Refund {
@@ -39,7 +39,6 @@ export default function DashboardPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRefund, setSelectedRefund] = useState<Refund | null>(null);
     const [isLoadingRefunds, setIsLoadingRefunds] = useState(true);
-    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     // Filter State
     const [searchTerm, setSearchTerm] = useState("");
@@ -156,14 +155,6 @@ export default function DashboardPage() {
         } catch (error) {
             console.error("Logout failed", error);
         }
-    };
-
-    const copyToClipboard = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation();
-        const url = `${window.location.origin}/t/${id}`;
-        navigator.clipboard.writeText(url);
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
     };
 
     const openTracking = (e: React.MouseEvent, id: string) => {
@@ -351,7 +342,7 @@ export default function DashboardPage() {
                                 <div
                                     key={refund.id}
                                     onClick={() => setSelectedRefund(refund)}
-                                    className={`grid grid-cols-12 gap-4 items-center bg-[#0A0A0A] border rounded-xl p-4 hover:bg-white/5 transition-all cursor-pointer group relative ${overdue ? 'border-l-4 border-l-red-500 border-y-white/5 border-r-white/5 bg-red-500/5' : 'border-white/5 hover:border-white/20'
+                                    className={`grid grid-cols-12 gap-4 items-center bg-[#0A0A0A] border rounded-xl p-4 transition-all cursor-pointer group relative ${overdue ? 'border-l-4 border-l-red-500 border-y-white/5 border-r-white/5 bg-red-500/5 hover:bg-red-500/10' : 'border-white/5 hover:bg-white/5 hover:border-white/20'
                                         }`}
                                 >
                                     {/* Customer & Order */}
@@ -422,22 +413,8 @@ export default function DashboardPage() {
                                     {/* Actions */}
                                     <div className="col-span-2 md:col-span-1 flex items-center justify-end gap-2">
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); setSelectedRefund(refund); }}
-                                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                            title="Edit Refund"
-                                        >
-                                            <Edit2 size={16} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => copyToClipboard(e, refund.id)}
-                                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                            title="Copy Tracking Link"
-                                        >
-                                            {copiedId === refund.id ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                                        </button>
-                                        <button
                                             onClick={(e) => openTracking(e, refund.id)}
-                                            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                            className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-white/10 transition-colors"
                                             title="Open Tracking Page"
                                         >
                                             <ExternalLink size={16} />
