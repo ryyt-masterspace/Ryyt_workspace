@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import {
     X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock,
-    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2, Link as LinkIcon, Plus
+    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2, Link as LinkIcon, Plus, History
 } from "lucide-react";
 
 interface Refund {
@@ -24,7 +24,8 @@ interface Refund {
     proofs?: {
         utr?: string;
     };
-}
+    timeline?: any[];
+};
 
 interface RefundDetailsPanelProps {
     refund: Refund | null;
@@ -475,6 +476,42 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                             />
                         </div>
                     )}
+
+                    {/* HISTORY / AUDIT LOG */}
+                    <div className="space-y-4 pt-6 border-t border-white/10">
+                        <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                            <History size={14} className="text-gray-500" />
+                            History & Audit Log
+                        </h4>
+
+                        <div className="relative pl-2 space-y-4 border-l border-white/10 ml-1.5 my-2">
+                            {refund.timeline && Array.isArray(refund.timeline) && refund.timeline.length > 0 ? (
+                                [...refund.timeline].reverse().map((event: any, index: number) => (
+                                    <div key={index} className="relative pl-4 animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
+                                        {/* Dot */}
+                                        <div className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-[#0A0A0A] ${event.status === "SETTLED" ? "bg-green-500" :
+                                                event.status === "FAILED" ? "bg-red-500" :
+                                                    index === 0 ? "bg-blue-500" : "bg-gray-600"
+                                            }`} />
+
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-gray-200">
+                                                {event.title}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 mt-0.5">
+                                                {new Date(event.date).toLocaleDateString('en-IN', {
+                                                    month: 'short', day: 'numeric',
+                                                    hour: 'numeric', minute: 'numeric'
+                                                })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-xs text-gray-600 pl-4 italic">No history available</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Footer Actions */}
