@@ -1,441 +1,316 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
-import { useAuth } from "@/lib/AuthContext";
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { app, db } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
-import {
-    Plus, LogOut, Search, ExternalLink, Check,
-    TrendingUp, AlertTriangle, Activity, Clock, CreditCard, Smartphone,
-    Landmark, Banknote, Wallet, ShieldAlert, Filter
-} from "lucide-react";
-
-interface Refund {
-    id: string;
-    orderId: string;
-    customerName: string;
-    customerEmail: string;
-    amount: number;
-    status: string;
-    createdAt: any;
-    slaDueDate?: string;
-    paymentMethod?: string;
-    proofs?: {
-        utr?: string;
-    };
-}
-
-type FilterTab = 'ALL' | 'ACTION' | 'OVERDUE' | 'SETTLED';
+import { LogOut, Plus, Search, ExternalLink, AlertTriangle, TrendingUp, Activity, Copy } from "lucide-react";
 
 export default function DashboardPage() {
-    const { user, loading } = useAuth();
-    const router = useRouter();
-    const [refunds, setRefunds] = useState<Refund[]>([]);
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [refunds, setRefunds] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedRefund, setSelectedRefund] = useState<Refund | null>(null);
-    const [isLoadingRefunds, setIsLoadingRefunds] = useState(true);
+    const [selectedRefund, setSelectedRefund] = useState<any>(null);
 
-    // Filter State
+    // Search & Filter State
     const [searchTerm, setSearchTerm] = useState("");
-    const [filterTab, setFilterTab] = useState<FilterTab>('ALL');
+    const [filterTab, setFilterTab] = useState<'ALL' | 'ACTION' | 'OVERDUE' | 'SETTLED'>('ALL');
 
-    // Stats State
-    const [stats, setStats] = useState({
-        activeCount: 0,
-        riskValue: 0,
-        breachCount: 0,
-    });
+    const router = useRouter();
+    const auth = getAuth(app);
 
-    useEffect(() => {
-        if (!loading && !user) {
-            router.push("/login");
-            return;
-        }
-
-        if (user) {
+    // 1. Define Fetch Logic (Hoisted)
+    const fetchRefunds = async () => {
+        if (!auth.currentUser) return;
+        try {
+            // Fetch WITHOUT sorting first (Client-side sort later)
             const q = query(
                 collection(db, "refunds"),
-                where("merchantId", "==", user.uid)
+                where("merchantId", "==", auth.currentUser.uid)
             );
 
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const refundList = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                })) as Refund[];
+            const querySnapshot = await getDocs(q);
+            const data = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as any[];
 
-                // Initial sort (will be reinforced in useMemo)
-                refundList.sort((a, b) => {
-                    const dateA = a.createdAt?.seconds || 0;
-                    const dateB = b.createdAt?.seconds || 0;
-                    return dateB - dateA;
-                });
-
-                setRefunds(refundList);
-                calculateStats(refundList);
-                setIsLoadingRefunds(false);
+            // Client-side Sort: Newest First
+            data.sort((a, b) => {
+                const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
+                const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(b.createdAt);
+                return dateB.getTime() - dateA.getTime();
             });
 
-            return () => unsubscribe();
+            setRefunds(data);
+        } catch (error) {
+            console.error("Error fetching refunds:", error);
         }
-    }, [user, loading, router]);
-
-    const calculateStats = (data: Refund[]) => {
-        const now = new Date();
-        let active = 0;
-        let riskVal = 0;
-        let breaches = 0;
-
-        data.forEach(r => {
-            if (r.status !== "SETTLED") {
-                active++;
-
-                if (r.slaDueDate) {
-                    const due = new Date(r.slaDueDate);
-                    if (now > due) {
-                        riskVal += Number(r.amount);
-                        breaches++;
-                    }
-                }
-            }
-        });
-
-        setStats({
-            activeCount: active,
-            riskValue: riskVal,
-            breachCount: breaches
-        });
     };
 
-    // Filtering & Sorting Logic
-    const filteredRefunds = useMemo(() => {
-        const filtered = refunds.filter(refund => {
-            // 1. Search Filter
-            const searchLower = searchTerm.toLowerCase();
-            const matchesSearch =
-                refund.orderId.toLowerCase().includes(searchLower) ||
-                refund.customerName.toLowerCase().includes(searchLower) ||
-                refund.amount.toString().includes(searchLower);
-
-            if (!matchesSearch) return false;
-
-            // 2. Tab Filter
-            const isOverdue = refund.status !== "SETTLED" && refund.slaDueDate && new Date() > new Date(refund.slaDueDate);
-
-            switch (filterTab) {
-                case 'ACTION':
-                    return ['DRAFT', 'GATHERING_DATA', 'FAILED'].includes(refund.status);
-                case 'OVERDUE':
-                    return isOverdue;
-                case 'SETTLED':
-                    return refund.status === 'SETTLED';
-                case 'ALL':
-                default:
-                    return true;
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (!currentUser) {
+                router.push("/login");
+            } else {
+                setUser(currentUser);
             }
+            setLoading(false);
         });
+        return () => unsubscribe();
+    }, [auth, router]);
 
-        // 3. Client-Side Sorting (Critical)
-        return filtered.sort((a, b) => {
-            const getDate = (r: Refund) => r.createdAt?.seconds ? r.createdAt.seconds * 1000 : 0;
-            return getDate(b) - getDate(a);
-        });
-
-    }, [refunds, searchTerm, filterTab]);
+    // Trigger fetch when user is ready
+    useEffect(() => {
+        if (user) {
+            fetchRefunds();
+        }
+    }, [user]);
 
     const handleLogout = async () => {
-        try {
-            await signOut(auth);
-            router.push("/login");
-        } catch (error) {
-            console.error("Logout failed", error);
-        }
+        await signOut(auth);
+        router.push("/login");
     };
 
-    const openTracking = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation();
-        window.open(`/t/${id}`, '_blank');
-    };
-
-    const getMethodIcon = (method?: string) => {
-        switch (method) {
-            case 'UPI': return <Smartphone size={16} className="text-blue-400" />;
-            case 'CREDIT_CARD':
-            case 'DEBIT_CARD': return <CreditCard size={16} className="text-purple-400" />;
-            case 'NETBANKING': return <Landmark size={16} className="text-orange-400" />;
-            case 'WALLET': return <Wallet size={16} className="text-pink-400" />;
-            case 'COD': return <Banknote size={16} className="text-green-400" />;
-            default: return <CreditCard size={16} className="text-gray-400" />;
-        }
-    };
-
-    const isOverdue = (refund: Refund) => {
-        if (refund.status === "SETTLED" || !refund.slaDueDate) return false;
-        return new Date() > new Date(refund.slaDueDate);
-    };
-
-    const formatDate = (timestamp: any) => {
-        if (!timestamp?.seconds) return "-";
-        const date = new Date(timestamp.seconds * 1000);
-        return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
-                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
-    }
-
+    if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
     if (!user) return null;
 
+    // 2. Compute Stats
+    const activeCount = refunds.filter(r => r.status !== 'SETTLED').length;
+    const breachCount = refunds.filter(r => {
+        if (r.status === 'SETTLED' || !r.slaDueDate) return false;
+        return new Date() > new Date(r.slaDueDate);
+    }).length;
+
+    const riskValue = refunds.reduce((acc, r) => {
+        if (r.status !== 'SETTLED' && r.slaDueDate && new Date() > new Date(r.slaDueDate)) {
+            return acc + (Number(r.amount) || 0);
+        }
+        return acc;
+    }, 0);
+
+    // 3. Filter Logic
+    const filteredRefunds = refunds.filter(r => {
+        // Search
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch =
+            (r.orderId || "").toLowerCase().includes(searchLower) ||
+            (r.customerName || "").toLowerCase().includes(searchLower) ||
+            (r.amount?.toString() || "").includes(searchLower);
+
+        if (!matchesSearch) return false;
+
+        // Tabs
+        if (filterTab === 'ALL') return true;
+        if (filterTab === 'SETTLED') return r.status === 'SETTLED';
+        if (filterTab === 'ACTION') return ['DRAFT', 'GATHERING_DATA', 'FAILED'].includes(r.status) || (!r.paymentMethod);
+        if (filterTab === 'OVERDUE') {
+            return r.status !== 'SETTLED' && r.slaDueDate && new Date() > new Date(r.slaDueDate);
+        }
+        return true;
+    });
+
     return (
-        <div className="min-h-screen bg-[#050505] text-white p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-black text-white p-4 sm:p-8 font-sans">
+            <div className="max-w-7xl mx-auto space-y-8">
+
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold mb-1">Refunds</h1>
-                        <p className="text-gray-400 text-sm">Manage and track all your refund requests.</p>
+                        <h1 className="text-2xl font-bold">Dashboard</h1>
+                        <p className="text-gray-400 text-sm">Welcome back, {user.email}</p>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-500 hidden md:block">{user.email}</span>
-                        <Button variant="ghost" size="sm" onClick={handleLogout}>
-                            <LogOut size={16} className="mr-2" />
-                            Sign Out
+                    <div className="flex gap-4">
+                        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+                            <Plus size={18} /> New Refund
                         </Button>
-                        <Button onClick={() => setIsModalOpen(true)}>
-                            <Plus size={18} className="mr-2" />
-                            New Refund
+                        <Button variant="ghost" onClick={handleLogout} className="text-gray-400 hover:text-white">
+                            <LogOut size={20} />
                         </Button>
                     </div>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Active Refunds</p>
-                            <h3 className="text-2xl font-bold text-white">{stats.activeCount}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="p-2 bg-blue-500/20 rounded-lg">
+                                <Activity className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <span className="text-3xl font-bold">{activeCount}</span>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
-                            <Activity size={20} />
-                        </div>
+                        <p className="text-sm text-gray-400">Active Refunds</p>
                     </div>
 
-                    <div className={`bg-[#0A0A0A] border rounded-xl p-5 flex items-center justify-between ${stats.riskValue > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-white/5'}`}>
-                        <div>
-                            <p className={`text-xs uppercase tracking-wider mb-1 ${stats.riskValue > 0 ? 'text-red-400' : 'text-gray-400'}`}>Value at Risk</p>
-                            <h3 className={`text-2xl font-bold ${stats.riskValue > 0 ? 'text-red-500' : 'text-white'}`}>
-                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(stats.riskValue)}
-                            </h3>
+                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="p-2 bg-red-500/20 rounded-lg">
+                                <AlertTriangle className="w-5 h-5 text-red-500" />
+                            </div>
+                            <span className="text-3xl font-bold text-red-400">{breachCount}</span>
                         </div>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stats.riskValue > 0 ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-400'}`}>
-                            <AlertTriangle size={20} />
-                        </div>
+                        <p className="text-sm text-gray-400">SLA Breaches</p>
                     </div>
 
-                    <div className={`bg-[#0A0A0A] border rounded-xl p-5 flex items-center justify-between ${stats.breachCount > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-white/5'}`}>
-                        <div>
-                            <p className={`text-xs uppercase tracking-wider mb-1 ${stats.breachCount > 0 ? 'text-red-400' : 'text-gray-400'}`}>SLA Breaches</p>
-                            <h3 className={`text-2xl font-bold ${stats.breachCount > 0 ? 'text-red-500' : 'text-white'}`}>{stats.breachCount}</h3>
+                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="p-2 bg-yellow-500/20 rounded-lg">
+                                <TrendingUp className="w-5 h-5 text-yellow-400" />
+                            </div>
+                            <span className="text-3xl font-bold">
+                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(riskValue)}
+                            </span>
                         </div>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stats.breachCount > 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-400'}`}>
-                            <ShieldAlert size={20} />
-                        </div>
+                        <p className="text-sm text-gray-400">Value at Risk</p>
                     </div>
                 </div>
 
-                {/* Command Bar */}
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                    {/* Search Input */}
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                {/* Controls */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
+                    <div className="flex gap-2">
+                        {['ALL', 'ACTION', 'OVERDUE', 'SETTLED'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setFilterTab(tab as any)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:bg-white/10'
+                                    }`}
+                            >
+                                {tab === 'ACTION' ? 'Attn Needed' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                         <input
                             type="text"
-                            placeholder="Search by Order ID, Customer, or Amount..."
-                            className="w-full bg-[#0A0A0A] border border-white/5 text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-gray-600"
+                            placeholder="Search order, name..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-white/30"
                         />
-                    </div>
-
-                    {/* Filter Tabs */}
-                    <div className="flex bg-[#0A0A0A] border border-white/5 rounded-xl p-1 gap-1 overflow-x-auto">
-                        {(['ALL', 'ACTION', 'OVERDUE', 'SETTLED'] as FilterTab[]).map((tab) => {
-                            const isActive = filterTab === tab;
-                            return (
-                                <button
-                                    key={tab}
-                                    onClick={() => setFilterTab(tab)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive
-                                            ? 'bg-blue-600 text-white shadow-lg'
-                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                        }`}
-                                >
-                                    {tab.charAt(0) + tab.slice(1).toLowerCase().replace('_', ' ')}
-                                </button>
-                            );
-                        })}
                     </div>
                 </div>
 
-                {/* Content */}
-                {isLoadingRefunds ? (
-                    <div className="flex justify-center py-20">
-                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                ) : refunds.length === 0 ? (
-                    // Empty State (No refunds at all)
-                    <div className="border border-white/10 rounded-2xl bg-white/5 border-dashed flex flex-col items-center justify-center py-24 text-center">
-                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
-                            <Search size={24} className="text-gray-500" />
-                        </div>
-                        <h3 className="text-lg font-medium text-white mb-2">No refunds yet</h3>
-                        <p className="text-gray-400 max-w-sm mb-6">
-                            Create your first refund request to start tracking the process and building trust with your customers.
-                        </p>
-                        <Button onClick={() => setIsModalOpen(true)}>
-                            <Plus size={18} className="mr-2" />
-                            Create First Refund
-                        </Button>
-                    </div>
-                ) : filteredRefunds.length === 0 ? (
-                    // Empty State (Filtered results empty)
-                    <div className="border border-white/10 rounded-2xl bg-[#0A0A0A] flex flex-col items-center justify-center py-16 text-center">
-                        <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-3">
-                            <Filter size={20} className="text-gray-500" />
-                        </div>
-                        <h3 className="text-md font-medium text-white mb-1">No matching refunds</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Try adjusting your search or filters.
-                        </p>
-                        <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setFilterTab('ALL'); }}>
-                            Clear Filters
-                        </Button>
-                    </div>
-                ) : (
-                    // Refund List
-                    <div className="grid gap-3">
-                        {/* Table Header */}
-                        <div className="grid grid-cols-12 gap-4 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <div className="col-span-4 md:col-span-3">Customer & Order</div>
-                            <div className="col-span-2 hidden md:block">Requested On</div>
-                            <div className="col-span-2 hidden md:block">Amount</div>
-                            <div className="col-span-3 md:col-span-1 hidden md:block">Method</div>
-                            <div className="col-span-3 md:col-span-2">Status</div>
-                            <div className="col-span-2 hidden md:block text-right">SLA Deadline</div>
-                            <div className="col-span-2 md:col-span-1"></div>
-                        </div>
-
-                        {filteredRefunds.map((refund) => {
-                            const overdue = isOverdue(refund);
-                            const settled = refund.status === "SETTLED";
-
-                            return (
-                                <div
-                                    key={refund.id}
-                                    onClick={() => setSelectedRefund(refund)}
-                                    className={`grid grid-cols-12 gap-4 items-center bg-[#0A0A0A] border rounded-xl p-4 transition-all cursor-pointer group relative ${overdue ? 'border-l-4 border-l-red-500 border-y-white/5 border-r-white/5 bg-red-500/5 hover:bg-red-500/10' : 'border-white/5 hover:bg-white/5 hover:border-white/20'
-                                        }`}
-                                >
-                                    {/* Customer & Order */}
-                                    <div className="col-span-4 md:col-span-3 flex items-center gap-3 overflow-hidden">
-                                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-xs shrink-0">
-                                            {refund.customerName.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h4 className="font-medium text-white truncate">{refund.customerName}</h4>
-                                            <p className="text-xs text-gray-500 truncate">{refund.orderId}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Requested On (Desktop Only for Space) */}
-                                    <div className="col-span-2 hidden md:block text-sm text-gray-400">
-                                        {formatDate(refund.createdAt)}
-                                    </div>
-
-                                    {/* Amount */}
-                                    <div className="col-span-3 md:col-span-2">
-                                        <p className="font-bold text-white">
-                                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
-                                        </p>
-                                    </div>
-
-                                    {/* Method */}
-                                    <div className="col-span-3 md:col-span-1 hidden md:flex items-center gap-2 text-sm text-gray-400">
-                                        {getMethodIcon(refund.paymentMethod)}
-                                    </div>
-
-                                    {/* Status */}
-                                    <div className="col-span-3 md:col-span-2">
-                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border inline-flex items-center gap-1 ${refund.status === 'CREATED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                refund.status === 'PROCESSING_AT_BANK' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                                    refund.status === 'SETTLED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                                        refund.status === 'FAILED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                                            'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                                            }`}>
-                                            {refund.status === 'SETTLED' && <Check size={10} />}
-                                            {refund.status === 'FAILED' && <AlertTriangle size={10} />}
-                                            {refund.status.replace(/_/g, " ")}
-                                        </span>
-                                    </div>
-
-                                    {/* SLA Deadline */}
-                                    <div className="col-span-2 hidden md:flex flex-col items-end justify-center text-right">
-                                        {refund.slaDueDate ? (
-                                            <>
-                                                <span className={`text-sm font-medium ${overdue ? 'text-red-500' : 'text-gray-400'}`}>
-                                                    {new Date(refund.slaDueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                                                </span>
-                                                {overdue && (
-                                                    <span className="text-[10px] text-red-400 flex items-center gap-1">
-                                                        <AlertTriangle size={10} /> Overdue
-                                                    </span>
-                                                )}
-                                                {settled && (
-                                                    <span className="text-[10px] text-green-500 flex items-center gap-1">
-                                                        On Time
-                                                    </span>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <span className="text-xs text-gray-600">-</span>
-                                        )}
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="col-span-2 md:col-span-1 flex items-center justify-end gap-2">
-                                        <button
-                                            onClick={(e) => openTracking(e, refund.id)}
-                                            className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-white/10 transition-colors"
-                                            title="Open Tracking Page"
+                {/* Table */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-white/10 text-xs text-gray-500 uppercase tracking-wider bg-black/20">
+                                    <th className="p-4 font-medium">Order Details</th>
+                                    <th className="p-4 font-medium">Amount</th>
+                                    <th className="p-4 font-medium">Status & Method</th>
+                                    <th className="p-4 font-medium">Due Date</th>
+                                    <th className="p-4 font-medium text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {filteredRefunds.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="p-8 text-center text-gray-500">
+                                            No refunds found matching your criteria.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredRefunds.map((refund) => (
+                                        <tr
+                                            key={refund.id}
+                                            onClick={() => setSelectedRefund(refund)}
+                                            className="group hover:bg-white/5 transition-colors cursor-pointer"
                                         >
-                                            <ExternalLink size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                            <td className="p-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-white">#{refund.orderId}</span>
+                                                    <span className="text-xs text-gray-500">{refund.customerName}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 font-mono text-sm text-gray-300">
+                                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex self-start px-2 py-0.5 rounded text-[10px] font-bold tracking-wide border ${refund.status === 'SETTLED' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                                            refund.status === 'FAILED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                                refund.status === 'GATHERING_DATA' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                                    'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                        }`}>
+                                                        {refund.status.replace(/_/g, ' ')}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-widest pl-0.5">
+                                                        {refund.paymentMethod?.replace('_', ' ') || 'unspecified'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                {refund.slaDueDate ? (
+                                                    (() => {
+                                                        const daysLeft = Math.ceil((new Date(refund.slaDueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                                        const isOverdue = daysLeft < 0;
+                                                        if (refund.status === 'SETTLED') return <span className="text-xs text-gray-500">Settled</span>;
+
+                                                        return (
+                                                            <div className={`text-xs font-medium ${isOverdue ? 'text-red-400' : daysLeft <= 2 ? 'text-yellow-400' : 'text-gray-400'}`}>
+                                                                {isOverdue ? `${Math.abs(daysLeft)} days overdue` : `${daysLeft} days left`}
+                                                            </div>
+                                                        );
+                                                    })()
+                                                ) : <span className="text-xs text-gray-600">-</span>}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigator.clipboard.writeText(`${window.location.origin}/t/${refund.id}`);
+                                                        }}
+                                                        className="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                                                        title="Copy Customer Link"
+                                                    >
+                                                        <Copy size={16} />
+                                                    </button>
+                                                    <a
+                                                        href={`/t/${refund.id}`}
+                                                        target="_blank"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                                                    >
+                                                        <ExternalLink size={16} />
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+                </div>
 
-                <CreateRefundModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-
-                {/* Detail Panel */}
-                {selectedRefund && (
-                    <RefundDetailsPanel
-                        refund={selectedRefund}
-                        onClose={() => setSelectedRefund(null)}
-                    />
-                )}
             </div>
+
+            <CreateRefundModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={() => {
+                    setIsModalOpen(false);
+                    fetchRefunds();
+                }}
+            />
+
+            {selectedRefund && (
+                <RefundDetailsPanel
+                    refund={selectedRefund}
+                    onClose={() => setSelectedRefund(null)}
+                    onUpdate={fetchRefunds} // <--- PASSED CORRECTLY NOW
+                />
+            )}
         </div>
     );
 }
