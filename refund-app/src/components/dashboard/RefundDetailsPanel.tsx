@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import {
     X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock,
-    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2
+    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2, Link as LinkIcon
 } from "lucide-react";
 
 interface Refund {
@@ -180,7 +180,8 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     };
 
     const handleCopyLink = () => {
-        const url = `${window.location.origin}/pay/${refund.id}`;
+        // UNIFIED SMART LINK
+        const url = `${window.location.origin}/t/${refund.id}`;
         navigator.clipboard.writeText(url);
         setCopiedLink(true);
         setTimeout(() => setCopiedLink(false), 2000);
@@ -292,7 +293,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                             <p className="text-xs font-medium text-yellow-400 mb-2">Payment details missing</p>
                                             <p className="text-xs text-gray-400 mb-3">
                                                 {isFailedSelected
-                                                    ? "The previous UPI ID failed. Please collect a new one."
+                                                    ? "The previous UPI ID failed. Please share the link to collect a new one."
                                                     : "The customer hasn't provided their UPI ID yet."}
                                             </p>
                                             <Button
@@ -307,7 +308,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Copy size={14} className="mr-2" /> Copy Collection Link
+                                                        <LinkIcon size={14} className="mr-2" /> Copy Smart Link
                                                     </>
                                                 )}
                                             </Button>
