@@ -70,7 +70,7 @@ export default function DashboardPage() {
                     ...doc.data(),
                 })) as Refund[];
 
-                // Sort by creation date desc
+                // Initial sort (will be reinforced in useMemo)
                 refundList.sort((a, b) => {
                     const dateA = a.createdAt?.seconds || 0;
                     const dateB = b.createdAt?.seconds || 0;
@@ -113,9 +113,9 @@ export default function DashboardPage() {
         });
     };
 
-    // Filtering Logic
+    // Filtering & Sorting Logic
     const filteredRefunds = useMemo(() => {
-        return refunds.filter(refund => {
+        const filtered = refunds.filter(refund => {
             // 1. Search Filter
             const searchLower = searchTerm.toLowerCase();
             const matchesSearch =
@@ -140,6 +140,13 @@ export default function DashboardPage() {
                     return true;
             }
         });
+
+        // 3. Client-Side Sorting (Critical)
+        return filtered.sort((a, b) => {
+            const getDate = (r: Refund) => r.createdAt?.seconds ? r.createdAt.seconds * 1000 : 0;
+            return getDate(b) - getDate(a);
+        });
+
     }, [refunds, searchTerm, filterTab]);
 
     const handleLogout = async () => {
@@ -179,6 +186,12 @@ export default function DashboardPage() {
     const isOverdue = (refund: Refund) => {
         if (refund.status === "SETTLED" || !refund.slaDueDate) return false;
         return new Date() > new Date(refund.slaDueDate);
+    };
+
+    const formatDate = (timestamp: any) => {
+        if (!timestamp?.seconds) return "-";
+        const date = new Date(timestamp.seconds * 1000);
+        return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
     if (loading) {
@@ -322,8 +335,9 @@ export default function DashboardPage() {
                         {/* Table Header */}
                         <div className="grid grid-cols-12 gap-4 px-5 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <div className="col-span-4 md:col-span-3">Customer & Order</div>
-                            <div className="col-span-2 hidden md:block">Method</div>
-                            <div className="col-span-3 md:col-span-2">Amount</div>
+                            <div className="col-span-2 hidden md:block">Requested On</div>
+                            <div className="col-span-2 hidden md:block">Amount</div>
+                            <div className="col-span-3 md:col-span-1 hidden md:block">Method</div>
                             <div className="col-span-3 md:col-span-2">Status</div>
                             <div className="col-span-2 hidden md:block text-right">SLA Deadline</div>
                             <div className="col-span-2 md:col-span-1"></div>
@@ -351,10 +365,9 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
 
-                                    {/* Method */}
-                                    <div className="col-span-2 hidden md:flex items-center gap-2 text-sm text-gray-400">
-                                        {getMethodIcon(refund.paymentMethod)}
-                                        <span className="capitalize">{refund.paymentMethod?.replace('_', ' ').toLowerCase() || 'Unknown'}</span>
+                                    {/* Requested On (Desktop Only for Space) */}
+                                    <div className="col-span-2 hidden md:block text-sm text-gray-400">
+                                        {formatDate(refund.createdAt)}
                                     </div>
 
                                     {/* Amount */}
@@ -362,6 +375,11 @@ export default function DashboardPage() {
                                         <p className="font-bold text-white">
                                             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
                                         </p>
+                                    </div>
+
+                                    {/* Method */}
+                                    <div className="col-span-3 md:col-span-1 hidden md:flex items-center gap-2 text-sm text-gray-400">
+                                        {getMethodIcon(refund.paymentMethod)}
                                     </div>
 
                                     {/* Status */}
