@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import {
     X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock,
-    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2, Link as LinkIcon, PlayCircle
+    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2, Link as LinkIcon, Plus
 } from "lucide-react";
 
 interface Refund {
@@ -31,11 +31,11 @@ interface RefundDetailsPanelProps {
     onClose: () => void;
 }
 
-// Strict 6-Stage Roadmap
+// Strict 6-Stage Roadmap (Finalized)
 const STATUS_STEPS = [
     { value: "DRAFT", label: "⚠️ Entry Incomplete", icon: FileEdit, color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" },
     { value: "GATHERING_DATA", label: "⏳ Gathering Data", icon: Loader2, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
-    { value: "IN_PROGRESS", label: "Ready to Process", icon: PlayCircle, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+    { value: "CREATED", label: "Refund Initiated", icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
     { value: "PROCESSING_AT_BANK", label: "Processing at Bank", icon: Building2, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
     { value: "SETTLED", label: "Credited / Settled", icon: CheckCircle2, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" },
     { value: "FAILED", label: "Failed", icon: AlertCircle, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
@@ -61,12 +61,12 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     const [copiedLink, setCopiedLink] = useState(false);
     const [copiedUpi, setCopiedUpi] = useState(false);
 
-    // Derived State for Gates
+    // Derived State for Gates (The Brain)
     const [computedStatus, setComputedStatus] = useState("");
 
+    // Initialize Local State
     useEffect(() => {
         if (refund) {
-            // Initialize local state
             setStatus(refund.status);
             setUtr(refund.proofs?.utr || "");
             setPaymentMethod(refund.paymentMethod || "UPI");
@@ -80,51 +80,43 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         }
     }, [refund]);
 
-    // Gate Logic Effect (The Brain)
+    // COMPUTED STATUS LOGIC (THE BRAIN)
     useEffect(() => {
         if (!refund) return;
 
-        // Level 1: Draft Gate
-        const missingInfo = !paymentMethod || !refundDate;
+        // Priority 1: Draft (Missing Core Info)
+        const isDraft = !paymentMethod || !refundDate;
 
-        // Level 2: Gathering Gate
-        // Source Reversal: Only COD needs a destination. Digital is auto-reversal.
-        const needsUpi = paymentMethod === 'COD';
-        const upiMissing = !refund.targetUpi;
-        const gathering = !missingInfo && needsUpi && upiMissing;
+        // Priority 2: Gathering (COD & Missing UPI)
+        const isGathering = paymentMethod === 'COD' && !refund.targetUpi;
 
-        // Level 3: Ready/In Progress Upgrade
-        // If DB status is CREATED, and we pass the checks above, we are effectively IN_PROGRESS.
-        const isDbCreated = refund.status === "CREATED";
-
-        // Compute Status Priorities
+        // Determine Status based on Priorities
         let currentComputed = refund.status;
 
-        if (missingInfo) {
+        if (isDraft) {
             currentComputed = "DRAFT";
-        } else if (gathering) {
+        } else if (isGathering) {
             currentComputed = "GATHERING_DATA";
-        } else if (isDbCreated) {
-            // Upgrade CREATED -> IN_PROGRESS automatically
-            currentComputed = "IN_PROGRESS";
+        } else {
+            // Priority 3: Default to DB Status (Usually CREATED, PROCESSING, or SETTLED)
+            currentComputed = refund.status;
         }
 
         setComputedStatus(currentComputed);
 
-        // Force Display Status based on Gates
-        if (missingInfo) {
+        // FORCE UI STATUS based on Gates
+        if (isDraft) {
             setStatus("DRAFT");
-        } else if (gathering) {
+        } else if (isGathering) {
             setStatus("GATHERING_DATA");
-        } else if (isDbCreated) {
-            // If we upgraded to IN_PROGRESS logic, update the UI selection too
-            // But only if the current UI selection is one of the "Pre-Process" states
-            if (status === "CREATED" || status === "DRAFT" || status === "GATHERING_DATA") {
-                setStatus("IN_PROGRESS");
+        } else {
+            // We are "Free".
+            // If the local status is "stuck" in a gate state (Draft/Gathering) but computed says we are free,
+            // Automatically switch local selection to the current DB status.
+            if (status === "DRAFT" || status === "GATHERING_DATA") {
+                setStatus(refund.status);
             }
         }
-        // For other states (PROCESSING, SETTLED, FAILED), we trust the DB/User selection primarily,
-        // unless Gaterequirements force us back (handled by the if/else above).
 
     }, [paymentMethod, refundDate, refund?.targetUpi, refund?.status]);
 
@@ -136,31 +128,32 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         try {
             const refundRef = doc(db, "refunds", refund.id);
 
-            // Calculate new SLA Due Date
             const selectedDate = new Date(refundDate);
             selectedDate.setHours(12, 0, 0, 0);
-
             const daysToAdd = SLA_DAYS[paymentMethod] || 7;
             const dueDate = new Date(selectedDate);
             dueDate.setDate(dueDate.getDate() + daysToAdd);
 
             const updateData: any = {
-                status: status,
+                status: status, // This might be overridden below if Failed
                 paymentMethod: paymentMethod,
                 createdAt: Timestamp.fromDate(selectedDate),
                 slaDueDate: dueDate.toISOString(),
                 updatedAt: serverTimestamp(),
             };
 
-            // Failure Logic: The Reset
+            // --- THE FAILURE LOOP ---
             if (status === "FAILED") {
-                // Move UPI to history
+                // 1. Move UPI to History
                 if (refund.targetUpi) {
                     updateData.previousFailedUpi = refund.targetUpi;
                     updateData.targetUpi = deleteField();
                 }
-                // Auto-set status back to GATHERING_DATA
-                updateData.status = "GATHERING_DATA";
+
+                // 2. CRITICAL: Reset Status to 'CREATED' (Initiated)
+                // Why? Because if it's COD, removing targetUpi automatically forces "GATHERING_DATA".
+                // If it's Digital, we want to restart at "CREATED".
+                updateData.status = "CREATED";
             }
 
             // If status is SETTLED, save the UTR
@@ -168,22 +161,24 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                 updateData["proofs.utr"] = utr;
             }
 
-            // Add to timeline only if status changed (or we are resetting from FAILED)
+            // Timeline Entry
             if (status !== refund.status || status === "FAILED") {
+                const timelineResultStatus = status === "FAILED" ? "CREATED" : status;
+
                 const timelineEntry = {
-                    status: status === "FAILED" ? "GATHERING_DATA" : status, // Record the resulting status
+                    status: timelineResultStatus,
                     title: status === "FAILED" ? "Refund Failed & Reset" : STATUS_STEPS.find(o => o.value === status)?.label || status,
                     date: new Date().toISOString(),
                     description: status === "SETTLED" ? `UTR: ${utr}` :
-                        status === "FAILED" ? "Processing failed. UPI cleared. Reverting to Gathering Data." :
-                            "Status updated by merchant", // Generic fallback
+                        status === "FAILED" ? "Processing failed. UPI cleared. Reverting status." :
+                            "Status updated by merchant",
                 };
                 updateData.timeline = arrayUnion(timelineEntry);
             }
 
             await updateDoc(refundRef, updateData);
-
             onClose();
+
         } catch (error) {
             console.error("Error updating refund:", error);
             alert("Failed to update refund");
@@ -201,16 +196,14 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         setIsManualSaving(true);
         try {
             const refundRef = doc(db, "refunds", refund.id);
-
-            // Update targetUpi directly. 
-            // NOTE: The Gate Logic Effect will automatically see this change, 
-            // unlock the status, and switch to "IN_PROGRESS" locally.
             await updateDoc(refundRef, {
                 targetUpi: manualUpi,
                 updatedAt: serverTimestamp()
+                // NOTE: We do NOT need to set status manually here.
+                // The "Brain" (useEffect) will see targetUpi exists, 
+                // realize computedStatus is no longer GATHERING_DATA,
+                // and the local status will sync to refund.status (which is CREATED).
             });
-
-            // We don't close the panel, so the user sees the UI update instantly.
             setManualUpi("");
         } catch (error) {
             console.error("Error saving UPI:", error);
@@ -221,7 +214,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     };
 
     const handleCopyLink = () => {
-        // UNIFIED SMART LINK
         const url = `${window.location.origin}/t/${refund.id}`;
         navigator.clipboard.writeText(url);
         setCopiedLink(true);
@@ -236,17 +228,13 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         }
     };
 
-    // Reactive UI Logic for FAILED selection
+    // UI Helpers
     const isFailedSelected = status === "FAILED";
     const effectiveFailedUpi = isFailedSelected && refund.targetUpi ? refund.targetUpi : refund.previousFailedUpi;
     const showActiveUpi = refund.targetUpi && !isFailedSelected;
-
-    // Determine if we should show the "Missing Details" box
-    // Show if (Computed says Gathering) OR (We explicitly selected Failed to reset)
-    // BUT hide if we have UPI and we are not Failed (which means we are in In_Progress or later)
     const showMissingDetails = computedStatus === "GATHERING_DATA" || isFailedSelected;
 
-    // Validation Logic for Settlement
+    // Save Validation
     const isSaveDisabled = computedStatus === "DRAFT" || (status === "SETTLED" && (!utr || utr.trim() === ""));
 
     return (
@@ -297,7 +285,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 <div>
                                     <p className="text-xs font-medium text-red-400 mb-1">Previous Failed ID</p>
                                     <code className="text-sm text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded">{effectiveFailedUpi}</code>
-                                    <p className="text-[10px] text-red-400/60 mt-1">This ID failed processing. Please request a new one.</p>
+                                    <p className="text-[10px] text-red-400/60 mt-1">This ID failed processing. Pleaase check and retry.</p>
                                 </div>
                             </div>
                         </div>
@@ -308,7 +296,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                         <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Payout Details</h4>
 
                         {showActiveUpi ? (
-                            // Scenario A: UPI Exists AND Not Failed
                             <div className="relative animate-in fade-in duration-300">
                                 <Input
                                     label="Customer UPI ID"
@@ -325,7 +312,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 </button>
                             </div>
                         ) : (
-                            // Scenario B: UPI Missing OR Failed (Show Yellow Box)
                             showMissingDetails && (
                                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 animate-in fade-in duration-300">
                                     <div className="flex items-start gap-3">
@@ -389,13 +375,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
 
                     {/* Data Correction Section */}
                     <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-gray-300 border-b border-white/10 pb-2">Refund Data</h4>
-
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">
-                                    Payment Mode
-                                </label>
+                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">Payment Mode</label>
                                 <select
                                     className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all appearance-none"
                                     value={paymentMethod}
@@ -408,11 +390,8 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                     ))}
                                 </select>
                             </div>
-
                             <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">
-                                    Requested On
-                                </label>
+                                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">Requested On</label>
                                 <input
                                     type="date"
                                     className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg px-3 py-2.5 outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all [color-scheme:dark]"
@@ -421,9 +400,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 />
                             </div>
                         </div>
-                        <p className="text-[10px] text-gray-500 ml-1">
-                            Changing these will recalculate the SLA deadline.
-                        </p>
                     </div>
 
                     {/* Status Control */}
@@ -443,31 +419,23 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 Waiting for customer payment details...
                             </p>
                         )}
-                        {/* IN PROGRESS implies we are ready but haven't started processing yet */}
-
 
                         <div className="grid gap-3">
                             {STATUS_STEPS.map((option) => {
                                 const Icon = option.icon;
                                 const isSelected = status === option.value;
 
-                                // Disable Logic (The Gates)
                                 let isDisabled = false;
 
                                 if (computedStatus === "DRAFT") {
                                     if (option.value !== "DRAFT") isDisabled = true;
                                 } else if (computedStatus === "GATHERING_DATA") {
-                                    // If Gathering, we can't go to Processing or Settled.
-                                    // We also can't go to In Progress (because we aren't ready).
-                                    if (option.value === "IN_PROGRESS" || option.value === "PROCESSING_AT_BANK" || option.value === "SETTLED") isDisabled = true;
-                                } else {
-                                    // If we are IN_PROGRESS (or later), we can move freely to later stages.
-                                    // We can also generally move back if needed.
-                                    // No restrictions.
+                                    // Block Next Steps
+                                    if (["CREATED", "PROCESSING_AT_BANK", "SETTLED"].includes(option.value)) isDisabled = true;
                                 }
 
                                 if (isSelected) isDisabled = false;
-                                // Allow moving to FAILED from most states except Draft
+                                // Allow marking as Failed unless we are in Draft
                                 if (computedStatus !== "DRAFT" && option.value === "FAILED") isDisabled = false;
 
                                 return (
@@ -501,9 +469,6 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 onChange={(e) => setUtr(e.target.value)}
                                 required
                             />
-                            <p className="text-xs text-gray-500 mt-2 ml-1">
-                                Required for transparency. This will be shown to the customer.
-                            </p>
                         </div>
                     )}
                 </div>
