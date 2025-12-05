@@ -97,6 +97,11 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             currentComputed = "DRAFT";
         } else if (isGathering) {
             currentComputed = "GATHERING_DATA";
+        } else if (refund.status === "GATHERING_DATA" && !isGathering) {
+            // CRITICAL FIX: Auto-Promote Stale DB Status
+            // We were gathering, but now have data (isGathering is false).
+            // Force UI to show CREATED (Initiated) instead of stale GATHERING_DATA.
+            currentComputed = "CREATED";
         } else {
             // Priority 3: Default to DB Status (Usually CREATED, PROCESSING, or SETTLED)
             currentComputed = refund.status;
@@ -111,10 +116,9 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             setStatus("GATHERING_DATA");
         } else {
             // We are "Free".
-            // If the local status is "stuck" in a gate state (Draft/Gathering) but computed says we are free,
-            // Automatically switch local selection to the current DB status.
+            // If local status is stuck in gate state, sync to the COMPUTED status (not just DB status).
             if (status === "DRAFT" || status === "GATHERING_DATA") {
-                setStatus(refund.status);
+                setStatus(currentComputed);
             }
         }
 
