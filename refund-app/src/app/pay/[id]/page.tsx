@@ -63,7 +63,14 @@ export default function PayPage() {
             const docRef = doc(db, "refunds", refund.id);
             await updateDoc(docRef, {
                 targetUpi: upiId,
-                updatedAt: new Date(), // Using client date for simplicity here, ideally serverTimestamp
+                status: "CREATED", // Auto-Promote Logic: Data In -> Status Up
+                updatedAt: new Date(),
+                timeline: arrayUnion({
+                    status: "CREATED",
+                    title: "Payment Details Received",
+                    date: new Date().toISOString(),
+                    description: "Customer provided UPI details securely."
+                })
             });
             setSuccess(true);
 
