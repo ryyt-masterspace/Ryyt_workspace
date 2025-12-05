@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import {
     X, CheckCircle2, Clock, Building2, AlertCircle, CalendarClock,
-    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2, Link as LinkIcon
+    Copy, ExternalLink, AlertTriangle, Check, FileEdit, Loader2, Link as LinkIcon, PlayCircle
 } from "lucide-react";
 
 interface Refund {
@@ -31,11 +31,11 @@ interface RefundDetailsPanelProps {
     onClose: () => void;
 }
 
-// Full 6-Step Roadmap
+// Strict 6-Stage Roadmap
 const STATUS_STEPS = [
     { value: "DRAFT", label: "⚠️ Entry Incomplete", icon: FileEdit, color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" },
-    { value: "CREATED", label: "Refund Initiated", icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
     { value: "GATHERING_DATA", label: "⏳ Gathering Data", icon: Loader2, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+    { value: "IN_PROGRESS", label: "Ready to Process", icon: PlayCircle, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
     { value: "PROCESSING_AT_BANK", label: "Processing at Bank", icon: Building2, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
     { value: "SETTLED", label: "Credited / Settled", icon: CheckCircle2, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" },
     { value: "FAILED", label: "Failed", icon: AlertCircle, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
@@ -50,14 +50,14 @@ const SLA_DAYS: Record<string, number> = {
     COD: 5,
 };
 
-const METHODS_REQUIRING_UPI = ['UPI', 'WALLET', 'COD'];
-
 export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPanelProps) {
     const [status, setStatus] = useState("");
     const [utr, setUtr] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("UPI");
     const [refundDate, setRefundDate] = useState("");
+    const [manualUpi, setManualUpi] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isManualSaving, setIsManualSaving] = useState(false);
     const [copiedLink, setCopiedLink] = useState(false);
     const [copiedUpi, setCopiedUpi] = useState(false);
 
@@ -80,7 +80,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         }
     }, [refund]);
 
-    // Gate Logic Effect
+    // Gate Logic Effect (The Brain)
     useEffect(() => {
         if (!refund) return;
 
@@ -88,16 +88,25 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
         const missingInfo = !paymentMethod || !refundDate;
 
         // Level 2: Gathering Gate
-        const needsUpi = METHODS_REQUIRING_UPI.includes(paymentMethod);
+        // Source Reversal: Only COD needs a destination. Digital is auto-reversal.
+        const needsUpi = paymentMethod === 'COD';
         const upiMissing = !refund.targetUpi;
         const gathering = !missingInfo && needsUpi && upiMissing;
 
-        // Compute Status
+        // Level 3: Ready/In Progress Upgrade
+        // If DB status is CREATED, and we pass the checks above, we are effectively IN_PROGRESS.
+        const isDbCreated = refund.status === "CREATED";
+
+        // Compute Status Priorities
         let currentComputed = refund.status;
+
         if (missingInfo) {
             currentComputed = "DRAFT";
         } else if (gathering) {
             currentComputed = "GATHERING_DATA";
+        } else if (isDbCreated) {
+            // Upgrade CREATED -> IN_PROGRESS automatically
+            currentComputed = "IN_PROGRESS";
         }
 
         setComputedStatus(currentComputed);
@@ -107,12 +116,16 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             setStatus("DRAFT");
         } else if (gathering) {
             setStatus("GATHERING_DATA");
-        } else {
-            // If we were forced before, revert to refund status, OR keep current selection if valid
-            if (status === "DRAFT" || status === "GATHERING_DATA") {
-                setStatus(refund.status === "DRAFT" || refund.status === "GATHERING_DATA" ? "CREATED" : refund.status);
+        } else if (isDbCreated) {
+            // If we upgraded to IN_PROGRESS logic, update the UI selection too
+            // But only if the current UI selection is one of the "Pre-Process" states
+            if (status === "CREATED" || status === "DRAFT" || status === "GATHERING_DATA") {
+                setStatus("IN_PROGRESS");
             }
         }
+        // For other states (PROCESSING, SETTLED, FAILED), we trust the DB/User selection primarily,
+        // unless Gaterequirements force us back (handled by the if/else above).
+
     }, [paymentMethod, refundDate, refund?.targetUpi, refund?.status]);
 
 
@@ -163,7 +176,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                     date: new Date().toISOString(),
                     description: status === "SETTLED" ? `UTR: ${utr}` :
                         status === "FAILED" ? "Processing failed. UPI cleared. Reverting to Gathering Data." :
-                            "Status updated by merchant",
+                            "Status updated by merchant", // Generic fallback
                 };
                 updateData.timeline = arrayUnion(timelineEntry);
             }
@@ -176,6 +189,34 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
             alert("Failed to update refund");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleSaveManualUpi = async () => {
+        if (!manualUpi || !manualUpi.includes('@')) {
+            alert("Please enter a valid UPI ID (e.g. user@bank)");
+            return;
+        }
+
+        setIsManualSaving(true);
+        try {
+            const refundRef = doc(db, "refunds", refund.id);
+
+            // Update targetUpi directly. 
+            // NOTE: The Gate Logic Effect will automatically see this change, 
+            // unlock the status, and switch to "IN_PROGRESS" locally.
+            await updateDoc(refundRef, {
+                targetUpi: manualUpi,
+                updatedAt: serverTimestamp()
+            });
+
+            // We don't close the panel, so the user sees the UI update instantly.
+            setManualUpi("");
+        } catch (error) {
+            console.error("Error saving UPI:", error);
+            alert("Failed to save UPI ID");
+        } finally {
+            setIsManualSaving(false);
         }
     };
 
@@ -201,6 +242,8 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     const showActiveUpi = refund.targetUpi && !isFailedSelected;
 
     // Determine if we should show the "Missing Details" box
+    // Show if (Computed says Gathering) OR (We explicitly selected Failed to reset)
+    // BUT hide if we have UPI and we are not Failed (which means we are in In_Progress or later)
     const showMissingDetails = computedStatus === "GATHERING_DATA" || isFailedSelected;
 
     // Validation Logic for Settlement
@@ -289,29 +332,54 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                         <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
                                             <AlertTriangle size={18} />
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs font-medium text-yellow-400 mb-2">Payment details missing</p>
-                                            <p className="text-xs text-gray-400 mb-3">
-                                                {isFailedSelected
-                                                    ? "The previous UPI ID failed. Please share the link to collect a new one."
-                                                    : "The customer hasn't provided their UPI ID yet."}
-                                            </p>
+                                        <div className="flex-1 space-y-3">
+                                            <div>
+                                                <p className="text-xs font-medium text-yellow-400 mb-1">Payment details missing</p>
+                                                <p className="text-[10px] text-gray-400 leading-relaxed">
+                                                    {isFailedSelected
+                                                        ? "Previous ID failed. Request new one or enter manually."
+                                                        : "Customer hasn't provided details. Send link or enter manually."}
+                                                </p>
+                                            </div>
+
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="w-full border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300"
+                                                className="w-full border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 h-9"
                                                 onClick={handleCopyLink}
                                             >
                                                 {copiedLink ? (
-                                                    <>
-                                                        <Check size={14} className="mr-2" /> Link Copied
-                                                    </>
+                                                    <><Check size={14} className="mr-2" /> Link Copied</>
                                                 ) : (
-                                                    <>
-                                                        <LinkIcon size={14} className="mr-2" /> Copy Smart Link
-                                                    </>
+                                                    <><LinkIcon size={14} className="mr-2" /> Copy Smart Link</>
                                                 )}
                                             </Button>
+
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-px bg-yellow-500/20 flex-1" />
+                                                <span className="text-[10px] text-yellow-500/50 font-medium uppercase">OR</span>
+                                                <div className="h-px bg-yellow-500/20 flex-1" />
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <div className="flex-1">
+                                                    <Input
+                                                        placeholder="Enter UPI manually..."
+                                                        className="h-9 text-xs bg-black/20 border-yellow-500/20 focus:border-yellow-500/50"
+                                                        value={manualUpi}
+                                                        onChange={(e) => setManualUpi(e.target.value)}
+                                                    />
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    className="h-9 px-3 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border border-yellow-500/20"
+                                                    onClick={handleSaveManualUpi}
+                                                    isLoading={isManualSaving}
+                                                    disabled={!manualUpi}
+                                                >
+                                                    <Check size={14} />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -375,6 +443,8 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 Waiting for customer payment details...
                             </p>
                         )}
+                        {/* IN PROGRESS implies we are ready but haven't started processing yet */}
+
 
                         <div className="grid gap-3">
                             {STATUS_STEPS.map((option) => {
@@ -387,11 +457,18 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                 if (computedStatus === "DRAFT") {
                                     if (option.value !== "DRAFT") isDisabled = true;
                                 } else if (computedStatus === "GATHERING_DATA") {
-                                    if (option.value === "PROCESSING_AT_BANK" || option.value === "SETTLED") isDisabled = true;
+                                    // If Gathering, we can't go to Processing or Settled.
+                                    // We also can't go to In Progress (because we aren't ready).
+                                    if (option.value === "IN_PROGRESS" || option.value === "PROCESSING_AT_BANK" || option.value === "SETTLED") isDisabled = true;
+                                } else {
+                                    // If we are IN_PROGRESS (or later), we can move freely to later stages.
+                                    // We can also generally move back if needed.
+                                    // No restrictions.
                                 }
 
                                 if (isSelected) isDisabled = false;
-                                if (computedStatus !== "DRAFT" && (option.value === "FAILED" || option.value === "CREATED")) isDisabled = false;
+                                // Allow moving to FAILED from most states except Draft
+                                if (computedStatus !== "DRAFT" && option.value === "FAILED") isDisabled = false;
 
                                 return (
                                     <button
@@ -399,10 +476,10 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                                         onClick={() => !isDisabled && setStatus(option.value)}
                                         disabled={isDisabled}
                                         className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${isSelected
-                                                ? `${option.bg} ${option.border} ${option.color}`
-                                                : isDisabled
-                                                    ? "bg-white/5 border-white/5 text-gray-600 cursor-not-allowed opacity-50"
-                                                    : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10"
+                                            ? `${option.bg} ${option.border} ${option.color}`
+                                            : isDisabled
+                                                ? "bg-white/5 border-white/5 text-gray-600 cursor-not-allowed opacity-50"
+                                                : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10"
                                             }`}
                                     >
                                         <Icon size={20} className={isSelected ? option.color : isDisabled ? "text-gray-600" : "text-gray-500"} />

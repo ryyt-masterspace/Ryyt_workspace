@@ -34,7 +34,9 @@ export default function TrackingPage() {
                     setRefund(data);
 
                     // --- SMART REDIRECTION LOGIC ---
-                    const needsUpi = (['UPI', 'COD', 'WALLET'].includes(data.paymentMethod)) && (!data.targetUpi);
+                    // Source Reversal Rule: Only COD needs a destination. 
+                    // UPI/Cards/Wallet go back to source automatically.
+                    const needsUpi = (['COD'].includes(data.paymentMethod)) && (!data.targetUpi);
 
                     if (needsUpi) {
                         setIsRedirecting(true);
@@ -122,8 +124,8 @@ export default function TrackingPage() {
                     {/* Status Pill - Top Right */}
                     <div className="absolute top-6 right-6">
                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${refund.status === 'SETTLED'
-                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                : 'bg-white/5 text-gray-400 border-white/10'
+                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                            : 'bg-white/5 text-gray-400 border-white/10'
                             }`}>
                             <div className={`w-1.5 h-1.5 rounded-full ${refund.status === 'SETTLED' ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
                             {STATUS_LABELS[refund.status] || refund.status.replace(/_/g, " ")}
