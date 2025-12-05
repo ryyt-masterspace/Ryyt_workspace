@@ -12,6 +12,7 @@ import { X, CalendarClock } from "lucide-react";
 interface CreateRefundModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess: () => void;
 }
 
 // Verified Indian Payment Matrix
@@ -24,7 +25,7 @@ const SLA_DAYS: Record<string, number> = {
     COD: 5,
 };
 
-export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModalProps) {
+export default function CreateRefundModal({ isOpen, onClose, onSuccess }: CreateRefundModalProps) {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -87,6 +88,7 @@ export default function CreateRefundModal({ isOpen, onClose }: CreateRefundModal
                     },
                 ],
             });
+            onSuccess(); // <--- Trigger refresh in parent
             onClose();
             // Reset form
             setFormData({
