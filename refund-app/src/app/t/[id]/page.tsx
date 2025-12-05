@@ -87,6 +87,20 @@ export default function TrackingPage() {
         return "pending";
     };
 
+    // --- SMART COPY LOGIC ---
+    const isManualPayout = ['UPI', 'COD', 'WALLET'].includes(refund.paymentMethod);
+
+    // Step 1 Copy
+    const step1Desc = isManualPayout
+        ? "Payment details received. Preparing for bank transfer."
+        : "Refund authorized. Sending request to gateway.";
+
+    // Step 3 Copy
+    const step3Desc = refund.targetUpi
+        ? `Credited to ${refund.targetUpi}. UTR: ${refund.proofs?.utr || 'Pending'}`
+        : `Credited to original source. ARN: ${refund.proofs?.arn || 'Pending'}`;
+
+
     return (
         <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30">
             <Navbar />
@@ -115,7 +129,7 @@ export default function TrackingPage() {
                     <TimelineItem
                         status={getStepStatus(0)}
                         title="Refund Initiated"
-                        desc={`Authorized for Order #${refund.orderId}`}
+                        desc={step1Desc}
                         date={refund.createdAt?.seconds ? new Date(refund.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Just now'}
                     />
 
@@ -130,7 +144,7 @@ export default function TrackingPage() {
                     <TimelineItem
                         status={getStepStatus(2)}
                         title="Credited to Account"
-                        desc={refund.proofs?.utr ? `UTR: ${refund.proofs.utr}` : "Funds should reflect in your account."}
+                        desc={step3Desc}
                         isLast
                     />
                 </div>
