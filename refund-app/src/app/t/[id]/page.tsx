@@ -79,8 +79,18 @@ export default function TrackingPage() {
 
     // Timeline Helper Logic
     const getStepStatus = (stepIndex: number) => {
-        const statusMap = { CREATED: 0, PROCESSING_AT_BANK: 1, SETTLED: 2 };
-        const currentStep = statusMap[refund.status as keyof typeof statusMap] || 0;
+        // Map status to step index
+        const statusMap: any = {
+            CREATED: 0,
+            GATHERING_DATA: 0, // Treats gathering as step 0 phase
+            PROCESSING_AT_BANK: 1,
+            SETTLED: 2
+        };
+
+        const currentStep = statusMap[refund.status] || 0;
+
+        // CRITICAL FIX: If status is SETTLED (2), the last step (2) is COMPLETED, not Active.
+        if (refund.status === 'SETTLED' && stepIndex === 2) return "completed";
 
         if (currentStep > stepIndex) return "completed";
         if (currentStep === stepIndex) return "active";
