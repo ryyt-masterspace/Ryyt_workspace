@@ -112,58 +112,75 @@ export default function TrackingPage() {
 
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-green-500/30 flex flex-col items-center">
             <Navbar />
 
-            <main className="max-w-md mx-auto p-6">
-                {/* HERO CARD */}
-                <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 rounded-2xl p-6 mb-8 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+            <main className="w-full max-w-md p-6 mt-4">
+                {/* HERO CARD (The Wallet) */}
+                <div className={`relative w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/5 to-white/0 p-8 mb-12 transition-all duration-500 ${refund.status === 'SETTLED' ? 'shadow-[0_0_50px_-12px_rgba(34,197,94,0.3)]' : 'shadow-2xl'}`}>
 
-                    <p className="text-gray-400 text-xs uppercase tracking-wider mb-1 font-medium">Total Refund Amount</p>
-                    <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">
-                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
-                    </h1>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium border border-blue-500/20">
-                        <Clock className="w-3.5 h-3.5" />
-                        {STATUS_LABELS[refund.status] || refund.status.replace(/_/g, " ")}
+                    {/* Status Pill - Top Right */}
+                    <div className="absolute top-6 right-6">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${refund.status === 'SETTLED'
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                : 'bg-white/5 text-gray-400 border-white/10'
+                            }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${refund.status === 'SETTLED' ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
+                            {STATUS_LABELS[refund.status] || refund.status.replace(/_/g, " ")}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mt-2">
+                        <p className="text-gray-500 text-xs font-medium tracking-widest uppercase">Refund Amount</p>
+                        <h1 className="text-5xl font-bold tracking-tighter text-white">
+                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(refund.amount)}
+                        </h1>
+                    </div>
+
+                    {/* Decorative Bottom Glow */}
+                    {refund.status === 'SETTLED' && (
+                        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-24 bg-green-500/20 blur-[60px] pointer-events-none" />
+                    )}
+                </div>
+
+                {/* TIMELINE (The Journey) */}
+                <div className="relative pl-4 pr-2">
+                    {/* Continuous Line Background */}
+                    <div className="absolute left-[27px] top-4 bottom-10 w-[2px] bg-gradient-to-b from-green-500/50 to-gray-800/30 rounded-full" />
+
+                    <div className="space-y-10">
+                        {/* Step 1: Initiated */}
+                        <TimelineItem
+                            status={getStepStatus(0)}
+                            title="Refund Initiated"
+                            desc={step1Desc}
+                            date={refund.createdAt?.seconds ? new Date(refund.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Just now'}
+                        />
+
+                        {/* Step 2: Bank Processing */}
+                        <TimelineItem
+                            status={getStepStatus(1)}
+                            title="Processing at Bank"
+                            desc="The money is moving through banking rails."
+                        />
+
+                        {/* Step 3: Settled */}
+                        <TimelineItem
+                            status={getStepStatus(2)}
+                            title="Credited to Account"
+                            desc={step3Desc}
+                            isLast
+                        />
                     </div>
                 </div>
 
-                {/* TIMELINE */}
-                <div className="space-y-8 relative pl-2">
-                    {/* Vertical Line */}
-                    <div className="absolute left-[19px] top-2 bottom-4 w-0.5 bg-gray-800" />
-
-                    {/* Step 1: Initiated */}
-                    <TimelineItem
-                        status={getStepStatus(0)}
-                        title="Refund Initiated"
-                        desc={step1Desc}
-                        date={refund.createdAt?.seconds ? new Date(refund.createdAt.seconds * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Just now'}
-                    />
-
-                    {/* Step 2: Bank Processing */}
-                    <TimelineItem
-                        status={getStepStatus(1)}
-                        title="Processing at Bank"
-                        desc="The money is moving through banking rails."
-                    />
-
-                    {/* Step 3: Settled */}
-                    <TimelineItem
-                        status={getStepStatus(2)}
-                        title="Credited to Account"
-                        desc={step3Desc}
-                        isLast
-                    />
-                </div>
-
-                {/* Footer Trust Signal */}
-                <div className="mt-12 text-center border-t border-white/5 pt-6">
-                    <p className="text-xs text-gray-500">
-                        Securely processed by Ryyt.
-                        <br />Updates are tracked in real-time.
+                {/* Footer */}
+                <div className="mt-16 flex flex-col items-center gap-3 opacity-40">
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                        <Building2 className="w-3 h-3 text-white" />
+                    </div>
+                    <p className="text-[10px] text-gray-500 font-mono tracking-widest uppercase text-center">
+                        SECURE PAYMENT • RYYT PAYMENTS
                     </p>
                 </div>
             </main>
@@ -173,10 +190,12 @@ export default function TrackingPage() {
 
 function Navbar() {
     return (
-        <nav className="border-b border-white/10 p-4 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-            <div className="max-w-md mx-auto flex items-center gap-2">
-                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-black font-bold text-xs">R</div>
-                <span className="font-semibold text-sm tracking-tight">Ryyt Secure Track</span>
+        <nav className="w-full flex justify-center py-6">
+            <div className="flex items-center gap-2.5 opacity-80">
+                <div className="w-5 h-5 bg-white rounded flex items-center justify-center">
+                    <div className="w-3 h-3 bg-black rounded-sm" />
+                </div>
+                <span className="font-medium text-sm tracking-tight text-gray-200">Ryyt Secure Track</span>
             </div>
         </nav>
     );
@@ -184,29 +203,41 @@ function Navbar() {
 
 // Sub-component for Timeline Steps
 function TimelineItem({ status, title, desc, date, isLast }: any) {
-    let icon = <div className="w-2 h-2 bg-gray-600 rounded-full" />;
-    let colorClass = "text-gray-500";
-    let borderClass = "border-gray-800 bg-gray-900";
-
-    if (status === "completed") {
-        icon = <CheckCircle2 className="w-5 h-5 text-green-500" />;
-        colorClass = "text-green-500";
-        borderClass = "border-green-500/30 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]";
-    } else if (status === "active") {
-        icon = <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" />;
-        colorClass = "text-blue-400";
-        borderClass = "border-blue-500/50 bg-blue-500/10";
-    }
+    const isCompleted = status === "completed";
+    const isActive = status === "active";
 
     return (
-        <div className="relative flex gap-5 group">
-            <div className={`w-10 h-10 rounded-full border ${borderClass} flex items-center justify-center shrink-0 z-10 transition-all duration-500`}>
-                {icon}
+        <div className="relative flex gap-6 group">
+            {/* The Node */}
+            <div className={`
+                relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-1 transition-all duration-500
+                ${isCompleted ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)] scale-110' : ''}
+                ${isActive ? 'bg-gray-900 border border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : ''}
+                ${!isCompleted && !isActive ? 'bg-gray-900 border border-gray-800' : ''}
+            `}>
+                {isCompleted && <CheckCircle2 className="w-3.5 h-3.5 text-black stroke-[3]" />}
+                {isActive && <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />}
             </div>
-            <div className="pb-2 pt-1">
-                <h3 className={`font-medium text-sm ${status === 'pending' ? 'text-gray-500' : 'text-white'}`}>{title}</h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">{desc}</p>
-                {date && <p className="text-[10px] text-gray-600 mt-2 font-mono uppercase">{date}</p>}
+
+            {/* The Content */}
+            <div className={`flex-1 transition-all duration-500 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-60 group-hover:opacity-90'}`}>
+                <div className="flex justify-between items-baseline mb-1">
+                    <h3 className={`text-base font-semibold tracking-tight ${isCompleted || isActive ? 'text-gray-100' : 'text-gray-500'}`}>
+                        {title}
+                    </h3>
+                    {date && <span className="text-[10px] font-mono text-gray-600 uppercase tracking-wider">{date}</span>}
+                </div>
+                <p className="text-sm text-gray-400 font-light leading-relaxed max-w-[90%]">
+                    {desc}
+                </p>
+
+                {/* Visual Connector for Active State */}
+                {isActive && (
+                    <div className="mt-3 inline-flex items-center gap-2 text-[10px] font-medium text-green-500/80 bg-green-500/5 px-2 py-1 rounded border border-green-500/10">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        IN PROGRESS
+                    </div>
+                )}
             </div>
         </div>
     );
