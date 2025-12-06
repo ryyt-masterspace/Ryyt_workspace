@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { X, Copy, ExternalLink, History, FileEdit, Loader2, AlertTriangle, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/lib/AuthContext"; // Import Auth
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
 const STATUS_STEPS = [
-    { value: "DRAFT", label: "Entry Incomplete", icon: FileEdit },
     { value: "GATHERING_DATA", label: "Gathering Data", icon: Loader2 },
     { value: "CREATED", label: "Refund Initiated", icon: CheckCircle2 },
     { value: "PROCESSING_AT_BANK", label: "Processing at Bank", icon: ShieldCheck },
@@ -30,17 +30,16 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
     const [paymentMethod, setPaymentMethod] = useState(refund.paymentMethod || "");
     const [refundDate, setRefundDate] = useState(refund.createdAt?.seconds ? new Date(refund.createdAt.seconds * 1000).toISOString().split('T')[0] : "");
     const [proofValue, setProofValue] = useState(refund.proofs?.utr || refund.proofs?.arn || "");
+    const [failureReason, setFailureReason] = useState(refund.failureReason || "");
     const [isLoading, setIsLoading] = useState(false);
 
     // Computed Status Logic (The "Truth")
     let computedStatus = status;
-    const isDraft = !paymentMethod || !refundDate;
+    // Removed isDraft logic as creation enforces completeness
     const needsUpi = ['UPI', 'COD', 'WALLET'].includes(paymentMethod);
     const isGathering = needsUpi && !refund.targetUpi;
 
-    if (isDraft) {
-        computedStatus = "DRAFT";
-    } else if (isGathering && status !== 'FAILED') {
+    if (isGathering && status !== 'FAILED') {
         computedStatus = "GATHERING_DATA";
     } else if (status === "GATHERING_DATA" && !isGathering) {
         computedStatus = "CREATED"; // Auto-promote if data arrived
@@ -50,7 +49,7 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
     useEffect(() => {
         if (computedStatus !== status) {
             // Only visually sync if we are "locked" in a gate
-            if (computedStatus === 'DRAFT' || computedStatus === 'GATHERING_DATA') {
+            if (computedStatus === 'GATHERING_DATA') {
                 setStatus(computedStatus);
             }
         }
@@ -63,6 +62,12 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
     };
 
     const handleUpdate = async () => {
+        // Validation: Failure Reason
+        if (status === 'FAILED' && !failureReason.trim()) {
+            alert("Please provide a reason for rejection.");
+            return;
+        }
+
         setIsLoading(true);
         try {
             const docRef = doc(db, "refunds", refund.id);
@@ -78,10 +83,13 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
                 timelineEvent.title = `Status updated to ${STATUS_STEPS.find(s => s.value === status)?.label}`;
 
                 // Failure Loop Logic
-                if (status === 'FAILED' && refund.targetUpi) {
-                    updates.previousFailedUpi = refund.targetUpi;
-                    updates.targetUpi = null; // Clear it to trigger gathering again
-                    timelineEvent.title = "Refund Failed - UPI Cleared";
+                if (status === 'FAILED') {
+                    updates.failureReason = failureReason; // Save reason
+                    if (refund.targetUpi) {
+                        updates.previousFailedUpi = refund.targetUpi;
+                        updates.targetUpi = null; // Clear it to trigger gathering again
+                        timelineEvent.title = "Refund Failed - UPI Cleared";
+                    }
                 }
             }
 
@@ -113,6 +121,39 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
                 timeline: arrayUnion(timelineEvent)
             });
 
+            // --- EMAIL TRIGGER START ---
+            // Triggers for PROCESSING, SETTLED, and FAILED
+            try {
+                if (status === 'PROCESSING_AT_BANK' || status === 'SETTLED' || status === 'FAILED') {
+                    const token = await user?.getIdToken();
+                    if (token) {
+                        fetch('/api/email', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                to: refund.customerEmail,
+                                triggerType: status, // Matches API switch case
+                                merchantEmail: user?.email, // Enable Reply-To
+                                data: {
+                                    customerName: refund.customerName,
+                                    amount: refund.amount,
+                                    orderId: refund.orderId,
+                                    trackingLink: `${window.location.origin}/t/${refund.id}`,
+                                    proofValue: proofValue || refund.proofs?.utr, // Specific for SETTLED
+                                    reason: failureReason // Specific for FAILED
+                                }
+                            })
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Email trigger failed in panel", err);
+            }
+            // --- EMAIL TRIGGER END ---
+
             onUpdate(); // Refresh Dashboard
             onClose();
 
@@ -123,6 +164,9 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
             setIsLoading(false);
         }
     };
+
+    // Auth for Email Token
+    const { user } = useAuth();
 
     // Lock Logic
     const isSaveDisabled = (status === 'SETTLED' && !proofValue);
@@ -145,13 +189,11 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
                 </div>
 
                 {/* Status Badge */}
-                <div className={`mb-6 p-3 rounded-lg border flex items-center gap-3 ${computedStatus === 'DRAFT' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                        computedStatus === 'GATHERING_DATA' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
-                            'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                <div className={`mb-6 p-3 rounded-lg border flex items-center gap-3 ${computedStatus === 'GATHERING_DATA' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
+                        'bg-blue-500/10 border-blue-500/20 text-blue-400'
                     }`}>
-                    {computedStatus === 'DRAFT' && <FileEdit className="w-5 h-5" />}
                     {computedStatus === 'GATHERING_DATA' && <Loader2 className="w-5 h-5 animate-spin" />}
-                    {(computedStatus !== 'DRAFT' && computedStatus !== 'GATHERING_DATA') && <CheckCircle2 className="w-5 h-5" />}
+                    {computedStatus !== 'GATHERING_DATA' && <CheckCircle2 className="w-5 h-5" />}
 
                     <span className="font-semibold">
                         {STATUS_STEPS.find(s => s.value === computedStatus)?.label || computedStatus}
@@ -202,7 +244,7 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
                                     <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
                                 </div>
                             </div>
-                        ) : (needsUpi && !isDraft) ? (
+                        ) : (needsUpi) ? (
                             <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                                 <p className="text-sm text-yellow-200 mb-3 flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4" /> Payment details missing
@@ -221,7 +263,6 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
                         <div className="grid grid-cols-1 gap-2">
                             {STATUS_STEPS.map((step) => {
                                 const isDisabled =
-                                    (computedStatus === 'DRAFT' && step.value !== 'DRAFT') ||
                                     (computedStatus === 'GATHERING_DATA' && ['PROCESSING_AT_BANK', 'SETTLED'].includes(step.value));
 
                                 return (
@@ -230,10 +271,10 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
                                         onClick={() => !isDisabled && setStatus(step.value)}
                                         disabled={isDisabled}
                                         className={`flex items-center gap-3 p-3 rounded-md border transition-all text-left ${status === step.value
-                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
-                                                : isDisabled
-                                                    ? 'opacity-30 cursor-not-allowed border-transparent text-gray-500'
-                                                    : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                                            : isDisabled
+                                                ? 'opacity-30 cursor-not-allowed border-transparent text-gray-500'
+                                                : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
                                             }`}
                                     >
                                         <step.icon className="w-4 h-4" />
@@ -253,6 +294,19 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
                                 onChange={(e: any) => setProofValue(e.target.value)}
                                 placeholder="Enter Bank Ref No..."
                                 className="border-blue-500/50 focus:ring-blue-500"
+                            />
+                        </div>
+                    )}
+
+                    {/* Failure Reason Input (FAILED) */}
+                    {status === 'FAILED' && (
+                        <div className="animate-in fade-in slide-in-from-top-2">
+                            <label className="text-xs text-red-400 mb-1 block">Reason for Rejection * (Required)</label>
+                            <textarea
+                                value={failureReason}
+                                onChange={(e) => setFailureReason(e.target.value)}
+                                placeholder="e.g. Invalid UPI ID provided..."
+                                className="w-full h-24 bg-red-900/10 border border-red-500/30 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-red-500 placeholder:text-gray-600 resize-none"
                             />
                         </div>
                     )}

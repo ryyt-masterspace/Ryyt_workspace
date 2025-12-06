@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { CheckCircle2, Clock, ShieldCheck, ArrowRight } from "lucide-react";
+import { CheckCircle2, Clock, ShieldCheck, ArrowRight, AlertTriangle } from "lucide-react";
 
 export default function TrackingPage() {
     const params = useParams();
@@ -13,6 +13,7 @@ export default function TrackingPage() {
     const [loading, setLoading] = useState(true);
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [error, setError] = useState(false);
+    const [brandName, setBrandName] = useState("Ryyt Secure Track");
 
     useEffect(() => {
         const fetchRefund = async () => {
@@ -33,6 +34,18 @@ export default function TrackingPage() {
                     if (needsUpi && data.status !== 'FAILED') {
                         setIsRedirecting(true);
                         router.push(`/pay/${docSnap.id}`);
+                    }
+
+                    // Fetch Merchant Brand Name
+                    if (data.merchantId) {
+                        try {
+                            const merchantSnap = await getDoc(doc(db, "merchants", data.merchantId));
+                            if (merchantSnap.exists() && merchantSnap.data().brandName) {
+                                setBrandName(merchantSnap.data().brandName);
+                            }
+                        } catch (err) {
+                            console.error("Error fetching merchant brand:", err);
+                        }
                     }
                 } else {
                     setError(true);
@@ -86,8 +99,10 @@ export default function TrackingPage() {
 
                 {/* Header */}
                 <div className="flex items-center justify-center gap-2 opacity-80">
-                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-black font-bold text-xs">R</div>
-                    <span className="font-semibold tracking-wide text-sm">Ryyt Secure Track</span>
+                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-black font-bold text-xs">
+                        {brandName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-semibold tracking-wide text-sm">{brandName}</span>
                 </div>
 
                 {/* Hero Card */}
@@ -110,6 +125,24 @@ export default function TrackingPage() {
                         </p>
                     </div>
                 </div>
+
+                {/* LOGIC GAP FIX: Failure Reason Alert */}
+                {refund.status === 'FAILED' && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex gap-3 items-start animate-in fade-in slide-in-from-top-2">
+                        <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                            <h3 className="text-red-500 font-semibold mb-1">Refund Stopped</h3>
+                            <p className="text-red-400/90 text-sm">
+                                {refund.failureReason || "The merchant marked this refund as failed. Please contact support."}
+                            </p>
+                            {!refund.targetUpi && (
+                                <p className="text-red-400/70 text-xs mt-2 italic">
+                                    (Previous details were cleared. Please allow re-entry.)
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Timeline */}
                 <div className="relative pl-4 pt-4">

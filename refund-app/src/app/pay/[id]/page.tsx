@@ -16,6 +16,7 @@ export default function PaymentPage() {
     const [success, setSuccess] = useState(false);
     const [refund, setRefund] = useState<any>(null);
     const [upiId, setUpiId] = useState("");
+    const [brandName, setBrandName] = useState("Merchant");
 
     useEffect(() => {
         const fetchRefund = async () => {
@@ -30,6 +31,18 @@ export default function PaymentPage() {
                         setSuccess(true);
                     }
                     setRefund({ id: docSnap.id, ...data });
+
+                    // Fetch Merchant Brand Name
+                    if (data.merchantId) {
+                        try {
+                            const merchantSnap = await getDoc(doc(db, "merchants", data.merchantId));
+                            if (merchantSnap.exists() && merchantSnap.data().brandName) {
+                                setBrandName(merchantSnap.data().brandName);
+                            }
+                        } catch (err) {
+                            console.error("Error fetching merchant brand:", err);
+                        }
+                    }
                 } else {
                     setError("Invalid Refund Link");
                 }
@@ -46,8 +59,10 @@ export default function PaymentPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!upiId.includes('@')) {
-            setError("Please enter a valid UPI ID");
+        const isValidUPI = /^[\w.-]+@[\w.-]+$/.test(upiId);
+
+        if (!isValidUPI) {
+            setError("Please enter a valid UPI ID (e.g., name@bank)");
             return;
         }
 
@@ -66,6 +81,29 @@ export default function PaymentPage() {
             });
 
             setSuccess(true);
+
+            // --- EMAIL TRIGGER START ---
+            try {
+                // Public Action: No Auth Header needed (handled by API)
+                fetch('/api/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: refund?.customerEmail, // From state
+                        triggerType: 'DETAILS_RECEIVED',
+                        data: {
+                            customerName: refund?.customerName,
+                            amount: refund?.amount,
+                            orderId: refund?.orderId,
+                            trackingLink: `${window.location.origin}/t/${params.id}`
+                        }
+                    })
+                });
+            } catch (err) {
+                console.error("Email trigger failed", err);
+            }
+            // --- EMAIL TRIGGER END ---
+
             setTimeout(() => {
                 router.push(`/t/${params.id}`);
             }, 1500);
@@ -103,7 +141,8 @@ export default function PaymentPage() {
                         <p className="text-xs text-blue-400 font-medium tracking-wider mb-1 flex items-center gap-1">
                             <ShieldCheck className="w-3 h-3" /> SECURE LINK
                         </p>
-                        <h2 className="text-lg font-semibold text-white">Refund for #{refund?.orderId || 'Order'}</h2>
+                        <h2 className="text-lg font-semibold text-white">Refund from {brandName}</h2>
+                        <p className="text-xs text-gray-500">Order #{refund?.orderId}</p>
                     </div>
                     <div className="text-right">
                         <p className="text-xs text-gray-500 mb-1">AMOUNT</p>

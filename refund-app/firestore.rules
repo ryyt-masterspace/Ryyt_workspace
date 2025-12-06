@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /refunds/{refundId} {
+      // Public Read (For Customer Tracking Links)
+      allow read: if true;
+      
+      // Write/Delete: Only Authenticated Merchants owning the data
+      allow create: if request.auth != null && request.resource.data.merchantId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.merchantId == request.auth.uid;
+    }
+  }
+}

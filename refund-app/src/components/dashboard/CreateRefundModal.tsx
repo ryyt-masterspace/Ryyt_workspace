@@ -58,6 +58,12 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
         e.preventDefault();
         if (!user) return;
 
+        // Validation: Mandatory Fields
+        if (!formData.orderId || !formData.customerName || !formData.customerEmail || !formData.amount || !formData.paymentMethod || !formData.refundDate) {
+            alert("Please fill in all mandatory fields.");
+            return;
+        }
+
         setIsLoading(true);
         try {
             const selectedDate = new Date(formData.refundDate);
@@ -70,24 +76,69 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
             const dueDate = new Date(selectedDate);
             dueDate.setDate(dueDate.getDate() + daysToAdd);
 
-            await addDoc(collection(db, "refunds"), {
+            // LOGIC FIX: Determine Initial Status
+            // Only COD implies we definitely lack return details.
+            // Prepaid methods (UPI, Card, etc.) start as CREATED.
+            const isCOD = formData.paymentMethod === 'COD';
+            const initialStatus = isCOD ? 'GATHERING_DATA' : 'CREATED';
+            const timelineTitle = isCOD ? "Refund Drafted - Waiting for Details" : "Refund Initiated";
+
+            const docRef = await addDoc(collection(db, "refunds"), {
                 merchantId: user.uid,
                 orderId: formData.orderId,
                 customerName: formData.customerName,
                 customerEmail: formData.customerEmail,
                 amount: Number(formData.amount),
                 paymentMethod: formData.paymentMethod,
-                status: "CREATED",
+                status: initialStatus,
                 createdAt: Timestamp.fromDate(selectedDate),
                 slaDueDate: dueDate.toISOString(),
                 timeline: [
                     {
-                        status: "CREATED",
-                        title: "Refund Initiated",
+                        status: initialStatus,
+                        title: timelineTitle,
                         date: selectedDate.toISOString(),
                     },
                 ],
             });
+
+            // --- EMAIL TRIGGER START ---
+            try {
+                const token = await user.getIdToken(); // Get fresh token
+                const emailRes = await fetch('/api/email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        to: formData.customerEmail, // Must be your verified email for testing if sandbox
+                        subject: `Refund Initiated: Order #${formData.orderId}`,
+                        type: initialStatus, // Pass correct status to email template
+                        data: {
+                            customerName: formData.customerName,
+                            amount: Number(formData.amount),
+                            orderId: formData.orderId,
+                            trackingLink: `${window.location.origin}/t/${docRef.id}`
+                        }
+                    })
+                });
+
+                const emailData = await emailRes.json();
+
+                if (!emailRes.ok) {
+                    alert("EMAIL FAILED: " + (emailData.error || "Unknown Error"));
+                } else {
+                    alert("SUCCESS: Email sent to " + formData.customerEmail);
+                }
+
+            } catch (err) {
+                console.error("Failed to send email:", err);
+                alert("EMAIL FAILED: Network/Client Error");
+                // We don't block the UI if email fails, just log it.
+            }
+            // --- EMAIL TRIGGER END ---
+
             onSuccess(); // <--- Trigger refresh in parent
             onClose();
             // Reset form
