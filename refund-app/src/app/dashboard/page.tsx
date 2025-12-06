@@ -188,6 +188,38 @@ export default function DashboardPage() {
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Mix Chart (Pie) */}
+                        <div className="lg:col-span-1 bg-[#0A0A0A] rounded-xl border border-white/5 p-6 flex flex-col">
+                            <h3 className="text-sm font-semibold text-gray-300 mb-2">Payment Method Mix</h3>
+                            <div className="flex-1 w-full min-h-0 relative">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={metrics?.methodData || []}
+                                            cx="50%"
+                                            cy="50%"
+                                            labelLine={false}
+                                            label={renderCustomizedLabel}
+                                            outerRadius={80}
+                                            innerRadius={50}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                            paddingAngle={5}
+                                        >
+                                            {(metrics?.methodData || []).map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }}
+                                            itemStyle={{ color: '#fff' }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+
                                 {/* Center Stat */}
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div className="text-center">
@@ -196,6 +228,7 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
                             </div>
+
                             {/* Legend */}
                             <div className="flex flex-wrap gap-2 justify-center mt-2">
                                 {(metrics?.methodData || []).map((entry, index) => (
