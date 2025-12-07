@@ -6,15 +6,17 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import Sidebar from "@/components/dashboard/Sidebar";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
+import BulkImportModal from "@/components/dashboard/BulkImportModal";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import {
     AreaChart, Area, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer
 } from 'recharts';
 import {
     Activity, TrendingUp, AlertTriangle, IndianRupee, Banknote, ShieldCheck,
-    ArrowUpRight, Plus
+    ArrowUpRight, Plus, FileSpreadsheet, FileSignature
 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import BulkUpdateModal from "@/components/dashboard/BulkUpdateModal";
 
 // Colors for Pie Chart
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -36,6 +38,8 @@ export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
     const router = useRouter();
     const auth = getAuth(app);
@@ -74,9 +78,27 @@ export default function DashboardPage() {
                                 Live Data • All Time
                             </p>
                         </div>
-                        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-                            <Plus size={16} /> New Refund
-                        </Button>
+                        <div className="flex gap-3">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsBulkModalOpen(true)}
+                                className="flex items-center gap-2 border border-white/10 hover:bg-white/5"
+                            >
+                                <FileSpreadsheet size={16} /> Import CSV
+                            </Button>
+
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsUpdateModalOpen(true)}
+                                className="flex items-center gap-2 border border-white/10 hover:bg-white/5 text-yellow-500 hover:text-yellow-400"
+                            >
+                                <FileSignature size={16} /> Update Status
+                            </Button>
+
+                            <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+                                <Plus size={16} /> New Refund
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Layer 1: Metrics Grid */}
@@ -274,13 +296,24 @@ export default function DashboardPage() {
 
                 </div>
 
-                <CreateRefundModal
+
+
+                {/* Modals */}
+                < CreateRefundModal
                     isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    onSuccess={() => {
-                        setIsModalOpen(false);
-                        window.location.reload(); // Simple reload to refresh analytics
-                    }}
+                    onClose={() => setIsModalOpen(false)
+                    }
+                    onSuccess={() => window.location.reload()}
+                />
+                < BulkImportModal
+                    isOpen={isBulkModalOpen}
+                    onClose={() => setIsBulkModalOpen(false)}
+                    onSuccess={() => window.location.reload()}
+                />
+                < BulkUpdateModal
+                    isOpen={isUpdateModalOpen}
+                    onClose={() => setIsUpdateModalOpen(false)}
+                    onSuccess={() => window.location.reload()}
                 />
 
             </main >

@@ -9,7 +9,8 @@ import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
 import Sidebar from "@/components/dashboard/Sidebar";
-import { Copy, ExternalLink, Plus, Activity, Search } from "lucide-react";
+import BulkActionBar from "@/components/dashboard/BulkActionBar";
+import { Copy, ExternalLink, Plus, Activity, Search, CheckSquare, Square } from "lucide-react";
 
 export default function ActiveRefundsPage() {
     const [user, setUser] = useState<any>(null);
@@ -18,6 +19,7 @@ export default function ActiveRefundsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRefund, setSelectedRefund] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState(""); // New State
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     const router = useRouter();
     const auth = getAuth(app);
@@ -80,6 +82,21 @@ export default function ActiveRefundsPage() {
         );
     });
 
+    const toggleSelection = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const toggleAll = () => {
+        if (selectedIds.length === filteredRefunds.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredRefunds.map(r => r.id));
+        }
+    };
+
     if (loading) return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">Loading...</div>;
     if (!user) return null;
 
@@ -126,6 +143,27 @@ export default function ActiveRefundsPage() {
 
                     {/* Table List */}
                     <div className="space-y-4">
+                        {/* List Header with Select All */}
+                        {filteredRefunds.length > 0 && (
+                            <div className="flex items-center gap-4 px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <button
+                                    onClick={toggleAll}
+                                    className="flex items-center gap-2 hover:text-white transition-colors"
+                                >
+                                    {selectedIds.length > 0 && selectedIds.length === filteredRefunds.length ? (
+                                        <CheckSquare size={16} className="text-blue-500" />
+                                    ) : (
+                                        <Square size={16} />
+                                    )}
+                                    Select All ({filteredRefunds.length})
+                                </button>
+                                <div className="w-1/4 pl-2">Details</div>
+                                <div className="w-1/6">Amount</div>
+                                <div className="w-1/6">Status</div>
+                                <div className="w-1/6">SLA</div>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             {filteredRefunds.length === 0 ? (
                                 <div className="p-12 text-center text-gray-500 bg-[#0A0A0A] rounded-xl border border-white/5 border-dashed flex flex-col items-center gap-2">
@@ -140,8 +178,19 @@ export default function ActiveRefundsPage() {
                                     <div
                                         key={refund.id}
                                         onClick={() => setSelectedRefund(refund)}
-                                        className="group bg-[#0A0A0A] hover:bg-[#0F0F0F] border border-white/5 rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 hover:border-blue-500/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.05)]"
+                                        className={`group bg-[#0A0A0A] hover:bg-[#0F0F0F] border rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 hover:border-blue-500/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.05)] ${selectedIds.includes(refund.id) ? 'border-blue-500/30 bg-blue-500/5' : 'border-white/5'}`}
                                     >
+                                        <div
+                                            onClick={(e) => toggleSelection(refund.id, e)}
+                                            className="mr-4 text-gray-600 hover:text-blue-500 transition-colors"
+                                        >
+                                            {selectedIds.includes(refund.id) ? (
+                                                <CheckSquare size={18} className="text-blue-500" />
+                                            ) : (
+                                                <Square size={18} />
+                                            )}
+                                        </div>
+
                                         <div className="flex items-center gap-4 w-1/4">
                                             <div className={`w-2 h-2 rounded-full ${refund.status === 'FAILED' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
                                             <div>
@@ -221,6 +270,12 @@ export default function ActiveRefundsPage() {
                         onUpdate={fetchRefunds}
                     />
                 )}
+
+                <BulkActionBar
+                    selectedIds={selectedIds}
+                    onClearSelection={() => setSelectedIds([])}
+                    onSuccess={fetchRefunds}
+                />
             </main>
         </div>
     );

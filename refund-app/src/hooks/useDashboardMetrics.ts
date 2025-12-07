@@ -88,7 +88,8 @@ export function useDashboardMetrics() {
                     }
 
                     // C. Method Distribution
-                    const method = refund.paymentMethod || 'Unknown';
+                    const rawMethod = refund.paymentMethod || 'Unknown';
+                    const method = rawMethod.toString().toUpperCase().replace(/_/g, ' ');
                     methodCounts[method] = (methodCounts[method] || 0) + 1;
 
                     // D. Volume Trends
@@ -108,7 +109,7 @@ export function useDashboardMetrics() {
                 }));
 
                 const methodData = Object.entries(methodCounts).map(([name, value]) => ({
-                    name: name.replace('_', ' '), // Clean up labels (e.g. CREDIT_CARD -> CREDIT CARD)
+                    name,
                     value
                 }));
 

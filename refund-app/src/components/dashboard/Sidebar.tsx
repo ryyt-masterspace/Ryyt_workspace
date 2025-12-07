@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Activity, AlertTriangle, Search, Settings, LogOut, XCircle, CheckCircle2 } from "lucide-react";
+import { LayoutGrid, Activity, AlertTriangle, Search, Settings, LogOut, XCircle, CheckCircle2, FileBarChart } from "lucide-react";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -116,6 +116,18 @@ export default function Sidebar() {
                     >
                         <Search strokeWidth={isActive("/dashboard/search") ? 2.5 : 2} className="w-5 h-5" />
                         <span className="text-sm font-medium hidden md:block">Search</span>
+                    </Link>
+
+                    {/* Reports */}
+                    <Link
+                        href="/dashboard/reports"
+                        className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive("/dashboard/reports")
+                            ? "bg-white/10 text-white"
+                            : "text-gray-400 hover:bg-white/5 hover:text-white"
+                            }`}
+                    >
+                        <FileBarChart strokeWidth={isActive("/dashboard/reports") ? 2.5 : 2} className="w-5 h-5" />
+                        <span className="text-sm font-medium hidden md:block">Reports</span>
                     </Link>
                 </div>
             </div>
