@@ -125,14 +125,13 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        to: formData.customerEmail, // Must be your verified email for testing if sandbox
-                        subject: `Refund Initiated: Order #${formData.orderId}`,
-                        type: initialStatus, // Pass correct status to email template
-                        data: {
-                            customerName: formData.customerName,
+                        customerEmail: formData.customerEmail,
+                        merchantEmail: user.email,
+                        triggerType: initialStatus,
+                        paymentMethod: formData.paymentMethod,
+                        details: {
                             amount: Number(formData.amount),
-                            orderId: formData.orderId,
-                            trackingLink: `${window.location.origin}/t/${docRef.id}`
+                            link: `${window.location.origin}/t/${docRef.id}`
                         }
                     })
                 });

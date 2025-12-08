@@ -206,12 +206,41 @@ export default function ActiveRefundsPage() {
                                                 </span>
                                             </td>
                                             <td className="py-4 px-4 text-center">
-                                                <span className={`inline-flex px-2 py-1 rounded text-[10px] font-bold tracking-wide uppercase ${refund.status === 'REFUND_INITIATED' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
-                                                    refund.status === 'PROCESSING' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
-                                                        'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                                                    }`}>
-                                                    {refund.status.replace(/_/g, ' ')}
-                                                </span>
+                                                {(() => {
+                                                    // 1. Normalize the status string
+                                                    const rawStatus = (refund.status || '').toString().toUpperCase();
+
+                                                    // 2. Define Styles & Labels
+                                                    let label = rawStatus.replace(/_/g, ' ');
+                                                    let style = 'bg-zinc-800 text-zinc-400 border-zinc-700'; // Fallback
+
+                                                    if (rawStatus.includes('GATHER')) {
+                                                        label = 'GATHERING DATA';
+                                                        style = 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20';
+                                                    }
+                                                    else if (rawStatus === 'CREATED' || rawStatus.includes('INITIATED')) {
+                                                        label = 'REFUND INITIATED';
+                                                        style = 'bg-blue-500/10 text-blue-500 border border-blue-500/20';
+                                                    }
+                                                    else if (rawStatus.includes('PROCESS')) {
+                                                        label = 'PROCESSING AT BANK';
+                                                        style = 'bg-purple-500/10 text-purple-500 border border-purple-500/20';
+                                                    }
+                                                    else if (rawStatus.includes('SETTLED') || rawStatus.includes('CREDIT')) {
+                                                        label = 'SETTLED';
+                                                        style = 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20';
+                                                    }
+                                                    else if (rawStatus.includes('FAIL')) {
+                                                        label = 'FAILED';
+                                                        style = 'bg-red-500/10 text-red-500 border border-red-500/20';
+                                                    }
+
+                                                    return (
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${style}`}>
+                                                            {label}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="py-4 px-4 text-right">
                                                 <div className="flex flex-col items-end">

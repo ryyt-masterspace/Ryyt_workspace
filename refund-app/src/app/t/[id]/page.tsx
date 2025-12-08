@@ -76,20 +76,62 @@ export default function TrackingPage() {
 
     // Timeline Helper
     const getStepStatus = (stepIndex: number) => {
-        const statusMap: any = {
-            DRAFT: 0,
-            GATHERING_DATA: 0,
-            REFUND_INITIATED: 0,
-            PROCESSING_AT_BANK: 1,
-            SETTLED: 2
-        };
+        const status = (refund.status || '').toString().toUpperCase();
 
-        // Fix: If Settled, marking last step as completed
-        if (refund.status === 'SETTLED' && stepIndex === 2) return "completed";
+        // 1. Determine Current Level (0 to 3)
+        let currentLevel = 0;
+        if (status.includes('SETTLED') || status.includes('CREDIT')) currentLevel = 3;
+        else if (status.includes('PROCESS') || status.includes('BANK')) currentLevel = 2; // Processing
+        else if (status.includes('INITIATED') || status.includes('CREATED')) currentLevel = 1; // Initiated
+        else currentLevel = 0; // Draft/Gathering
 
-        const currentStep = statusMap[refund.status] || 0;
-        if (currentStep > stepIndex) return "completed";
-        if (currentStep === stepIndex) return "active";
+        // 2. Compare against Step Index
+        // Step 0: Initiated (Level 1+)
+        // Step 1: Processing (Level 2+)
+        // Step 2: Settled (Level 3)
+
+        // Adjust Level to match 0-indexed steps
+        // The visual steps are:
+        // [0] Initiated
+        // [1] Processing
+        // [2] Settled
+
+        // Logic:
+        // If currentLevel > stepIndex => Completed
+        // If currentLevel == stepIndex + 1 => Active? No.
+
+        // Simpler Logic mimicking the User's snippet:
+        // The user snippet returns a "Level" (1, 2, 3).
+        // My steps are 0, 1, 2.
+
+        // Map Level to Active Step Index
+        // Level 1 (Initiated) -> Active Step 0
+        // Level 2 (Processing) -> Active Step 1
+        // Level 3 (Settled) -> Active Step 2
+
+        // If currentLevel (e.g. 2 Processing) > stepIndex (0 Initiated) -> Completed
+        // If currentLevel (2) == stepIndex + 1 (1 Processing + 1 = 2) -> Active?
+        // Let's stick to simple comparison:
+
+        // Step 0 (Initiated): Active if Level 1. Completed if Level > 1.
+        // Step 1 (Processing): Active if Level 2. Completed if Level > 2.
+        // Step 2 (Settled): Active if Level 3. Completed if Level > 3 (impossible).
+
+        const effectiveLevel = currentLevel;
+        // Steps indices are 0, 1, 2
+        // We need to map `effectiveLevel` to these.
+        // Level 1 = Step 0
+        // Level 2 = Step 1
+        // Level 3 = Step 2
+
+        const activeStepIndex = effectiveLevel - 1;
+
+        if (activeStepIndex > stepIndex) return "completed";
+        if (activeStepIndex === stepIndex) return "active";
+        // Special Case: If Settled (Level 3/Step 2) and we are at Step 2 -> Completed?
+        // Usually, the last step checks off when done.
+        if (currentLevel === 3 && stepIndex === 2) return "completed";
+
         return "pending";
     };
 

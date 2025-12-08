@@ -3,8 +3,9 @@ import { doc, updateDoc, Timestamp, arrayUnion } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import {
     X, CheckCircle2, AlertTriangle, Clock,
-    CreditCard, Calendar, User, Mail, IndianRupee, Loader2
+    CreditCard, Calendar, User, Mail, IndianRupee, Loader2, QrCode
 } from 'lucide-react';
+import QRCode from "react-qr-code";
 
 interface RefundDetailsPanelProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,6 +20,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
     const [failureReason, setFailureReason] = useState(refund.failureReason || '');
     const [isSaving, setIsSaving] = useState(false);
     const [computedStatus, setComputedStatus] = useState(refund.status);
+    const [showQr, setShowQr] = useState(false);
 
     // Initialize state and highlight logic
     useEffect(() => {
@@ -187,8 +189,29 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                             <label className="text-xs font-medium text-zinc-500 uppercase">Customer UPI ID</label>
                             <div className="p-3 bg-zinc-900 border border-emerald-500/30 rounded-lg text-emerald-400 font-mono flex items-center justify-between">
                                 {refund.targetUpi}
-                                <CheckCircle2 size={16} className="text-emerald-500" />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowQr(!showQr)}
+                                        className="p-1.5 hover:bg-emerald-500/20 rounded-md transition-colors text-emerald-500"
+                                        title="Scan to Pay"
+                                    >
+                                        <QrCode size={18} />
+                                    </button>
+                                    <CheckCircle2 size={16} className="text-emerald-500" />
+                                </div>
                             </div>
+                            {showQr && (
+                                <div className="mt-3 p-4 bg-white rounded-xl flex flex-col items-center justify-center gap-3 animate-in fade-in slide-in-from-top-2">
+                                    <QRCode
+                                        value={`upi://pay?pa=${refund.targetUpi}&pn=${encodeURIComponent(refund.customerName || '')}&am=${refund.amount}&cu=INR`}
+                                        size={150}
+                                        viewBox={`0 0 150 150`}
+                                    />
+                                    <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider text-center">
+                                        Scan with any UPI App<br />to pay ₹{refund.amount}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

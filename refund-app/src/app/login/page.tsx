@@ -24,6 +24,7 @@ export default function LoginPage() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
             router.push("/dashboard");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error(err);
             setError("Invalid email or password. Please try again.");
