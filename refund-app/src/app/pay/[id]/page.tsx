@@ -72,9 +72,9 @@ export default function PaymentPage() {
 
             await updateDoc(docRef, {
                 targetUpi: upiId,
-                status: "CREATED",
+                status: "REFUND_INITIATED",
                 timeline: arrayUnion({
-                    status: "CREATED",
+                    status: "REFUND_INITIATED",
                     title: "Payment Details Received",
                     date: new Date().toISOString()
                 })
@@ -90,7 +90,8 @@ export default function PaymentPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         to: refund?.customerEmail, // From state
-                        triggerType: 'DETAILS_RECEIVED',
+                        triggerType: 'REFUND_INITIATED',
+                        paymentMethod: 'COD', // Explicitly COD context for this page
                         data: {
                             customerName: refund?.customerName,
                             amount: refund?.amount,

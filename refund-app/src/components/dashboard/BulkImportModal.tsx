@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Papa from "papaparse";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Card from "@/components/ui/Card";
@@ -49,6 +49,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const [isParsing, setIsParsing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [resultLog, setResultLog] = useState<{ success: number; errors: string[] } | null>(null);
 
     if (!isOpen) return null;
 
@@ -124,56 +125,78 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         setUploadProgress(0);
         const validRows = parsedData.filter(r => r.isValid);
         let completed = 0;
+        let successCount = 0;
+        const currentErrors: string[] = [];
 
         try {
-            await Promise.all(validRows.map(async (item) => {
+            // Process sequentially to handle async queries reliably
+            for (let i = 0; i < validRows.length; i++) {
+                const item = validRows[i];
                 const row = item.original;
-                const daysToAdd = SLA_DAYS[item.paymentMethod] || 7;
-                const now = new Date();
-                const refundDate = new Date(); // Default to today for bulk import
 
-                // Calculate SLA
-                const dueDate = new Date(refundDate);
-                dueDate.setDate(dueDate.getDate() + daysToAdd);
+                try {
+                    // Check for Duplicates
+                    const q = query(
+                        collection(db, "refunds"),
+                        where("merchantId", "==", user.uid),
+                        where("orderId", "==", row['Order ID'])
+                    );
+                    const snapshot = await getDocs(q);
 
-                const timelineTitle = item.status === 'GATHERING_DATA'
-                    ? "Refund Drafted - Waiting for Details"
-                    : "Refund Initiated";
+                    if (!snapshot.empty) {
+                        currentErrors.push(`Row ${i + 1}: Order ${row['Order ID']} skipped (Already Exists)`);
+                        continue; // Skip
+                    }
 
-                await addDoc(collection(db, "refunds"), {
-                    merchantId: user.uid,
-                    orderId: row['Order ID'],
-                    customerName: row['Customer Name'],
-                    customerEmail: row['Customer Email'],
-                    amount: item.amount,
-                    paymentMethod: item.paymentMethod,
-                    status: item.status,
-                    targetUpi: row['UPI ID'] || null, // Capture if provided in CSV
-                    createdAt: Timestamp.fromDate(now),
-                    slaDueDate: dueDate.toISOString(),
-                    timeline: [
-                        {
-                            status: item.status,
-                            title: timelineTitle,
-                            date: now.toISOString(),
-                            note: "Bulk Imported via CSV"
-                        }
-                    ]
-                });
-                completed++;
-                setUploadProgress(Math.round((completed / validRows.length) * 100));
-            }));
+                    const daysToAdd = SLA_DAYS[item.paymentMethod] || 7;
+                    const now = new Date();
+                    const refundDate = new Date();
 
-            // Success
+                    // Calculate SLA
+                    const dueDate = new Date(refundDate);
+                    dueDate.setDate(dueDate.getDate() + daysToAdd);
+
+                    const timelineTitle = item.status === 'GATHERING_DATA'
+                        ? "Refund Drafted - Waiting for Details"
+                        : "Refund Initiated";
+
+                    await addDoc(collection(db, "refunds"), {
+                        merchantId: user.uid,
+                        orderId: row['Order ID'],
+                        customerName: row['Customer Name'],
+                        customerEmail: row['Customer Email'],
+                        amount: item.amount,
+                        paymentMethod: item.paymentMethod,
+                        status: item.status,
+                        targetUpi: row['UPI ID'] || null,
+                        createdAt: Timestamp.fromDate(now),
+                        slaDueDate: dueDate.toISOString(),
+                        timeline: [
+                            {
+                                status: item.status,
+                                title: timelineTitle,
+                                date: now.toISOString(),
+                                note: "Bulk Imported via CSV"
+                            }
+                        ]
+                    });
+                    successCount++;
+                } catch (rowErr) {
+                    console.error("Row Error", rowErr);
+                    currentErrors.push(`Row ${i + 1}: Order ${row['Order ID']} failed to create.`);
+                } finally {
+                    completed++;
+                    setUploadProgress(Math.round((completed / validRows.length) * 100));
+                }
+            }
+
+            setResultLog({ success: successCount, errors: currentErrors });
             onSuccess();
-            onClose();
-            alert(`Successfully imported ${completed} refunds.`);
-            setFile(null);
-            setParsedData([]);
+            // Do not auto-close
 
         } catch (error) {
-            console.error("Bulk Import Error:", error);
-            alert("Import failed partially. Check console.");
+            console.error("Bulk Import Critical Error:", error);
+            alert("Critical System Error during import.");
         } finally {
             setIsUploading(false);
         }
@@ -209,15 +232,17 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                     <X size={20} />
                 </button>
 
-                <div className="mb-6">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <FileSpreadsheet className="text-green-500" />
-                        Bulk Import Refunds
-                    </h2>
-                    <p className="text-sm text-gray-400">Upload a CSV file to process multiple refunds.</p>
-                </div>
+                {!resultLog && (
+                    <div className="mb-6">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <FileSpreadsheet className="text-green-500" />
+                            Bulk Import Refunds
+                        </h2>
+                        <p className="text-sm text-gray-400">Upload a CSV file to process multiple refunds.</p>
+                    </div>
+                )}
 
-                {!file ? (
+                {!file && !resultLog ? (
                     <>
                         <div className="border-2 border-dashed border-white/10 rounded-xl p-10 text-center hover:border-blue-500/30 transition-colors bg-white/5">
                             <Upload className="w-10 h-10 text-gray-500 mx-auto mb-4" />
@@ -296,6 +321,47 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                 )}
                             </Button>
                         </div>
+                    </div>
+                )}
+
+                {resultLog && (
+                    <div className="space-y-6">
+                        <div className="text-center space-y-2">
+                            <div className="inline-flex p-3 rounded-full bg-green-500/10 text-green-500 mb-2">
+                                <CheckCircle2 size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">Import Complete</h3>
+                            <div className="flex justify-center gap-4 text-sm">
+                                <span className="text-green-400 font-medium">Success: {resultLog.success}</span>
+                                <span className={resultLog.errors.length > 0 ? "text-red-400 font-medium" : "text-gray-500"}>
+                                    Skipped/Errors: {resultLog.errors.length}
+                                </span>
+                            </div>
+                        </div>
+
+                        {resultLog.errors.length > 0 ? (
+                            <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                                <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                    <AlertTriangle size={12} />
+                                    Skipped / Error Log
+                                </h4>
+                                <div className="max-h-60 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                                    {resultLog.errors.map((err, i) => (
+                                        <div key={i} className="text-xs text-red-300 font-mono border-b border-red-500/10 last:border-0 pb-1 last:pb-0">
+                                            {err}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-green-500/5 border border-green-500/10 rounded-lg text-center">
+                                <p className="text-sm text-green-400">All rows imported successfully!</p>
+                            </div>
+                        )}
+
+                        <Button onClick={onClose} className="w-full bg-white/10 hover:bg-white/20">
+                            Close
+                        </Button>
                     </div>
                 )}
             </Card>

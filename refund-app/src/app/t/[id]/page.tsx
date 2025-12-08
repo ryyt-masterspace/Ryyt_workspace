@@ -79,7 +79,7 @@ export default function TrackingPage() {
         const statusMap: any = {
             DRAFT: 0,
             GATHERING_DATA: 0,
-            CREATED: 0,
+            REFUND_INITIATED: 0,
             PROCESSING_AT_BANK: 1,
             SETTLED: 2
         };

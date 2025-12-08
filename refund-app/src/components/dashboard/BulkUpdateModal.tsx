@@ -21,7 +21,7 @@ const normalizeStatus = (input: string): string | null => {
 
     if (clean.includes('PROCESS') || clean.includes('PROGRESS')) return 'PROCESSING_AT_BANK';
     if (clean.includes('SETTLED') || clean.includes('PAID') || clean.includes('DONE')) return 'SETTLED';
-    if (clean.includes('FAIL') || clean.includes('REJECT')) return 'FAILED';
+    if (clean.includes('FAIL') || clean.includes('REJECT') || clean.includes('ERROR') || clean.includes('VOID')) return 'FAILED';
     if (clean.includes('GATHER') || clean.includes('INCOMPLETE')) return 'GATHERING_DATA';
 
     return null; // Unknown status
@@ -35,7 +35,8 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
     const [isParsing, setIsParsing] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [logs, setLogs] = useState<string[]>([]);
+    const [resultLog, setResultLog] = useState<{ success: number; errors: string[] } | null>(null);
+    const [logs, setLogs] = useState<string[]>([]); // internal processing logs
 
     if (!isOpen) return null;
 
@@ -70,8 +71,8 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
         let invalidCount = 0;
 
         const processed = rows.map(row => {
-            const orderId = row['orderId'] || row['Order ID'];
-            const rawStatus = row['newStatus'] || row['Status'];
+            const orderId = (row['orderId'] || row['Order ID'] || '').toString().trim();
+            const rawStatus = (row['newStatus'] || row['Status'] || '').toString().trim();
             const status = normalizeStatus(rawStatus);
             const note = row['note'] || row['Note'] || "";
 
@@ -139,8 +140,8 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                     if (item.status === 'SETTLED' && item.note) {
                         updates['proofs.utr'] = item.note; // Use note as UTR/Proof
                     }
-                    if (item.status === 'FAILED' && item.note) {
-                        updates['failureReason'] = item.note;
+                    if (item.status === 'FAILED') {
+                        updates['failureReason'] = (item.note || '').toString().trim() || 'Unspecified Failure (Bulk Update)';
                     }
 
                     // 3. Update Firestore
@@ -188,14 +189,14 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                 }
             }));
 
-            setLogs(newLogs);
-            alert(`Process Complete. Updated ${successCount} refunds.`);
+
+            setResultLog({ success: successCount, errors: newLogs });
             onSuccess();
-            if (newLogs.length === 0) onClose();
+            // Do not auto-close. User must see report.
 
         } catch (error) {
             console.error("Bulk Update Critical Failure", error);
-            alert("Critical error during bulk update.");
+            setResultLog({ success: successCount, errors: [...newLogs, "CRITICAL: System error during batch processing."] });
         } finally {
             setIsUpdating(false);
         }
@@ -223,15 +224,56 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                     <X size={20} />
                 </button>
 
-                <div className="mb-6">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <FileSignature className="text-yellow-500" />
-                        Bulk Status Updater
-                    </h2>
-                    <p className="text-sm text-gray-400">Update existing refunds via CSV.</p>
-                </div>
+                {!resultLog && (
+                    <div className="mb-6">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <FileSignature className="text-yellow-500" />
+                            Bulk Status Updater
+                        </h2>
+                        <p className="text-sm text-gray-400">Update existing refunds via CSV.</p>
+                    </div>
+                )}
 
-                {!file ? (
+                {resultLog ? (
+                    <div className="space-y-6">
+                        <div className="text-center space-y-2">
+                            <div className="inline-flex p-3 rounded-full bg-green-500/10 text-green-500 mb-2">
+                                <CheckCircle2 size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">Update Complete</h3>
+                            <div className="flex justify-center gap-4 text-sm">
+                                <span className="text-green-400 font-medium">Success: {resultLog.success}</span>
+                                <span className={resultLog.errors.length > 0 ? "text-red-400 font-medium" : "text-gray-500"}>
+                                    Skipped/Errors: {resultLog.errors.length}
+                                </span>
+                            </div>
+                        </div>
+
+                        {resultLog.errors.length > 0 ? (
+                            <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                                <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                    <AlertTriangle size={12} />
+                                    Error Report
+                                </h4>
+                                <div className="max-h-60 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                                    {resultLog.errors.map((err, i) => (
+                                        <div key={i} className="text-xs text-red-300 font-mono border-b border-red-500/10 last:border-0 pb-1 last:pb-0">
+                                            {err}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-green-500/5 border border-green-500/10 rounded-lg text-center">
+                                <p className="text-sm text-green-400">All rows processed successfully!</p>
+                            </div>
+                        )}
+
+                        <Button onClick={onClose} className="w-full bg-white/10 hover:bg-white/20">
+                            Close
+                        </Button>
+                    </div>
+                ) : !file ? (
                     <>
                         <div className="border-2 border-dashed border-white/10 rounded-xl p-10 text-center hover:border-yellow-500/30 transition-colors bg-white/5">
                             <Upload className="w-10 h-10 text-gray-500 mx-auto mb-4" />
@@ -271,12 +313,6 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                         {isUpdating && (
                             <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                                 <div className="bg-yellow-500 h-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
-                            </div>
-                        )}
-
-                        {logs.length > 0 && (
-                            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 max-h-32 overflow-y-auto text-xs text-red-300 font-mono">
-                                {logs.map((log, i) => <div key={i}>{log}</div>)}
                             </div>
                         )}
 

@@ -6,7 +6,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { to, subject, type, data, triggerType } = body;
+        const { to, subject, type, data, triggerType, paymentMethod } = body;
 
         // 0. Security Guard
         // Allow public access ONLY for 'DETAILS_RECEIVED' (Customer Action)
@@ -37,13 +37,14 @@ export async function POST(request: Request) {
         let emailSubject = subject || "Update on your Refund";
 
         switch (effectiveType) {
-            case 'CREATED':
+            case 'REFUND_INITIATED': // Replaces CREATED
+            case 'CREATED':          // Legacy fallback
                 emailSubject = `Refund Initiated: Order #${data.orderId}`;
                 emailHtml = `
                     <div style="font-family: sans-serif; color: #333;">
                         <h1>Refund Initiated</h1>
                         <p>Hi ${data.customerName},</p>
-                        <p>We have initiated a refund of <strong>₹${data.amount}</strong> for Order #${data.orderId}.</p>
+                        <p>We have received your details. Your refund of <strong>₹${data.amount}</strong> is now in queue.</p>
                         <p><a href="${data.trackingLink}" style="color: blue;">Track Status Here</a></p>
                     </div>`;
                 break;
@@ -84,18 +85,33 @@ export async function POST(request: Request) {
                 break;
 
             case 'FAILED':
-                emailSubject = `Refund Unsuccessful: Order #${data.orderId}`;
-                emailHtml = `
+                const isCOD = paymentMethod === 'COD';
+                if (isCOD) {
+                    // Critical Retry Flow
+                    emailSubject = `Action Required: Refund Failed (Order #${data.orderId})`;
+                    emailHtml = `
+                    <div style="font-family: sans-serif; color: #333;">
+                        <h1 style="color: red;">Action Required</h1>
+                        <p>Hi ${data.customerName},</p>
+                        <p>We could not process your refund of <strong>₹${data.amount}</strong> because the provided UPI ID was invalid.</p>
+                        <p><strong>Reason:</strong> ${data.reason || 'Invalid Details'}</p>
+                        <p>Please update your details immediately to retry processing:</p>
+                        <p><a href="${data.trackingLink.replace('/t/', '/pay/')}" style="color: white; background-color: blue; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Update Payment Details</a></p>
+                    </div>`;
+                } else {
+                    // Standard Notification (Prepaid)
+                    emailSubject = `Refund Failed: Order #${data.orderId}`;
+                    emailHtml = `
                     <div style="font-family: sans-serif; color: #333;">
                         <h1 style="color: red;">Refund Failed</h1>
                         <p>Hi ${data.customerName},</p>
-                        <p>We could not process your refund of <strong>₹${data.amount}</strong>.</p>
+                        <p>We could not process your refund of <strong>₹${data.amount}</strong> due to a banking issue.</p>
                         <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                            <p style="margin: 0; color: #721c24;"><strong>Reason:</strong> ${data.reason || 'Issue with payment details provided.'}</p>
+                            <p style="margin: 0; color: #721c24;"><strong>Reason:</strong> ${data.reason || 'Bank Error'}</p>
                         </div>
-                        <p>Please update your details to retry processing.</p>
-                        <p><a href="${data.trackingLink}" style="color: blue;">Update Details Here</a></p>
+                        <p>Our team has been notified. Please contact support if this persists.</p>
                     </div>`;
+                }
                 break;
 
             default:

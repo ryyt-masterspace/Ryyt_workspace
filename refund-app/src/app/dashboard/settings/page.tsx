@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { app, db } from "@/lib/firebase";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Button from "@/components/ui/Button";
-import { Save, Store, Mail, Clock, CheckCircle2 } from "lucide-react";
+import { Save, Store, Mail, Clock, CheckCircle2, RotateCcw, ShieldAlert } from "lucide-react";
 
 export default function SettingsPage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isFixing, setIsFixing] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
 
     // Form State
@@ -68,6 +69,68 @@ export default function SettingsPage() {
             alert("Failed to save settings. Please try again.");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleFixDuplicates = async () => {
+        if (!user || !confirm("This will scan ALL refunds and rename duplicate Order IDs (e.g., adding _COPY_1). This action cannot be undone. Proceed?")) return;
+
+        setIsFixing(true);
+        try {
+            // 1. Fetch ALL refunds
+            const q = query(
+                collection(db, "refunds"),
+                where("merchantId", "==", user.uid)
+            );
+            const snapshot = await getDocs(q);
+
+            // 2. Group by Order ID
+            const groups: { [key: string]: any[] } = {};
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const oid = (data.orderId || "").toString().trim();
+                if (!oid) return;
+                if (!groups[oid]) groups[oid] = [];
+                groups[oid].push({ id: doc.id, ...data });
+            });
+
+            // 3. Find Duplicates
+            let fixedCount = 0;
+            const batch = writeBatch(db);
+            let operationCount = 0;
+
+            Object.entries(groups).forEach(([orderId, docs]) => {
+                if (docs.length > 1) {
+                    // Sort by creation time (keep oldest) - fallback to existing logic if no createdAt
+                    docs.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+
+                    // Skip the first (original), rename the rest
+                    for (let i = 1; i < docs.length; i++) {
+                        const duplicate = docs[i];
+                        const newOrderId = `${orderId}_COPY_${i}`;
+                        const ref = doc(db, "refunds", duplicate.id);
+                        batch.update(ref, {
+                            orderId: newOrderId,
+                            note: (duplicate.note || "") + " [System: Renamed from duplicate]"
+                        });
+                        operationCount++;
+                        fixedCount++;
+                    }
+                }
+            });
+
+            if (operationCount > 0) {
+                await batch.commit();
+                alert(`Success! Renamed ${fixedCount} duplicate entries.`);
+            } else {
+                alert("Scan Complete. No duplicates found.");
+            }
+
+        } catch (error) {
+            console.error("Error fixing duplicates:", error);
+            alert("Failed to fix duplicates. Check console.");
+        } finally {
+            setIsFixing(false);
         }
     };
 
@@ -174,6 +237,38 @@ export default function SettingsPage() {
                         </div>
 
                     </form>
+
+                    {/* Data Management Section */}
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-4">
+                        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <ShieldAlert size={18} className="text-amber-500" />
+                            Data Management
+                        </h2>
+
+                        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <h3 className="font-medium text-amber-200">Fix Duplicate Order IDs</h3>
+                                <p className="text-sm text-zinc-400">
+                                    Scans for duplicate 'orderId' fields and renames them to ensure uniqueness.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={handleFixDuplicates}
+                                disabled={isFixing}
+                                className="h-9 border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 shrink-0 ml-4 bg-transparent px-4"
+                            >
+                                {isFixing ? (
+                                    <>
+                                        <RotateCcw className="w-4 h-4 mr-2 animate-spin" /> Scanning...
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShieldAlert className="w-4 h-4 mr-2" /> Scan & Fix
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>

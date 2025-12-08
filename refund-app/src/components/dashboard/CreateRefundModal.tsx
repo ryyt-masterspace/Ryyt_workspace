@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Card from "@/components/ui/Card";
@@ -66,6 +66,19 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
 
         setIsLoading(true);
         try {
+            // Check for Duplicate Order ID
+            const duplicateQ = query(
+                collection(db, "refunds"),
+                where("merchantId", "==", user.uid),
+                where("orderId", "==", formData.orderId)
+            );
+            const duplicateSnap = await getDocs(duplicateQ);
+            if (!duplicateSnap.empty) {
+                alert(`Order ID "${formData.orderId}" already exists!`);
+                setIsLoading(false);
+                return;
+            }
+
             const selectedDate = new Date(formData.refundDate);
             const now = new Date();
             // Keep current time for sorting precision
@@ -78,9 +91,9 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
 
             // LOGIC FIX: Determine Initial Status
             // Only COD implies we definitely lack return details.
-            // Prepaid methods (UPI, Card, etc.) start as CREATED.
+            // Prepaid methods (UPI, Card, etc.) start as REFUND_INITIATED.
             const isCOD = formData.paymentMethod === 'COD';
-            const initialStatus = isCOD ? 'GATHERING_DATA' : 'CREATED';
+            const initialStatus = isCOD ? 'GATHERING_DATA' : 'REFUND_INITIATED';
             const timelineTitle = isCOD ? "Refund Drafted - Waiting for Details" : "Refund Initiated";
 
             const docRef = await addDoc(collection(db, "refunds"), {

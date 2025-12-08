@@ -1,351 +1,282 @@
-"use client";
+import { useState, useEffect } from 'react';
+import { doc, updateDoc, Timestamp, arrayUnion } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
+import {
+    X, CheckCircle2, AlertTriangle, Clock,
+    CreditCard, Calendar, User, Mail, IndianRupee, Loader2
+} from 'lucide-react';
 
-import { useState, useEffect } from "react";
-import { X, Copy, ExternalLink, History, FileEdit, Loader2, AlertTriangle, ShieldCheck, CheckCircle2 } from "lucide-react";
-import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/lib/AuthContext"; // Import Auth
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+interface RefundDetailsPanelProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    refund: any;
+    onClose: () => void;
+    onUpdate?: () => Promise<void>;
+}
 
-const STATUS_STEPS = [
-    { value: "GATHERING_DATA", label: "Gathering Data", icon: Loader2 },
-    { value: "CREATED", label: "Refund Initiated", icon: CheckCircle2 },
-    { value: "PROCESSING_AT_BANK", label: "Processing at Bank", icon: ShieldCheck },
-    { value: "SETTLED", label: "Credited / Settled", icon: CheckCircle2 },
-    { value: "FAILED", label: "Failed", icon: AlertTriangle },
-];
+export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPanelProps) {
+    const [status, setStatus] = useState(refund.status || 'REFUND_INITIATED');
+    const [proofValue, setProofValue] = useState(refund.proofValue || '');
+    const [failureReason, setFailureReason] = useState(refund.failureReason || '');
+    const [isSaving, setIsSaving] = useState(false);
+    const [computedStatus, setComputedStatus] = useState(refund.status);
 
-const SLA_DAYS: any = {
-    UPI: 2,
-    WALLET: 2,
-    NETBANKING: 7,
-    DEBIT_CARD: 7,
-    CREDIT_CARD: 7,
-    COD: 5
-};
-
-export default function RefundDetailsPanel({ refund, onClose, onUpdate }: any) {
-    const [status, setStatus] = useState(refund.status);
-    const [paymentMethod, setPaymentMethod] = useState(refund.paymentMethod || "");
-    const [refundDate, setRefundDate] = useState(refund.createdAt?.seconds ? new Date(refund.createdAt.seconds * 1000).toISOString().split('T')[0] : "");
-    const [proofValue, setProofValue] = useState(refund.proofs?.utr || refund.proofs?.arn || "");
-    const [failureReason, setFailureReason] = useState(refund.failureReason || "");
-    const [isLoading, setIsLoading] = useState(false);
-
-    // Computed Status Logic (The "Truth")
-    let computedStatus = status;
-    // Removed isDraft logic as creation enforces completeness
-    const needsUpi = ['UPI', 'COD', 'WALLET'].includes(paymentMethod);
-    const isGathering = needsUpi && !refund.targetUpi;
-
-    if (isGathering && status !== 'FAILED') {
-        computedStatus = "GATHERING_DATA";
-    } else if (status === "GATHERING_DATA" && !isGathering) {
-        computedStatus = "CREATED"; // Auto-promote if data arrived
-    }
-
-    // Effect: Sync local status with computed status visually
+    // Initialize state and highlight logic
     useEffect(() => {
-        if (computedStatus !== status) {
-            // Only visually sync if we are "locked" in a gate
-            if (computedStatus === 'GATHERING_DATA') {
-                setStatus(computedStatus);
-            }
+        // 1. Normalize Status for Highlighting
+        const raw = (refund.status || '').toString().toUpperCase();
+        let internalStatus = 'REFUND_INITIATED';
+
+        if (raw.includes('GATHER')) internalStatus = 'GATHERING_DATA';
+        else if (raw.includes('INITIATED') || raw.includes('CREATED')) internalStatus = 'REFUND_INITIATED';
+        else if (raw.includes('PROCESS') || raw.includes('BANK')) internalStatus = 'PROCESSING';
+        else if (raw.includes('SETTLED') || raw.includes('CREDIT') || raw.includes('DONE')) internalStatus = 'SETTLED';
+        else if (raw.includes('FAIL') || raw.includes('REJECT')) internalStatus = 'FAILED';
+
+        setStatus(internalStatus);
+        setProofValue(refund.proofValue || '');
+        setFailureReason(refund.failureReason || '');
+
+        // 2. Compute Header Badge
+        const needsUpi = ['COD'].includes(refund.paymentMethod);
+        if (needsUpi && !refund.targetUpi && internalStatus !== 'FAILED') {
+            setComputedStatus('GATHERING_DATA');
+        } else {
+            setComputedStatus(internalStatus);
         }
-    }, [computedStatus]); // eslint-disable-line
+    }, [refund]);
 
-    const handleCopyLink = () => {
-        const link = `${window.location.origin}/t/${refund.id}`;
-        navigator.clipboard.writeText(link);
-        alert("Smart Link copied to clipboard!");
-    };
+    const handleSave = async () => {
+        if (!auth.currentUser) return;
+        setIsSaving(true);
 
-    const handleUpdate = async () => {
-        // Validation: Failure Reason
-        if (status === 'FAILED' && !failureReason.trim()) {
-            alert("Please provide a reason for rejection.");
-            return;
-        }
-
-        setIsLoading(true);
         try {
-            const docRef = doc(db, "refunds", refund.id);
-            const updates: any = {};
-            const timelineEvent: any = {
-                date: new Date().toISOString(),
+            const refundRef = doc(db, 'refunds', refund.id);
+            const updateData = {
+                status: status,
+                lastUpdated: Timestamp.now()
             };
 
-            // 1. Handle Status Change
-            if (status !== refund.status) {
-                updates.status = status;
-                timelineEvent.status = status;
-                timelineEvent.title = `Status updated to ${STATUS_STEPS.find(s => s.value === status)?.label}`;
+            if (status === 'SETTLED') (updateData as any).proofValue = proofValue;
+            if (status === 'FAILED') (updateData as any).failureReason = failureReason;
 
-                // Failure Loop Logic
-                if (status === 'FAILED') {
-                    updates.failureReason = failureReason; // Save reason
-                    if (refund.targetUpi) {
-                        updates.previousFailedUpi = refund.targetUpi;
-                        updates.targetUpi = null; // Clear it to trigger gathering again
-                        timelineEvent.title = "Refund Failed - UPI Cleared";
-                    }
-                }
-            }
-
-            // 2. Handle Entry Edits (Date/Method)
-            if (paymentMethod !== refund.paymentMethod || refundDate !== (refund.createdAt?.seconds ? new Date(refund.createdAt.seconds * 1000).toISOString().split('T')[0] : "")) {
-                updates.paymentMethod = paymentMethod;
-
-                // Fix Date Logic
-                const newDateObj = new Date(refundDate);
-                updates.createdAt = newDateObj; // In real app, convert to Firestore Timestamp
-
-                // Recalculate SLA
-                if (SLA_DAYS[paymentMethod]) {
-                    const slaDate = new Date(newDateObj);
-                    slaDate.setDate(slaDate.getDate() + SLA_DAYS[paymentMethod]);
-                    updates.slaDueDate = slaDate.toISOString();
-                }
-                timelineEvent.title = timelineEvent.title || "Entry Details Updated";
-            }
-
-            // 3. Handle Proof
-            if (proofValue !== (refund.proofs?.utr || "")) {
-                updates.proofs = { ...refund.proofs, utr: proofValue };
-            }
-
-            // Save
-            await updateDoc(docRef, {
-                ...updates,
-                timeline: arrayUnion(timelineEvent)
+            (updateData as any).timeline = arrayUnion({
+                label: status === 'SETTLED' ? 'Refund Settled' :
+                    status === 'FAILED' ? 'Refund Failed' :
+                        status === 'PROCESSING' ? 'Processing at Bank' : 'Status Updated',
+                sub: status === 'SETTLED' ? `UTR: ${proofValue}` :
+                    status === 'FAILED' ? `Reason: ${failureReason}` :
+                        `Updated to ${status}`,
+                date: new Date().toISOString(),
+                icon: status === 'SETTLED' ? 'CheckCircle2' : 'Clock'
             });
 
-            // --- EMAIL TRIGGER START ---
-            // Triggers for PROCESSING, SETTLED, and FAILED
+            await updateDoc(refundRef, updateData);
+
+            // Trigger Email
             try {
-                if (status === 'PROCESSING_AT_BANK' || status === 'SETTLED' || status === 'FAILED') {
-                    const token = await user?.getIdToken();
-                    if (token) {
-                        fetch('/api/email', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                to: refund.customerEmail,
-                                triggerType: status, // Matches API switch case
-                                merchantEmail: user?.email, // Enable Reply-To
-                                data: {
-                                    customerName: refund.customerName,
-                                    amount: refund.amount,
-                                    orderId: refund.orderId,
-                                    trackingLink: `${window.location.origin}/t/${refund.id}`,
-                                    proofValue: proofValue || refund.proofs?.utr, // Specific for SETTLED
-                                    reason: failureReason // Specific for FAILED
-                                }
-                            })
-                        });
-                    }
-                }
-            } catch (err) {
-                console.error("Email trigger failed in panel", err);
-            }
-            // --- EMAIL TRIGGER END ---
+                const token = await auth.currentUser.getIdToken();
+                await fetch('/api/email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        triggerType: status,
+                        refundId: refund.id,
+                        paymentMethod: refund.paymentMethod,
+                        customerEmail: refund.customerEmail,
+                        merchantEmail: auth.currentUser.email,
+                        details: {
+                            proofValue,
+                            reason: failureReason,
+                            amount: refund.amount,
+                            link: `${window.location.origin}/t/${refund.id}`
+                        }
+                    })
+                });
+            } catch (e) { console.error(e); }
 
-            onUpdate(); // Refresh Dashboard
             onClose();
-
         } catch (error) {
-            console.error("Update failed", error);
-            alert("Failed to update");
+            console.error(error);
+            alert("Update failed.");
         } finally {
-            setIsLoading(false);
+            setIsSaving(false);
         }
     };
 
-    // Auth for Email Token
-    const { user } = useAuth();
+    const STATUS_STEPS = [
+        { label: 'Gathering Data', value: 'GATHERING_DATA', icon: Loader2 },
+        { label: 'Refund Initiated', value: 'REFUND_INITIATED', icon: CheckCircle2 },
+        { label: 'Processing at Bank', value: 'PROCESSING', icon: Clock },
+        { label: 'Credited / Settled', value: 'SETTLED', icon: CheckCircle2 },
+        { label: 'Failed', value: 'FAILED', icon: AlertTriangle }
+    ];
 
-    // Lock Logic
-    const isSaveDisabled = (status === 'SETTLED' && !proofValue);
+    const isStepDisabled = (stepValue: string) => stepValue === 'GATHERING_DATA';
 
     return (
-        <div className="fixed inset-0 z-50 flex justify-end">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+            <div className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
 
-            <div className="relative w-full max-w-md bg-[#0A0A0A] border-l border-white/10 shadow-2xl h-full overflow-y-auto p-6 flex flex-col">
-
-                {/* Header */}
-                <div className="flex justify-between items-start mb-6">
+                {/* HEADER */}
+                <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
                     <div>
                         <h2 className="text-xl font-bold text-white">Refund Details</h2>
-                        <p className="text-sm text-gray-400">Order #{refund.orderId}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-zinc-400 text-sm">Order #{refund.orderId}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium border bg-blue-500/10 text-blue-500 border-blue-500/20">
+                                {(computedStatus || '').replace('_', ' ')}
+                            </span>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-gray-400">
-                        <X className="w-5 h-5" />
+                    <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white">
+                        <X size={24} />
                     </button>
                 </div>
 
-                {/* Status Badge */}
-                <div className={`mb-6 p-3 rounded-lg border flex items-center gap-3 ${computedStatus === 'GATHERING_DATA' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
-                        'bg-blue-500/10 border-blue-500/20 text-blue-400'
-                    }`}>
-                    {computedStatus === 'GATHERING_DATA' && <Loader2 className="w-5 h-5 animate-spin" />}
-                    {computedStatus !== 'GATHERING_DATA' && <CheckCircle2 className="w-5 h-5" />}
+                {/* BODY */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-zinc-950/50">
 
-                    <span className="font-semibold">
-                        {STATUS_STEPS.find(s => s.value === computedStatus)?.label || computedStatus}
-                    </span>
-                </div>
-
-                {/* Form Fields */}
-                <div className="space-y-6 flex-1">
-
-                    {/* Entry Details */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Entry Details</h3>
-
-                        <div>
-                            <label className="text-xs text-gray-400 mb-1 block">Payment Method</label>
-                            <select
-                                value={paymentMethod}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-md p-2 text-white text-sm"
-                            >
-                                <option value="" disabled>Select Method</option>
-                                {Object.keys(SLA_DAYS).map(m => <option key={m} value={m}>{m.replace('_', ' ')}</option>)}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="text-xs text-gray-400 mb-1 block">Requested On</label>
-                            <Input type="date" value={refundDate} onChange={(e: any) => setRefundDate(e.target.value)} />
-                        </div>
-                    </div>
-
-                    {/* Payout / UPI Section */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Payout Details</h3>
-
-                        {refund.previousFailedUpi && (
-                            <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-md">
-                                <p className="text-xs text-red-400 mb-1">Previous Failed ID:</p>
-                                <p className="font-mono text-sm text-red-200">{refund.previousFailedUpi}</p>
-                            </div>
-                        )}
-
-                        {refund.targetUpi ? (
+                    {/* Customer Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-zinc-900/30 border border-zinc-800/50 p-4 rounded-xl">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-zinc-800 rounded-lg text-zinc-400"><User size={20} /></div>
                             <div>
-                                <label className="text-xs text-gray-400 mb-1 block">Customer UPI ID</label>
-                                <div className="relative">
-                                    <Input value={refund.targetUpi} readOnly className="pr-10" />
-                                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
-                                </div>
+                                <div className="text-xs text-zinc-500 uppercase font-medium">Customer</div>
+                                <div className="text-sm text-white font-medium">{refund.customerName}</div>
                             </div>
-                        ) : (needsUpi) ? (
-                            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                                <p className="text-sm text-yellow-200 mb-3 flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4" /> Payment details missing
-                                </p>
-                                <Button onClick={handleCopyLink} variant="ghost" className="w-full border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20">
-                                    <Copy className="w-4 h-4 mr-2" /> Copy Smart Link
-                                </Button>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-zinc-800 rounded-lg text-zinc-400"><Mail size={20} /></div>
+                            <div>
+                                <div className="text-xs text-zinc-500 uppercase font-medium">Contact</div>
+                                <div className="text-sm text-white font-medium break-all">{refund.customerEmail}</div>
                             </div>
-                        ) : null}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-zinc-800 rounded-lg text-green-500/80"><IndianRupee size={20} /></div>
+                            <div>
+                                <div className="text-xs text-zinc-500 uppercase font-medium">Refund Amount</div>
+                                <div className="text-lg text-emerald-400 font-bold">₹{refund.amount}</div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Update Status */}
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-zinc-500 uppercase">Payment Method</label>
+                            <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 flex items-center gap-2">
+                                <CreditCard size={16} /> {refund.paymentMethod}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-zinc-500 uppercase">Requested On</label>
+                            <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 flex items-center gap-2">
+                                <Calendar size={16} />
+                                {new Date(refund.createdAt?.toDate ? refund.createdAt.toDate() : refund.createdAt || new Date()).toLocaleDateString()}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* UPI Display */}
+                    {refund.targetUpi && (
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-zinc-500 uppercase">Customer UPI ID</label>
+                            <div className="p-3 bg-zinc-900 border border-emerald-500/30 rounded-lg text-emerald-400 font-mono flex items-center justify-between">
+                                {refund.targetUpi}
+                                <CheckCircle2 size={16} className="text-emerald-500" />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Status Buttons */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Update Status</h3>
-
-                        <div className="grid grid-cols-1 gap-2">
+                        <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider">Update Status</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                             {STATUS_STEPS.map((step) => {
-                                const isDisabled =
-                                    (computedStatus === 'GATHERING_DATA' && ['PROCESSING_AT_BANK', 'SETTLED'].includes(step.value));
-
+                                const isDisabled = isStepDisabled(step.value);
+                                const isSelected = status === step.value;
+                                const StepIcon = step.icon;
                                 return (
                                     <button
                                         key={step.value}
                                         onClick={() => !isDisabled && setStatus(step.value)}
                                         disabled={isDisabled}
-                                        className={`flex items-center gap-3 p-3 rounded-md border transition-all text-left ${status === step.value
-                                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg'
+                                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all text-center h-24 ${isSelected
+                                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg ring-1 ring-blue-400'
                                             : isDisabled
-                                                ? 'opacity-30 cursor-not-allowed border-transparent text-gray-500'
-                                                : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                                                ? 'bg-zinc-900/50 border-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'
+                                                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
                                             }`}
                                     >
-                                        <step.icon className="w-4 h-4" />
-                                        <span className="text-sm">{step.label}</span>
+                                        <StepIcon size={20} />
+                                        <span className="text-xs font-medium">{step.label}</span>
                                     </button>
                                 );
                             })}
                         </div>
                     </div>
 
-                    {/* Proof Input */}
+                    {/* Dynamic Inputs */}
                     {status === 'SETTLED' && (
-                        <div className="animate-in fade-in slide-in-from-top-2">
-                            <label className="text-xs text-blue-400 mb-1 block">UTR / Reference No * (Required)</label>
-                            <Input
+                        <div className="space-y-2 bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20">
+                            <label className="text-sm font-medium text-emerald-400">UTR / Reference Number (Required)</label>
+                            <input
+                                type="text"
                                 value={proofValue}
-                                onChange={(e: any) => setProofValue(e.target.value)}
-                                placeholder="Enter Bank Ref No..."
-                                className="border-blue-500/50 focus:ring-blue-500"
+                                onChange={(e) => setProofValue(e.target.value)}
+                                placeholder="e.g. 3452XXXXXXXX"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:border-emerald-500 outline-none"
                             />
                         </div>
                     )}
 
-                    {/* Failure Reason Input (FAILED) */}
                     {status === 'FAILED' && (
-                        <div className="animate-in fade-in slide-in-from-top-2">
-                            <label className="text-xs text-red-400 mb-1 block">Reason for Rejection * (Required)</label>
+                        <div className="space-y-2 bg-red-500/5 p-4 rounded-xl border border-red-500/20">
+                            <label className="text-sm font-medium text-red-400">Reason for Failure (Required)</label>
                             <textarea
                                 value={failureReason}
                                 onChange={(e) => setFailureReason(e.target.value)}
-                                placeholder="e.g. Invalid UPI ID provided..."
-                                className="w-full h-24 bg-red-900/10 border border-red-500/30 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-red-500 placeholder:text-gray-600 resize-none"
+                                placeholder="Why was this rejected?"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:border-red-500 outline-none h-24 resize-none"
                             />
                         </div>
                     )}
 
-                </div>
-
-                {/* Footer Actions */}
-                <div className="pt-6 mt-6 border-t border-white/10 space-y-4">
-                    <Button
-                        onClick={handleUpdate}
-                        isLoading={isLoading}
-                        disabled={isSaveDisabled}
-                        className={`w-full py-3 ${isSaveDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                        {status === 'FAILED' ? "Confirm Failure & Reset" : "Save Changes"}
-                    </Button>
-
                     {/* Audit Log */}
-                    <div className="pt-4">
-                        <h4 className="text-xs font-medium text-gray-500 mb-3 flex items-center gap-2">
-                            <History className="w-3 h-3" /> History & Audit Log
-                        </h4>
-                        <div className="space-y-3 pl-2 border-l border-white/10 max-h-40 overflow-y-auto custom-scrollbar">
-                            {refund.timeline && refund.timeline.slice().reverse().map((event: any, i: number) => (
-                                <div key={i} className="relative pl-4">
-                                    <div className={`absolute -left-[5px] top-1.5 w-2 h-2 rounded-full ${i === 0 ? 'bg-blue-500' : 'bg-gray-600'}`} />
-                                    <p className="text-xs text-gray-300">{event.title || event.status}</p>
-                                    <p className="text-[10px] text-gray-600 font-mono">
-                                        {event.date ? new Date(event.date).toLocaleString() : 'Unknown Date'}
-                                    </p>
+                    <div className="pt-4 border-t border-zinc-800">
+                        <div className="flex items-center gap-2 mb-4 text-zinc-500">
+                            <Clock size={14} />
+                            <span className="text-xs font-medium uppercase tracking-wider">Audit Log</span>
+                        </div>
+                        <div className="space-y-4 pl-2 border-l border-zinc-800">
+                            {(refund.timeline || []).map((event: any, idx: number) => (
+                                <div key={idx} className="relative pl-4">
+                                    <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-zinc-700 border-2 border-zinc-950"></div>
+                                    <div className="text-sm text-zinc-300 font-medium">{event.label}</div>
+                                    <div className="text-xs text-zinc-500">{new Date(event.date).toLocaleString()}</div>
+                                    {event.sub && <div className="text-xs text-zinc-500 mt-1">{event.sub}</div>}
                                 </div>
                             ))}
-                            {(!refund.timeline || refund.timeline.length === 0) && (
-                                <p className="text-xs text-gray-600 italic pl-4">No history recorded.</p>
-                            )}
                         </div>
                     </div>
                 </div>
 
+                {/* FOOTER */}
+                <div className="p-6 border-t border-zinc-800 bg-zinc-950 flex justify-end gap-3 z-10">
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-zinc-400 hover:text-white">Cancel</button>
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving || (status === 'SETTLED' && !proofValue) || (status === 'FAILED' && !failureReason)}
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg flex items-center gap-2"
+                    >
+                        {isSaving && <Loader2 size={16} className="animate-spin" />}
+                        Save Changes
+                    </button>
+                </div>
             </div>
         </div>
     );

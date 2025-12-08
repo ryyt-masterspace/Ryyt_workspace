@@ -12,9 +12,13 @@ export interface DashboardMetrics {
     methodData: { name: string; value: number }[];
     conversionRate: number; // Extra: Settled vs Total
     recentFailures: { id: string; orderId: string; failureReason: string; amount: number }[];
+
+    // New Failure Metrics
+    stuckAmount: number;
+    failureReasonDistribution: { name: string; value: number }[];
 }
 
-export function useDashboardMetrics() {
+export function useDashboardMetrics(volumeWindowDays: number = 30) {
     const { user } = useAuth();
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [loading, setLoading] = useState(true);
@@ -40,13 +44,15 @@ export function useDashboardMetrics() {
                 let totalSettled = 0;
                 let liability = 0;
                 let breaches = 0;
+                let stuckAmount = 0;
                 const methodCounts: Record<string, number> = {};
                 const dateCounts: Record<string, number> = {};
+                const failureReasonCounts: Record<string, number> = {};
 
-                // Helper for Date Bucketing (Last 14 Days)
+                // Helper for Date Bucketing (Dynamic Window)
                 const today = new Date();
-                // Initialize last 14 days with 0 to ensure continuity in charts
-                for (let i = 13; i >= 0; i--) {
+                // Initialize last X days with 0 to ensure continuity in charts
+                for (let i = volumeWindowDays - 1; i >= 0; i--) {
                     const d = new Date();
                     d.setDate(today.getDate() - i);
                     const key = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }); // DD/MM
@@ -54,10 +60,8 @@ export function useDashboardMetrics() {
                 }
 
                 // 3. Process Logic
-                console.log("DEBUG: Processing refunds...", refunds.length);
-
                 refunds.forEach(doc => {
-                    const refund = doc; // In this correct variable name as per previous map
+                    const refund = doc;
 
                     // 1. NORMALIZE STATUS
                     const status = (refund.status || '').toString().toUpperCase().trim();
@@ -66,18 +70,23 @@ export function useDashboardMetrics() {
                     const rawAmount = refund.amount;
                     const amount = Number(rawAmount) || 0;
 
-                    // 3. DEBUG LOG
-                    console.log(`DEBUG Check: ID=${refund.id}, Status='${status}', Amount=${amount}`);
-
                     // A. Financials
                     if (status.includes('SETTLED')) {
-                        console.log('Found Settled Item:', { id: refund.id, rawAmount, parsedAmount: amount });
                         totalSettled += amount;
+                    } else if (status.includes('FAILED') || status.includes('REJECTED')) {
+                        // Capture Failed/Stuck Amount
+                        stuckAmount += amount;
+
+                        // Capture Failure Reason
+                        let reason = (refund.failureReason || 'Unspecified').trim();
+                        // Normalize to Title Case (e.g., "invalid upi" -> "Invalid upi")
+                        // For better Title Case ("Invalid Upi"), we can do:
+                        reason = reason.charAt(0).toUpperCase() + reason.slice(1).toLowerCase();
+
+                        failureReasonCounts[reason] = (failureReasonCounts[reason] || 0) + 1;
                     } else {
-                        // Calculate Active Liability (Not Settled AND Not Failed)
-                        if (!status.includes('FAILED') && !status.includes('REJECTED')) {
-                            liability += amount;
-                        }
+                        // Active Liability (Not Settled AND Not Failed)
+                        liability += amount;
                     }
 
                     // B. SLA Breaches
@@ -113,7 +122,9 @@ export function useDashboardMetrics() {
                     value
                 }));
 
-                console.log("DEBUG: Final Calculation -> Settled:", totalSettled, "Liability:", liability);
+                const failureReasonDistribution = Object.entries(failureReasonCounts)
+                    .map(([name, value]) => ({ name, value }))
+                    .sort((a, b) => b.value - a.value); // Sort desc (No limit)
 
                 setMetrics({
                     totalSettledAmount: totalSettled,
@@ -123,7 +134,15 @@ export function useDashboardMetrics() {
                     volumeData,
                     methodData,
                     conversionRate: refunds.length > 0 ? (refunds.filter(r => r.status === 'SETTLED').length / refunds.length) * 100 : 0,
-                    recentFailures: refunds.filter(r => r.status === 'FAILED').map(r => ({ id: r.id, orderId: r.orderId, failureReason: r.failureReason, amount: r.amount }))
+                    recentFailures: refunds
+                        .filter(r => (r.status || '').toUpperCase().includes('FAILED'))
+                        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)) // Newest first
+                        .slice(0, 5)
+                        .map(r => ({ id: r.id, orderId: r.orderId, failureReason: r.failureReason, amount: r.amount })),
+
+                    // New Fields
+                    stuckAmount,
+                    failureReasonDistribution
                 });
 
             } catch (err: any) {
@@ -135,7 +154,7 @@ export function useDashboardMetrics() {
         }
 
         fetchMetrics();
-    }, [user]);
+    }, [user, volumeWindowDays]);
 
     return { metrics, loading, error };
 }
