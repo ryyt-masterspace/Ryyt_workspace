@@ -31,7 +31,13 @@ const reviews = [
     { name: "Pooja D.", role: "CEO", text: "Our Trustpilot score went up because customers actually get their money on time." },
 ];
 
-const Row = ({ reviews, direction }: { reviews: typeof reviews; direction: 'left' | 'right' }) => (
+interface Review {
+    name: string;
+    role: string;
+    text: string;
+}
+
+const Row = ({ reviews, direction }: { reviews: Review[]; direction: 'left' | 'right' }) => (
     <div className="flex overflow-hidden relative w-full">
         <motion.div
             // @ts-ignore
