@@ -28,11 +28,14 @@
   --background-end-rgb: 5, 5, 5;
 }
 
-body {
-  color: var(--color-text-main);
-  background-color: var(--color-bg-dark);
-  font-family: var(--font-inter), sans-serif;
-  overflow-x: hidden;
+@layer base {
+  body {
+    @apply bg-[#0A0A0A] text-white antialiased;
+  }
+}
+
+.glass {
+    @apply bg-white/[0.02] backdrop-blur-lg border border-white/[0.05];
 }
 
 /* Fluid Background */

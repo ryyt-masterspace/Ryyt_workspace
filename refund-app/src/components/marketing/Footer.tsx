@@ -1,78 +1,80 @@
-"use client";
-
-import Link from "next/link";
-import Image from "next/image";
+import Link from 'next/link';
+import Image from 'next/image';
+import { Twitter, Linkedin } from 'lucide-react';
 
 export default function Footer() {
     return (
-        <footer className="bg-[#050505] border-t border-white/5 pt-20 pb-10 px-6 relative z-10">
-            <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+        <footer className="border-t border-white/5 bg-[#0A0A0A] pt-10 pb-6"> {/* Reduced padding */}
+            <div className="container mx-auto px-6">
+
+                {/* Main Grid - Tighter Gap */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8"> {/* Reduced mb-12 to mb-8 */}
+
                     {/* Brand Column */}
-                    <div className="col-span-1 md:col-span-1">
-                        <div className="mb-6">
-                            <div className="relative h-12 w-40">
-                                <Image
-                                    src="/assets/ryyt-logo-white-full.png"
-                                    alt="Ryyt Logo"
-                                    fill
-                                    className="object-contain object-left"
-                                />
-                            </div>
+                    <div className="space-y-3">
+                        <div className="relative h-8 w-32">
+                            <Image
+                                src="/logo-white.png"
+                                alt="Ryyt"
+                                fill
+                                className="object-contain object-left"
+                            />
                         </div>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                            The single source of truth for refunds. Build trust, reduce anxiety, and automate your support.
+                        <p className="text-xs text-zinc-500 max-w-xs">
+                            The Financial Control Tower for modern merchants.
                         </p>
-                        <div className="flex gap-4">
-                            {/* Social Placeholders */}
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer">
-                                    <div className="w-4 h-4 bg-gray-500 rounded-sm"></div>
-                                </div>
-                            ))}
+                        <div className="flex gap-3 pt-1">
+                            <SocialIcon icon={Twitter} />
+                            <SocialIcon icon={Linkedin} />
                         </div>
                     </div>
 
-                    {/* Links Columns */}
+                    {/* Links Columns - Compact Typography */}
                     <div>
-                        <h4 className="text-white font-bold mb-6">Product</h4>
-                        <ul className="space-y-4 text-sm text-gray-400">
-                            <li><Link href="/#features" className="hover:text-blue-400 transition-colors">Features</Link></li>
-                            <li><Link href="/#how-it-works" className="hover:text-blue-400 transition-colors">How it Works</Link></li>
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Pricing</Link></li>
+                        <h4 className="font-semibold text-white text-sm mb-3">Product</h4>
+                        <ul className="space-y-1.5 text-xs text-zinc-400">
+                            <li><Link href="#features" className="hover:text-[#0052FF] transition-colors">Features</Link></li>
+                            <li><Link href="#pricing" className="hover:text-[#0052FF] transition-colors">Pricing</Link></li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="text-white font-bold mb-6">Company</h4>
-                        <ul className="space-y-4 text-sm text-gray-400">
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">About</Link></li>
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Blog</Link></li>
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Careers</Link></li>
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Contact</Link></li>
+                        <h4 className="font-semibold text-white text-sm mb-3">Company</h4>
+                        <ul className="space-y-1.5 text-xs text-zinc-400">
+                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">About</Link></li>
+                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Careers</Link></li>
+                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Contact</Link></li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="text-white font-bold mb-6">Legal</h4>
-                        <ul className="space-y-4 text-sm text-gray-400">
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Privacy Policy</Link></li>
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Terms of Service</Link></li>
-                            <li><Link href="#" className="hover:text-blue-400 transition-colors">Cookie Policy</Link></li>
+                        <h4 className="font-semibold text-white text-sm mb-3">Legal</h4>
+                        <ul className="space-y-1.5 text-xs text-zinc-400">
+                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Privacy Policy</Link></li>
+                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Terms of Service</Link></li>
                         </ul>
                     </div>
                 </div>
 
-                <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-gray-500 text-xs">
-                        © {new Date().getFullYear()} Ryyt Inc. All rights reserved.
+                {/* Copyright Row */}
+                <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className="text-[10px] text-zinc-600">
+                        &copy; {new Date().getFullYear()} Ryyt Inc. All rights reserved.
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                    <div className="flex items-center gap-2 text-[10px] text-zinc-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         All Systems Operational
                     </div>
                 </div>
             </div>
         </footer>
+    );
+}
+
+function SocialIcon({ icon: Icon }: { icon: any }) {
+    return (
+        <a href="#" className="p-1.5 bg-zinc-900 rounded-md text-zinc-400 hover:text-white hover:bg-[#0052FF] transition-all">
+            <Icon size={14} />
+        </a>
     );
 }

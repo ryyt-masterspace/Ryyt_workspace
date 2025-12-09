@@ -1,183 +1,82 @@
-"use client";
+'use client';
+import { motion } from 'framer-motion';
 
-import Image from "next/image";
+const reviews = [
+    // --- LIQUIDITY & FINANCE ---
+    { name: "Arjun K.", role: "Founder", text: "Finally stopped using my overdraft for refunds. Paying from the bank is a game changer." },
+    { name: "Sarah L.", role: "Finance Head", text: "Razorpay used to hold our cash for 3 days. Ryyt cleared that bottleneck instantly." },
+    { name: "Dev P.", role: "D2C Owner", text: "The dynamic QR saved us during the Diwali sale when our gateway wallet hit zero." },
+    { name: "Vikram S.", role: "CFO", text: "Financial sovereignty is real. I control the money flow now, not the gateway." },
+    { name: "Ananya M.", role: "Founder", text: "We were losing 2% on payment gateway reloading fees. Ryyt cut that to zero." },
+    { name: "Rohan D.", role: "Ops Lead", text: "Just-in-time funding means my capital isn't stuck in a frozen wallet anymore." },
+    { name: "Karthik R.", role: "E-com Manager", text: "Settling refunds instantly from the current account is how it should have always been." },
+    { name: "Priya S.", role: "Director", text: "No more 'insufficient balance' errors on refund day. Peace of mind." },
+    { name: "Amit B.", role: "Founder", text: "Cashflow is tight. Ryyt lets us hold cash until the very last second." },
+    { name: "Sneha G.", role: "Finance", text: "The reconciliation between bank debit and refund status is flawless." },
+    { name: "Rahul V.", role: "CEO", text: "We stopped keeping dead cash in the gateway wallet. That capital is now used for ads." },
+    { name: "Zoya K.", role: "Founder", text: "T+1 compliance was a headache. Ryyt handled the RBI penalty risk for us." },
 
-const testimonials = [
-    {
-        id: 1,
-        name: "Arjun Mehta",
-        role: "Founder, UrbanKicks",
-        image: "https://randomuser.me/api/portraits/men/32.jpg",
-        content: "Customers would DM us 'scam?' if the refund took 2 days. Now they see the tracking link and chill. It's night and day."
-    },
-    {
-        id: 2,
-        name: "Priya Sharma",
-        role: "Ops Head, The Loom Co.",
-        image: "https://randomuser.me/api/portraits/women/44.jpg",
-        content: "Matching UTRs from bank statements to Excel sheets was my Sunday nightmare. Ryyt just auto-fills it. I actually have weekends now."
-    },
-    {
-        id: 3,
-        name: "Rahul Gupta",
-        role: "CEO, TechGear",
-        image: "https://randomuser.me/api/portraits/men/86.jpg",
-        content: "We were drowning in UTR requests. Now, I just share the link and forget about it. It's the cleanest manual refund tool I've ever used."
-    },
-    {
-        id: 4,
-        name: "Sneha Reddy",
-        role: "Founder, Glow & Co.",
-        image: "https://randomuser.me/api/portraits/women/68.jpg",
-        content: "I love that I don't need to integrate a payment gateway. It just works with my existing bank account. Simple, fast, and effective."
-    },
-    {
-        id: 5,
-        name: "Vikram Singh",
-        role: "Director, FitLife",
-        image: "https://randomuser.me/api/portraits/men/45.jpg",
-        content: "The branded tracking page makes us look like a much bigger company. It's a small touch that adds a lot of premium feel to the brand."
-    },
-    {
-        id: 6,
-        name: "Ananya Das",
-        role: "Founder, EcoWear",
-        image: "https://randomuser.me/api/portraits/women/22.jpg",
-        content: "I had a customer threaten to sue over a ₹2000 refund because our support team missed his email. Never again. Ryyt keeps them posted."
-    },
-    {
-        id: 7,
-        name: "Karthik R.",
-        role: "Co-founder, BrewBox",
-        image: "https://randomuser.me/api/portraits/men/11.jpg",
-        content: "Simple, fast, no coding. I set it up in 5 minutes and processed my first refund while drinking coffee. It just works."
-    },
-    {
-        id: 8,
-        name: "Meera Nair",
-        role: "Head of CX, Aura Beauty",
-        image: "https://randomuser.me/api/portraits/women/90.jpg",
-        content: "We used to send screenshots of payment success. It looked so unprofessional. The branded page makes us look like Myntra."
-    },
-    {
-        id: 9,
-        name: "Siddharth Jain",
-        role: "Founder, GadgetZone",
-        image: "https://randomuser.me/api/portraits/men/64.jpg",
-        content: "My accountant loves it. The export feature means he doesn't have to chase me for transaction details at the end of the month."
-    },
-    {
-        id: 10,
-        name: "Riya Kapoor",
-        role: "Owner, The Gift Studio",
-        image: "https://randomuser.me/api/portraits/women/56.jpg",
-        content: "During Diwali rush, we had 50 refunds. Without Ryyt, I would have gone mad checking bank apps. It saved my sanity."
-    },
-    {
-        id: 11,
-        name: "Aditya Verma",
-        role: "Founder, StreetStyle",
-        image: "https://randomuser.me/api/portraits/men/78.jpg",
-        content: "Our GenZ customers expect instant updates. The WhatsApp/Email notifications Ryyt sends are a lifesaver. No more 'where is my money?'"
-    },
-    {
-        id: 12,
-        name: "Nisha Patel",
-        role: "Ops Manager, PureEarth",
-        image: "https://randomuser.me/api/portraits/women/33.jpg",
-        content: "The 'Update Status' button is my favorite. I just click 'Processed' and the customer gets an email. No more drafting replies manually."
-    },
-    {
-        id: 13,
-        name: "Varun Chopra",
-        role: "Director, LuxeLeather",
-        image: "https://randomuser.me/api/portraits/men/52.jpg",
-        content: "Premium products need premium service. A text email saying 'refunded' isn't enough anymore. Ryyt adds that professional touch."
-    },
-    {
-        id: 14,
-        name: "Sana Khan",
-        role: "Founder, TinyToes",
-        image: "https://randomuser.me/api/portraits/women/18.jpg",
-        content: "I'm a solo founder. I don't have time to answer calls. Ryyt answers them for me by keeping the customer informed."
-    },
-    {
-        id: 15,
-        name: "Rohan Malhotra",
-        role: "CEO, FitGear",
-        image: "https://randomuser.me/api/portraits/men/29.jpg",
-        content: "We saw a 30% drop in support tickets in the first month. That's 30% more time to sell and less time fighting fires."
-    },
-    {
-        id: 16,
-        name: "Deepa Iyer",
-        role: "Co-founder, Veda Roots",
-        image: "https://randomuser.me/api/portraits/women/95.jpg",
-        content: "Our older customers struggle with tech. The SMS updates keep them informed without them needing to login anywhere. It's very inclusive."
-    },
-    {
-        id: 17,
-        name: "Kabir Singh",
-        role: "Founder, UrbanDecor",
-        image: "https://randomuser.me/api/portraits/men/3.jpg",
-        content: "The 'Failure Recovery' feature saved us. Customer gave wrong UPI, Ryyt got the right one automatically. Magic."
-    },
-    {
-        id: 18,
-        name: "Tanvi Shah",
-        role: "Head of Ops, Bling Jewelry",
-        image: "https://randomuser.me/api/portraits/women/62.jpg",
-        content: "High ticket items make people nervous. Seeing a 'Processing' status with a bank ref ID calms them down instantly. Trust is everything."
-    }
+    // --- OPS & CX ---
+    { name: "Mike T.", role: "Support Lead", text: "WISMO tickets dropped by 60% once we started sending tracking links." },
+    { name: "Nisha P.", role: "Ops Manager", text: "The COD auto-collection is magic. My team stopped making 50 calls a day." },
+    { name: "Varun J.", role: "Head of CX", text: "Customers trust the branded tracking page. It looks professional, like Amazon." },
+    { name: "Sonia R.", role: "Founder", text: "No more typing IFSC codes manually. The typo errors are gone." },
+    { name: "Kabir H.", role: "Logistics", text: "Handling 500+ COD returns was a nightmare. Ryyt automated the data entry." },
+    { name: "Tara W.", role: "CS Head", text: "The 'Refund Initiated' email stops the panic. Customers know we aren't lying." },
+    { name: "Aditya N.", role: "Founder", text: "Scan to Pay is brilliant. I cleared 50 refunds while drinking my morning coffee." },
+    { name: "Meera C.", role: "Ops Lead", text: "The bulk import feature saves us 4 hours of manual work every Friday." },
+    { name: "Rajiv M.", role: "D2C Brand", text: "Finally, a refund tool that understands COD friction." },
+    { name: "Simran K.", role: "Founder", text: "The interface is beautiful. It feels like using Linear for Finance." },
+    { name: "Sameer L.", role: "Finance", text: "Auditing is so much easier with the unified timeline view." },
+    { name: "Pooja D.", role: "CEO", text: "Our Trustpilot score went up because customers actually get their money on time." },
 ];
+
+const Row = ({ reviews, direction }: { reviews: typeof reviews; direction: 'left' | 'right' }) => (
+    <div className="flex overflow-hidden relative w-full">
+        <motion.div
+            // @ts-ignore
+            initial={{ x: direction === 'left' ? 0 : "-50%" }}
+            // @ts-ignore
+            animate={{ x: direction === 'left' ? "-50%" : 0 }}
+            transition={{ duration: 50, ease: "linear", repeat: Infinity }}
+            className="flex gap-6 py-4 pr-6 flex-shrink-0"
+        >
+            {[...reviews, ...reviews].map((review, i) => (
+                <div key={i} className="w-[350px] flex-shrink-0 bg-zinc-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm hover:border-[#0052FF]/30 transition-colors">
+                    <p className="text-zinc-300 text-sm mb-4 leading-relaxed">"{review.text}"</p>
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center text-xs font-bold text-zinc-500 border border-white/5">
+                            {review.name.charAt(0)}
+                        </div>
+                        <div>
+                            <div className="text-xs font-bold text-white">{review.name}</div>
+                            <div className="text-[10px] text-zinc-500 uppercase tracking-wide">{review.role}</div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </motion.div>
+    </div>
+);
+
+// Split data into two rows
+const row1 = reviews.slice(0, 12);
+const row2 = reviews.slice(12, 24);
 
 export default function TestimonialsMarquee() {
     return (
-        <section className="py-24 relative z-10 overflow-hidden">
-            <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                    Loved by <span className="text-blue-500">modern founders.</span>
-                </h2>
-                <p className="text-gray-400 max-w-2xl mx-auto">
-                    Join hundreds of D2C brands who turned refunds from a headache into a trust-building opportunity.
-                </p>
+        <section className="py-20 relative z-10 overflow-hidden">
+            <div className="container mx-auto px-4 text-center mb-12">
+                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Trusted by modern finance teams</h2>
             </div>
 
-            {/* Marquee Container */}
-            <div className="relative w-full overflow-hidden group">
-                {/* Gradient Masks */}
-                <div className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-black to-transparent z-20 pointer-events-none"></div>
-                <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-black to-transparent z-20 pointer-events-none"></div>
+            <div className="flex flex-col gap-6 relative">
+                {/* Fade Masks */}
+                <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#0A0A0A] to-transparent z-20 pointer-events-none" />
+                <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#0A0A0A] to-transparent z-20 pointer-events-none" />
 
-                {/* Scrolling Track */}
-                <div
-                    className="animate-marquee flex w-max gap-6 py-4"
-                    style={{ animationDuration: "120s" }}
-                >
-                    {[...testimonials, ...testimonials].map((testimonial, index) => (
-                        <div
-                            key={`${testimonial.id}-${index}`}
-                            className="w-[400px] flex-shrink-0 bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-colors whitespace-normal flex flex-col"
-                        >
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-                                    <img
-                                        src={testimonial.image}
-                                        alt={testimonial.name}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                                <div>
-                                    <h4 className="text-white font-bold">{testimonial.name}</h4>
-                                    <p className="text-xs text-gray-500">{testimonial.role}</p>
-                                </div>
-                            </div>
-                            <p className="text-gray-400 text-sm leading-relaxed italic">
-                                "{testimonial.content}"
-                            </p>
-                        </div>
-                    ))}
-                </div>
+                <Row reviews={row1} direction="left" />
+                <Row reviews={row2} direction="right" />
             </div>
         </section>
     );
