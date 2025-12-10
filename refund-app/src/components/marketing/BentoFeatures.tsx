@@ -6,24 +6,30 @@ export default function BentoFeatures() {
     const features = [
         {
             icon: Wallet,
-            title: "The Empty Wallet Trap",
-            pain: "Razorpay took all my money in settlement. Now I can't refund.",
-            fix: "Just-in-Time Funding. Scan a QR code to pay instantly from your bank.",
-            color: "text-red-400"
+            title: "Escape the Settlement Trap",
+            pain: "Waiting for new sales just to fund a refund.",
+            fix: "Pay instantly via Bank QR. Your money, your rules.",
+            color: "text-red-400",
+            painLabel: "The Trap",
+            fixLabel: "The Freedom"
         },
         {
             icon: PhoneOff,
-            title: "The Phone Tag Nightmare",
-            pain: "Wasting hours calling customers for bank details.",
-            fix: "Auto-Pilot Collector. We text them, they enter UPI, you approve.",
-            color: "text-orange-400"
+            title: "End the Data Chase",
+            pain: "Manually calling customers for bank details.",
+            fix: "Auto-pilot collection. We get the details; you click approve.",
+            color: "text-orange-400",
+            painLabel: "The Drudgery",
+            fixLabel: "The System"
         },
         {
             icon: MailWarning,
-            title: "The Angry Inbox",
-            pain: "Support spam asking 'Where is my money?'",
-            fix: "The FedEx for Money. Live tracking links for every refund.",
-            color: "text-yellow-400"
+            title: "Kill the Anxiety Loop",
+            pain: "Customers thinking you are lying about the refund.",
+            fix: "Live tracking links that build trust, not tickets.",
+            color: "text-yellow-400",
+            painLabel: "The Friction",
+            fixLabel: "The Proof"
         }
     ];
 
@@ -31,7 +37,7 @@ export default function BentoFeatures() {
         <section id="features" className="py-20 relative z-10 overflow-hidden">
             <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">The End of Your Headaches.</h2>
+                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">From Operational Chaos to Financial Control.</h2>
                     <p className="text-zinc-400 text-lg max-w-2xl mx-auto">Why is giving money back harder than taking it? <br /> Ryyt replaces the chaos with a simple, automated workflow.</p>
                 </div>
 
@@ -58,7 +64,7 @@ export default function BentoFeatures() {
                                 <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-xl group-hover:border-red-500/20 transition-colors">
                                     <div className="flex items-center gap-2 mb-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                        <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">The Pain</p>
+                                        <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">{f.painLabel}</p>
                                     </div>
                                     <p className="text-sm text-zinc-400 leading-relaxed">"{f.pain}"</p>
                                 </div>
@@ -66,7 +72,7 @@ export default function BentoFeatures() {
                                 <div className="p-4 bg-[#0052FF]/5 border border-[#0052FF]/10 rounded-xl group-hover:bg-[#0052FF]/10 group-hover:border-[#0052FF]/30 transition-all">
                                     <div className="flex items-center gap-2 mb-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#0052FF]" />
-                                        <p className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#0052FF] to-cyan-400 uppercase tracking-wider">The Ryyt Fix</p>
+                                        <p className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#0052FF] to-cyan-400 uppercase tracking-wider">{f.fixLabel}</p>
                                     </div>
                                     <p className="text-sm text-zinc-200 leading-relaxed font-medium">{f.fix}</p>
                                 </div>

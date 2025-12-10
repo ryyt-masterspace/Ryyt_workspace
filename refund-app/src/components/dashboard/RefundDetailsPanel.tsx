@@ -14,7 +14,7 @@ interface RefundDetailsPanelProps {
     onUpdate?: () => Promise<void>;
 }
 
-export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPanelProps) {
+export default function RefundDetailsPanel({ refund, onClose, onUpdate }: RefundDetailsPanelProps) {
     const [status, setStatus] = useState(refund.status || 'REFUND_INITIATED');
     const [proofValue, setProofValue] = useState(refund.proofValue || '');
     const [failureReason, setFailureReason] = useState(refund.failureReason || '');
@@ -99,6 +99,7 @@ export default function RefundDetailsPanel({ refund, onClose }: RefundDetailsPan
                 });
             } catch (e) { console.error(e); }
 
+            if (onUpdate) await onUpdate(); // <--- ADDED CALLBACK
             onClose();
         } catch (error) {
             console.error(error);

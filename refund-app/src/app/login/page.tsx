@@ -1,108 +1,104 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
-import Card from "@/components/ui/Card";
+'use client';
+import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
-    const router = useRouter();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState("");
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError("");
+        setError('');
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            router.push("/dashboard");
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router.push('/dashboard');
         } catch (err: any) {
-            console.error(err);
-            setError("Invalid email or password. Please try again.");
+            setError('Invalid email or password.');
+        } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <main className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4">
+
+            {/* 1. BACK BUTTON (Top Left) */}
+            <Link
+                href="/"
+                className="absolute top-8 left-8 text-zinc-500 hover:text-white flex items-center gap-2 text-sm font-medium transition-colors"
+            >
+                <ArrowLeft size={16} /> Back
+            </Link>
+
             <div className="w-full max-w-md">
-                <Card className="p-8 border-white/10 bg-white/5 backdrop-blur-xl">
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
-                        <p className="text-gray-400 text-sm">Sign in to manage your refunds</p>
+
+                {/* 2. CLEAN HEADER */}
+                <div className="flex flex-col items-center mb-8">
+                    <div className="relative w-48 h-12 mb-4">
+                        <Image
+                            src="/logo-white.png"
+                            alt="Ryyt"
+                            fill
+                            className="object-contain"
+                            priority
+                        />
                     </div>
+                    <h1 className="text-xl font-semibold text-white">Welcome back</h1>
+                </div>
+
+                {/* 3. CLEAN CARD */}
+                <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-8">
 
                     {error && (
-                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm text-center">
-                            {error}
+                        <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-400 text-sm">
+                            <AlertCircle size={16} /> {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form onSubmit={handleLogin} className="space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1">
-                                Email Address
-                            </label>
-                            <Input
+                            <label className="block text-xs font-medium text-zinc-500 mb-2">Email</label>
+                            <input
                                 type="email"
-                                placeholder="admin@brand.com"
+                                required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#0052FF] transition-colors"
+                                placeholder="name@company.com"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-zinc-500 mb-2">Password</label>
+                            <input
+                                type="password"
                                 required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#0052FF] transition-colors"
+                                placeholder="••••••••"
                             />
                         </div>
 
-                        <div className="relative">
-                            <label className="block text-sm font-medium text-gray-400 mb-1">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <Input
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                                >
-                                    {showPassword ? (
-                                        // Eye Off Icon
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.09" />
-                                            <line x1="2" x2="22" y1="2" y2="22" />
-                                        </svg>
-                                    ) : (
-                                        // Eye On Icon
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                            <circle cx="12" cy="12" r="3" />
-                                        </svg>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        <Button className="w-full mt-6">
-                            {loading ? "Signing In..." : "Sign In"}
-                        </Button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-[#0052FF] hover:bg-[#0040DD] text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2"
+                        >
+                            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
+                        </button>
                     </form>
-                </Card>
+                </div>
             </div>
-        </div>
+        </main>
     );
 }

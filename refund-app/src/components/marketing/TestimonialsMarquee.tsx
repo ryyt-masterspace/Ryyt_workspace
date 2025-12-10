@@ -73,7 +73,9 @@ export default function TestimonialsMarquee() {
     return (
         <section className="py-20 relative z-10 overflow-hidden">
             <div className="container mx-auto px-4 text-center mb-12">
-                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Trusted by modern finance teams</h2>
+                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+                    Join founders who regained <span className="text-[#0052FF]">financial control</span>.
+                </h2>
             </div>
 
             <div className="flex flex-col gap-6 relative">

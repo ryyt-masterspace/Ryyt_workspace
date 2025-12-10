@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutGrid, Activity, AlertTriangle, Search, Settings, LogOut, XCircle, CheckCircle2, FileBarChart } from "lucide-react";
 import { getAuth, signOut } from "firebase/auth";
@@ -29,13 +30,16 @@ export default function Sidebar() {
             {/* ZONE 1: LOGO & HOME */}
             <div className="flex-none p-4 md:p-6 border-b border-white/5">
                 {/* Logo */}
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-8">
-                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-black font-bold text-xs shrink-0">
-                        R
+                <div className="flex items-center gap-3 px-3 mb-8">
+                    <div className="relative h-12 w-40">
+                        <Image
+                            src="/logo-white.png"
+                            alt="Ryyt"
+                            fill
+                            className="object-contain object-left"
+                            priority
+                        />
                     </div>
-                    <span className="font-bold text-lg text-white hidden md:block tracking-tight">
-                        Ryyt
-                    </span>
                 </div>
 
                 {/* Home Link */}

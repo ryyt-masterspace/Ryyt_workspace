@@ -14,23 +14,26 @@ export default function FinalHero() {
                     initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}
                     className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.1]"
                 >
-                    Refund Instantly.<br />
+                    Stop apologizing for your<br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#0052FF] to-blue-400">
-                        Gateway Balance is Zero.
+                        Payment Gateway's delays.
                     </span>
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                     className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed"
                 >
-                    Stop waiting for new sales. Process refunds directly from your bank account, automate COD payouts, and stop the "Where is my money?" emails forever.
+                    Your customers deserve their money back now, not in 3 days. Ryyt lets you bypass the settlement cycle, automate COD payouts, and regain control of your cash flow.
                 </motion.p>
                 <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                     className="flex flex-col sm:flex-row gap-4 justify-center"
                 >
-                    <button className="px-8 py-4 bg-[#0052FF] hover:bg-[#0040DD] text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-600/20 group">
-                        Start Free <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                    <button className="px-8 py-4 bg-[#0052FF]/60 backdrop-blur-xl border border-[#0052FF]/50 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)] hover:bg-[#0052FF]/80 hover:shadow-[0_0_30px_-5px_rgba(0,82,255,0.6)] hover:border-[#0052FF]/80 text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 group">
+                        Regain Control <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                    <button className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_-5px_rgba(255,255,255,0.1)] hover:bg-white/10 hover:border-white/20 text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2">
+                        How it works
                     </button>
                 </motion.div>
 

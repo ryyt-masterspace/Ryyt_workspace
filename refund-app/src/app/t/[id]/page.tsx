@@ -30,8 +30,10 @@ export default function TrackingPage() {
 
                     // Smart Redirect Logic
                     const needsUpi = (['UPI', 'COD', 'WALLET'].includes(data.paymentMethod)) && (!data.targetUpi);
+                    const isFailedCod = (data.paymentMethod === 'COD') && (data.status === 'FAILED');
 
-                    if (needsUpi && data.status !== 'FAILED') {
+                    // Redirect if initial gathering OR if it's a failed COD (Retry Flow)
+                    if (needsUpi || isFailedCod) {
                         setIsRedirecting(true);
                         router.push(`/pay/${docSnap.id}`);
                     }
