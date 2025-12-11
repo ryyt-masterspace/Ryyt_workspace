@@ -113,7 +113,7 @@ export async function POST(request: Request) {
 
         // 4. Send Email via Resend
         const data = await resend.emails.send({
-            from: 'Ryyt Refunds <onboarding@resend.dev>', // Use your Verified Domain in Prod
+            from: 'Ryyt Refunds <refunds@ryyt.in>', // Using Verified Domain
             to: [customerEmail],
             replyTo: merchantEmail || undefined,
             subject: subject,
