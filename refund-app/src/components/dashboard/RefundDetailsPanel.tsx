@@ -74,10 +74,11 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
 
             await updateDoc(refundRef, updateData);
 
-            // Trigger Email
+            // Trigger Email (Silent Background Process)
             try {
                 const token = await auth.currentUser.getIdToken();
-                await fetch('/api/email', {
+                // Fire and forget email trigger
+                fetch('/api/email', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -90,14 +91,16 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
                         customerEmail: refund.customerEmail,
                         merchantEmail: auth.currentUser.email,
                         details: {
-                            proofValue,
+                            proofValue: proofValue,
                             reason: failureReason,
                             amount: refund.amount,
                             link: `${window.location.origin}/t/${refund.id}`
                         }
                     })
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error("Email trigger warning:", e);
+            }
 
             if (onUpdate) await onUpdate(); // <--- ADDED CALLBACK
             onClose();

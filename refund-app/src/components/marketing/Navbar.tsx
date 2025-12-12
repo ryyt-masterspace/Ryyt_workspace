@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 
-export default function Navbar() {
+export default function Navbar({ onOpenLead }: { onOpenLead?: () => void }) {
     const [scrolled, setScrolled] = useState(false);
     const { scrollY } = useScroll();
 
@@ -49,9 +49,12 @@ export default function Navbar() {
 
                 <div className="flex items-center gap-4">
                     <Link href="/login" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">Login</Link>
-                    <Link href="/login" className="text-sm font-medium px-5 py-2.5 rounded-full bg-[#0052FF]/60 backdrop-blur-xl border border-[#0052FF]/50 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)] hover:bg-[#0052FF]/80 hover:shadow-[0_0_30px_-5px_rgba(0,82,255,0.6)] hover:border-[#0052FF]/80 text-white transition-all duration-300">
+                    <button
+                        onClick={onOpenLead}
+                        className="text-sm font-medium px-5 py-2.5 rounded-full bg-[#0052FF]/60 backdrop-blur-xl border border-[#0052FF]/50 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)] hover:bg-[#0052FF]/80 hover:shadow-[0_0_30px_-5px_rgba(0,82,255,0.6)] hover:border-[#0052FF]/80 text-white transition-all duration-300"
+                    >
                         Get Started
-                    </Link>
+                    </button>
                 </div>
             </div>
         </motion.nav>

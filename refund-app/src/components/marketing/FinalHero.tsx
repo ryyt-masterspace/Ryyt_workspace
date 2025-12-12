@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence, animate } from 'framer-motion';
 import { ArrowRight, Search, Smartphone, Zap } from 'lucide-react';
 
-export default function FinalHero() {
+export default function FinalHero({ onOpenLead }: { onOpenLead?: () => void }) {
     return (
         <section className="relative w-full pt-32 pb-20 flex flex-col items-center justify-center perspective-[2000px] overflow-hidden">
             {/* Background Glow */}
@@ -29,7 +29,10 @@ export default function FinalHero() {
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                     className="flex flex-col sm:flex-row gap-4 justify-center"
                 >
-                    <button className="px-8 py-4 bg-[#0052FF]/60 backdrop-blur-xl border border-[#0052FF]/50 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)] hover:bg-[#0052FF]/80 hover:shadow-[0_0_30px_-5px_rgba(0,82,255,0.6)] hover:border-[#0052FF]/80 text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 group">
+                    <button
+                        onClick={onOpenLead}
+                        className="px-8 py-4 bg-[#0052FF]/60 backdrop-blur-xl border border-[#0052FF]/50 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)] hover:bg-[#0052FF]/80 hover:shadow-[0_0_30px_-5px_rgba(0,82,255,0.6)] hover:border-[#0052FF]/80 text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 group"
+                    >
                         Regain Control <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                     <button className="px-8 py-4 bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_-5px_rgba(255,255,255,0.1)] hover:bg-white/10 hover:border-white/20 text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2">
