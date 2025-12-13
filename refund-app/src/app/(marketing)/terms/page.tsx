@@ -96,7 +96,7 @@ export default function TermsPage() {
                     </Section>
 
                     <Section title="9. Governing Law">
-                        <p>These Terms shall be governed by and construed in accordance with the laws of India. The courts of [Insert City] shall have exclusive jurisdiction over any disputes.</p>
+                        <p>These Terms shall be governed by and construed in accordance with the laws of India. The courts of Kolkata, West Bengal shall have exclusive jurisdiction over any disputes.</p>
                     </Section>
 
                     <div className="pt-12 border-t border-white/10 mt-12">

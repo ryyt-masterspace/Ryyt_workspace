@@ -1,17 +1,12 @@
 'use client';
-import { useState } from 'react';
-import Navbar from '@/components/marketing/Navbar';
 import FinalHero from '@/components/marketing/FinalHero';
 import BentoFeatures from '@/components/marketing/BentoFeatures';
 import WhyUs from '@/components/marketing/WhyUs';
 import TestimonialsMarquee from '@/components/marketing/TestimonialsMarquee';
 import FAQ from '@/components/marketing/FAQ';
-import Footer from '@/components/marketing/Footer';
 import MouseSpotlight from '@/components/marketing/MouseSpotlight';
-import LeadCaptureModal from '@/components/marketing/LeadCaptureModal';
 
 export default function LandingPage() {
-  const [isLeadOpen, setIsLeadOpen] = useState(false);
 
   return (
     <main className="relative min-h-screen bg-[#0A0A0A] text-white selection:bg-[#0052FF]/30 overflow-x-hidden">
@@ -22,16 +17,12 @@ export default function LandingPage() {
 
       {/* 2. CONTENT LAYERS (Must be Transparent) */}
       <div className="relative z-10">
-        <Navbar onOpenLead={() => setIsLeadOpen(true)} />
-        <FinalHero onOpenLead={() => setIsLeadOpen(true)} />
+        <FinalHero />
         <BentoFeatures />
         <WhyUs />
         <TestimonialsMarquee />
         <FAQ />
-        <Footer />
       </div>
-
-      <LeadCaptureModal isOpen={isLeadOpen} onClose={() => setIsLeadOpen(false)} />
     </main>
   );
 }

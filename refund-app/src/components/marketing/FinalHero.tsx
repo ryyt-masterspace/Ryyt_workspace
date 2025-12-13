@@ -3,7 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence, animate } from 'framer-motion';
 import { ArrowRight, Search, Smartphone, Zap } from 'lucide-react';
 
-export default function FinalHero({ onOpenLead }: { onOpenLead?: () => void }) {
+import { useModal } from '@/context/ModalContext';
+
+export default function FinalHero() {
+    const { openLeadModal } = useModal();
     return (
         <section className="relative w-full pt-32 pb-20 flex flex-col items-center justify-center perspective-[2000px] overflow-hidden">
             {/* Background Glow */}
@@ -30,7 +33,7 @@ export default function FinalHero({ onOpenLead }: { onOpenLead?: () => void }) {
                     className="flex flex-col sm:flex-row gap-4 justify-center"
                 >
                     <button
-                        onClick={onOpenLead}
+                        onClick={openLeadModal}
                         className="px-8 py-4 bg-[#0052FF]/60 backdrop-blur-xl border border-[#0052FF]/50 shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)] hover:bg-[#0052FF]/80 hover:shadow-[0_0_30px_-5px_rgba(0,82,255,0.6)] hover:border-[#0052FF]/80 text-white font-bold rounded-full transition-all duration-300 flex items-center justify-center gap-2 group"
                     >
                         Regain Control <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />

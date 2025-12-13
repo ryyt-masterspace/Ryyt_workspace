@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Twitter, Linkedin, Instagram, Youtube, Mail } from 'lucide-react';
+import { Linkedin, Instagram, Youtube, Mail } from 'lucide-react';
 
 export default function Footer() {
     return (
-        <footer className="border-t border-white/10 bg-transparent backdrop-blur-xl pt-12 pb-8 relative z-20">
+        <footer className="border-t border-white/5 bg-[#0A0A0A] pt-10 pb-6 relative z-20">
             <div className="container mx-auto px-6">
 
                 {/* Main Grid */}
@@ -12,7 +12,8 @@ export default function Footer() {
 
                     {/* Brand Column */}
                     <div className="space-y-4">
-                        <div className="relative h-12 w-48 mb-2">
+                        {/* Logo */}
+                        <div className="relative h-12 w-40">
                             <Image
                                 src="/logo-white.png"
                                 alt="Ryyt"
@@ -20,24 +21,36 @@ export default function Footer() {
                                 className="object-contain object-left"
                             />
                         </div>
-                        <p className="text-xs text-zinc-400 max-w-xs leading-relaxed">
+                        <p className="text-xs text-zinc-500 max-w-xs leading-relaxed">
                             Regain your Financial Sovereignty. <br />
                             Stop letting gateways control your cash flow.
                         </p>
 
-                        {/* Social Icons */}
+                        {/* Social Icons (Updated) */}
                         <div className="flex gap-3 pt-2">
-                            <SocialIcon icon={Instagram} href="#" />
-                            <SocialIcon icon={Linkedin} href="#" />
-                            <SocialIcon icon={Youtube} href="#" />
-                            <SocialIcon icon={Mail} href="mailto:support@ryyt.com" />
+                            <SocialIcon
+                                icon={Instagram}
+                                href="https://www.instagram.com/ryyt.social?igsh=MTZjZjJmM2o2czFtZw=="
+                            />
+                            <SocialIcon
+                                icon={Linkedin}
+                                href="https://www.linkedin.com/company/ryyt/"
+                            />
+                            <SocialIcon
+                                icon={Youtube}
+                                href="https://youtube.com/@ryytforyou?si=dGFtcqCWjYONOJy5"
+                            />
+                            <SocialIcon
+                                icon={Mail}
+                                href="mailto:shuvam@ryyt.in"
+                            />
                         </div>
                     </div>
 
                     {/* Links Columns */}
                     <div>
-                        <h4 className="font-semibold text-white text-sm mb-4">Product</h4>
-                        <ul className="space-y-2 text-xs text-zinc-400">
+                        <h4 className="font-semibold text-white text-sm mb-3">Product</h4>
+                        <ul className="space-y-1.5 text-xs text-zinc-400">
                             <li><Link href="#features" className="hover:text-[#0052FF] transition-colors">Solutions</Link></li>
                             <li><Link href="#why-us" className="hover:text-[#0052FF] transition-colors">Why Ryyt</Link></li>
                             <li><Link href="#faq" className="hover:text-[#0052FF] transition-colors">FAQ</Link></li>
@@ -45,8 +58,9 @@ export default function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="font-semibold text-white text-sm mb-4">Company</h4>
-                        <ul className="space-y-2 text-xs text-zinc-400">
+                        <h4 className="font-semibold text-white text-sm mb-3">Company</h4>
+                        <ul className="space-y-1.5 text-xs text-zinc-400">
+                            <li><Link href="/blog" className="hover:text-[#0052FF] transition-colors">Blog</Link></li>
                             <li><Link href="/about" className="hover:text-[#0052FF] transition-colors">About Us</Link></li>
                             <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Careers</Link></li>
                             <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Contact</Link></li>
@@ -54,11 +68,10 @@ export default function Footer() {
                     </div>
 
                     <div>
-                        <h4 className="font-semibold text-white text-sm mb-4">Legal</h4>
-                        <ul className="space-y-2 text-xs text-zinc-400">
+                        <h4 className="font-semibold text-white text-sm mb-3">Legal</h4>
+                        <ul className="space-y-1.5 text-xs text-zinc-400">
                             <li><Link href="/privacy" className="hover:text-[#0052FF] transition-colors">Privacy Policy</Link></li>
                             <li><Link href="/terms" className="hover:text-[#0052FF] transition-colors">Terms of Service</Link></li>
-                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Cookie Policy</Link></li>
                         </ul>
                     </div>
                 </div>
@@ -70,7 +83,7 @@ export default function Footer() {
                     </p>
                     <div className="flex items-center gap-2 text-[10px] text-zinc-600">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        System Operational
+                        All Systems Operational
                     </div>
                 </div>
             </div>
@@ -80,8 +93,13 @@ export default function Footer() {
 
 function SocialIcon({ icon: Icon, href }: { icon: any, href: string }) {
     return (
-        <a href={href} className="p-2 bg-white/5 border border-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-[#0052FF] hover:border-[#0052FF] transition-all">
-            <Icon size={14} />
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 bg-zinc-900/50 border border-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-[#0052FF] hover:border-[#0052FF] transition-all"
+        >
+            <Icon size={16} />
         </a>
     );
 }
