@@ -108,16 +108,34 @@ export default function ReportsPage() {
             }
 
             // 5. Generate CSV
-            const csvData = refunds.map(r => ({
-                "Order ID": r.orderId,
-                "Date": r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleDateString() : "",
-                "Amount": r.amount,
-                "Customer Name": r.customerName,
-                "Status": r.status,
-                "Payment Method": r.paymentMethod || "UPI",
-                "UTR / Ref": r.proofs?.utr || r.proofs?.arn || "",
-                "Failure Reason": r.failureReason || ""
-            }));
+            // 5. Generate CSV (Lifecycle Log Format)
+            const csvData = refunds.map(r => {
+                // Helper to find date for a specific status in the timeline
+                const findDate = (statusKey: string) => {
+                    const entry = r.timeline?.find((t: any) => t.status?.includes(statusKey));
+                    return entry?.date ? new Date(entry.date).toLocaleDateString() : "";
+                };
+
+                return {
+                    "Order ID": r.orderId,
+                    "Amount": r.amount,
+                    "Customer Name": r.customerName,
+                    "Customer Email": r.customerEmail,
+                    "Current Status": r.status,
+
+                    // --- Lifecycle Dates ---
+                    "Data Requested On": findDate('GATHERING_DATA'),
+                    "Refund Initiated On": findDate('REFUND_INITIATED') || findDate('CREATED'), // Handle legacy CREATED
+                    "Processing Started On": findDate('PROCESSING'),
+                    "Settled On": findDate('SETTLED'),
+                    "Failed On": findDate('FAILED'),
+
+                    // --- Details ---
+                    "Payment Method": r.paymentMethod || "UPI",
+                    "UTR / Ref": r.proofs?.utr || r.proofs?.arn || "",
+                    "Failure Reason": r.failureReason || ""
+                };
+            });
 
             const csvString = Papa.unparse(csvData);
             const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
@@ -188,8 +206,8 @@ export default function ReportsPage() {
                                                     key={opt}
                                                     onClick={() => setScope(opt)}
                                                     className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${scope === opt
-                                                            ? "bg-blue-600 border-blue-600 text-white"
-                                                            : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                                                        ? "bg-blue-600 border-blue-600 text-white"
+                                                        : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
                                                         }`}
                                                 >
                                                     {opt === "ALL" ? "All Refunds" :

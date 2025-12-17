@@ -156,27 +156,30 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                         })
                     });
 
-                    // 4. Trigger Email (Simulating logic from RefundDetailsPanel)
-                    if (['SETTLED', 'FAILED'].includes(item.status)) {
+                    // 4. Trigger Email (ALL Statuses)
+                    try {
                         const token = await user.getIdToken();
-                        fetch('/api/email', {
+                        await fetch('/api/email', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
                             },
                             body: JSON.stringify({
-                                to: refundData.customerEmail,
-                                triggerType: item.status === 'SETTLED' ? 'settled' : 'failed',
-                                data: {
-                                    customerName: refundData.customerName,
+                                customerEmail: refundData.customerEmail,
+                                merchantEmail: user.email,
+                                triggerType: item.status,
+                                paymentMethod: refundData.paymentMethod,
+                                details: {
                                     amount: refundData.amount,
-                                    orderId: refundData.orderId,
-                                    trackLink: `${window.location.origin}/t/${docSnap.id}`,
-                                    reason: item.note // Specific for FAILED
+                                    link: `${window.location.origin}/t/${docSnap.id}`,
+                                    reason: item.note,      // For FAILED
+                                    proofValue: item.note   // For SETTLED (UTR)
                                 }
                             })
-                        }).catch(e => console.error(`Email failed for ${item.orderId}`, e));
+                        });
+                    } catch (emailErr) {
+                        console.error(`Email failed for ${item.orderId}`, emailErr);
                     }
 
                     successCount++;

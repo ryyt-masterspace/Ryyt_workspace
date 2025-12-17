@@ -2,12 +2,17 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
+import GlobalConcierge from "@/components/concierge/GlobalConcierge";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Ryyt - Refund Transparency Layer",
   description: "The missing middleware for e-commerce refunds.",
+  icons: {
+    icon: "/assets/ryyt-custom-favicon.png",
+    shortcut: "/assets/ryyt-custom-favicon.png",
+  }
 };
 
 export default function RootLayout({
@@ -23,6 +28,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           {children}
+          <GlobalConcierge />
         </AuthProvider>
       </body>
     </html>

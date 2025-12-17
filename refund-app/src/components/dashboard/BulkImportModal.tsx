@@ -160,7 +160,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                         ? "Refund Drafted - Waiting for Details"
                         : "Refund Initiated";
 
-                    await addDoc(collection(db, "refunds"), {
+                    const docRef = await addDoc(collection(db, "refunds"), {
                         merchantId: user.uid,
                         orderId: row['Order ID'],
                         customerName: row['Customer Name'],
@@ -180,6 +180,33 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                             }
                         ]
                     });
+
+                    // --- EMAIL TRIGGER (Bulk) ---
+                    try {
+                        const token = await user.getIdToken();
+                        await fetch('/api/email', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                customerEmail: row['Customer Email'],
+                                merchantEmail: user.email,
+                                triggerType: item.status, // 'GATHERING_DATA' or 'CREATED'/'REFUND_INITIATED'
+                                paymentMethod: item.paymentMethod,
+                                details: {
+                                    amount: item.amount,
+                                    link: `${window.location.origin}/t/${docRef.id}`
+                                }
+                            })
+                        });
+                    } catch (emailErr) {
+                        console.error(`Email failed for ${row['Order ID']}`, emailErr);
+                        // We do not stop the import for a failed email, but we log it.
+                        // Optionally add to errors if critical, but usually best effort is preferred/safe.
+                    }
+                    // -----------------------------
                     successCount++;
                 } catch (rowErr) {
                     console.error("Row Error", rowErr);
