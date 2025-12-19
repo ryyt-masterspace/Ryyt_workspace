@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { isFeatureEnabled } from "@/config/features";
 import { updateScoreboard } from "@/lib/metrics";
 import { processSettlement } from "@/lib/payoutService";
-import { sendUpdate } from "@/lib/notificationService";
+import { sendUpdate, NotificationRefundData } from "@/lib/notificationService";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { X, Upload, FileSignature, Play, Download, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -149,7 +149,7 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                     const now = new Date().toISOString();
 
                     // 2. Prepare Updates
-                    const updates: any = {
+                    const updates: Record<string, unknown> = {
                         status: item.status
                     };
 
@@ -186,7 +186,7 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                     }
 
                     // 4. Trigger Email (ALL Statuses via Branded Notification Service)
-                    await sendUpdate(user.uid, { id: docSnap.id, ...refundData }, item.status, {
+                    await sendUpdate(user.uid, { id: docSnap.id, ...refundData } as NotificationRefundData, item.status, {
                         reason: item.note,      // For FAILED
                         proofValue: item.note   // For SETTLED (UTR)
                     });

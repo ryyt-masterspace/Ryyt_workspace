@@ -2,15 +2,24 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { isFeatureEnabled } from "@/config/features";
 
+export interface NotificationRefundData {
+    id: string;
+    customerEmail: string;
+    paymentMethod: string;
+    amount: number;
+    orderId: string;
+    [key: string]: unknown;
+}
+
 /**
  * Notification Service
  * Handles branded communication and email triggers.
  */
 export async function sendUpdate(
     merchantId: string,
-    refundData: any,
+    refundData: NotificationRefundData,
     triggerType: string,
-    details: any = {}
+    details: Record<string, unknown> = {}
 ) {
     // Phase 5 Go-Live Guard
     if (!isFeatureEnabled("ENABLE_STATUS_EMAILS")) {

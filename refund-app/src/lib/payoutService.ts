@@ -12,7 +12,7 @@ export async function processSettlement(
     refundId: string,
     merchantId: string,
     method: PayoutMethod = "MANUAL",
-    options: { utrNumber: string; extraFields?: Record<string, any> }
+    options: { utrNumber: string; extraFields?: Record<string, unknown> }
 ) {
     if (!options?.utrNumber?.trim()) {
         throw new Error("UTR/Reference number is required for settlement.");
@@ -30,7 +30,7 @@ export async function processSettlement(
 
         if (method === "MANUAL") {
             // 1. Update Refund Status & Timeline
-            const updates: any = {
+            const updates: Record<string, unknown> = {
                 status: "SETTLED",
                 timeline: arrayUnion({
                     status: "SETTLED",

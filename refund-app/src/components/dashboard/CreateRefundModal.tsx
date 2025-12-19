@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { isFeatureEnabled } from "@/config/features";
 import { updateScoreboard } from "@/lib/metrics";
-import { sendUpdate } from "@/lib/notificationService";
+import { sendUpdate, NotificationRefundData } from "@/lib/notificationService";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -125,7 +125,7 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
             // ---------------------------------------------
 
             // --- EMAIL TRIGGER START (Phase 5: Branded) ---
-            await sendUpdate(user.uid, { id: docRef.id, ...formData, amount: Number(formData.amount) }, initialStatus);
+            await sendUpdate(user.uid, { id: docRef.id, ...formData, amount: Number(formData.amount) } as NotificationRefundData, initialStatus);
             // --- EMAIL TRIGGER END ---
 
             onSuccess(); // <--- Trigger refresh in parent

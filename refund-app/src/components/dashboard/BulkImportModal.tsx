@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { isFeatureEnabled } from "@/config/features";
 import { updateScoreboard } from "@/lib/metrics";
-import { sendUpdate } from "@/lib/notificationService";
+import { sendUpdate, NotificationRefundData } from "@/lib/notificationService";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { X, Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Play, Download } from "lucide-react";
@@ -191,7 +191,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                     // ---------------------------------------------
 
                     // --- EMAIL TRIGGER (Bulk via branded service) ---
-                    await sendUpdate(user.uid, { id: docRef.id, ...row, amount: item.amount, customerEmail: row['Customer Email'], orderId: row['Order ID'], paymentMethod: item.paymentMethod }, item.status);
+                    await sendUpdate(user.uid, { id: docRef.id, ...row, amount: item.amount, customerEmail: row['Customer Email'], orderId: row['Order ID'], paymentMethod: item.paymentMethod } as NotificationRefundData, item.status);
                     // -----------------------------
                     successCount++;
                 } catch (rowErr) {

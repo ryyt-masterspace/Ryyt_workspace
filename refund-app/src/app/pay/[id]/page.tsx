@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
@@ -5,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { ShieldCheck, Lock, CheckCircle, AlertTriangle, Mail } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { isFeatureEnabled } from "@/config/features";
-import { sendUpdate } from "@/lib/notificationService";
+import { sendUpdate, NotificationRefundData } from "@/lib/notificationService";
 
 export default function PaymentPage() {
     const params = useParams();
@@ -107,7 +109,7 @@ export default function PaymentPage() {
             setSuccess(true);
 
             // --- EMAIL TRIGGER START (Phase 5/QA Sync) ---
-            await sendUpdate(refund.merchantId, { id: params.id, ...refund }, 'REFUND_INITIATED');
+            await sendUpdate(refund.merchantId, { id: params.id as string, ...refund } as NotificationRefundData, 'REFUND_INITIATED');
             // ---------------------------------------------
 
             setTimeout(() => {
