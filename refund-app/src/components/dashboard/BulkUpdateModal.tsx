@@ -5,6 +5,8 @@ import Papa from "papaparse";
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
+import { isFeatureEnabled } from "@/config/features";
+import { updateScoreboard } from "@/lib/metrics";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { X, Upload, FileSignature, Play, Download, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -155,6 +157,16 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                             note: item.note || "Bulk Update via CSV"
                         })
                     });
+
+                    // --- SCOREBOARD AGGREGATION (Conditional) ---
+                    if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
+                        if (item.status === 'SETTLED') {
+                            updateScoreboard(user.uid, "SETTLE_REFUND", refundData.amount);
+                        } else if (item.status === 'FAILED') {
+                            updateScoreboard(user.uid, "FAIL_REFUND", refundData.amount);
+                        }
+                    }
+                    // ---------------------------------------------
 
                     // 4. Trigger Email (ALL Statuses)
                     try {

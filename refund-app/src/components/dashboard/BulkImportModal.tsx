@@ -5,6 +5,8 @@ import Papa from "papaparse";
 import { collection, addDoc, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
+import { isFeatureEnabled } from "@/config/features";
+import { updateScoreboard } from "@/lib/metrics";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { X, Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Play, Download } from "lucide-react";
@@ -180,6 +182,12 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                             }
                         ]
                     });
+
+                    // --- SCOREBOARD AGGREGATION (Conditional) ---
+                    if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
+                        updateScoreboard(user.uid, "NEW_REFUND", item.amount);
+                    }
+                    // ---------------------------------------------
 
                     // --- EMAIL TRIGGER (Bulk) ---
                     try {

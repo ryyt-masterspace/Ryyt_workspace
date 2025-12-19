@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { collection, addDoc, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
+import { isFeatureEnabled } from "@/config/features";
+import { updateScoreboard } from "@/lib/metrics";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -114,6 +116,12 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
                     },
                 ],
             });
+
+            // --- SCOREBOARD AGGREGATION (Conditional) ---
+            if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
+                updateScoreboard(user.uid, "NEW_REFUND", Number(formData.amount));
+            }
+            // ---------------------------------------------
 
             // --- EMAIL TRIGGER START ---
             try {

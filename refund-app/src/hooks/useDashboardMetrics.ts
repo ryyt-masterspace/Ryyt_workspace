@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
+import { isFeatureEnabled } from "@/config/features";
 
 export interface DashboardMetrics {
     totalSettledAmount: number;
@@ -62,30 +63,19 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                 // 3. Process Logic
                 refunds.forEach(doc => {
                     const refund = doc;
-
-                    // 1. NORMALIZE STATUS
                     const status = (refund.status || '').toString().toUpperCase().trim();
-
-                    // 2. NORMALIZE AMOUNT
                     const rawAmount = refund.amount;
                     const amount = Number(rawAmount) || 0;
 
-                    // A. Financials
+                    // A. Financials (Fallback calculation)
                     if (status.includes('SETTLED')) {
                         totalSettled += amount;
                     } else if (status.includes('FAILED') || status.includes('REJECTED')) {
-                        // Capture Failed/Stuck Amount
                         stuckAmount += amount;
-
-                        // Capture Failure Reason
                         let reason = (refund.failureReason || 'Unspecified').trim();
-                        // Normalize to Title Case (e.g., "invalid upi" -> "Invalid upi")
-                        // For better Title Case ("Invalid Upi"), we can do:
                         reason = reason.charAt(0).toUpperCase() + reason.slice(1).toLowerCase();
-
                         failureReasonCounts[reason] = (failureReasonCounts[reason] || 0) + 1;
                     } else {
-                        // Active Liability (Not Settled AND Not Failed)
                         liability += amount;
                     }
 
@@ -111,7 +101,26 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                     }
                 });
 
-                // 4. Transform for Recharts
+                // 4. O(1) OVERRIDE (Conditional)
+                // If enabled, we overwrite the calculated totals with pre-aggregated metadata
+                if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
+                    try {
+                        const metricsRef = doc(db, "merchants", user.uid, "metadata", "metrics");
+                        const mSnap = await getDoc(metricsRef);
+                        if (mSnap.exists()) {
+                            const data = mSnap.data();
+                            console.log("[Dashboard] Using O(1) Pre-aggregated Metrics");
+                            totalSettled = data.totalSettledAmount ?? totalSettled;
+                            liability = data.activeLiabilityAmount ?? liability;
+                            stuckAmount = data.stuckAmount ?? stuckAmount;
+                            // refunds.length is still specific to the fetched batch, but scoreboard tracks total
+                        }
+                    } catch (mErr) {
+                        console.error("O(1) Metrics fetch failed, falling back to calculation", mErr);
+                    }
+                }
+
+                // 5. Transform for Recharts
                 const volumeData = Object.entries(dateCounts).map(([date, count]) => ({
                     date,
                     count
