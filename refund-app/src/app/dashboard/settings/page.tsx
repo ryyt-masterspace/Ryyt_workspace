@@ -18,6 +18,7 @@ export default function SettingsPage() {
     // Form State
     const [brandName, setBrandName] = useState("");
     const [supportEmail, setSupportEmail] = useState("");
+    const [logoUrl, setLogoUrl] = useState("");
     const [defaultSla, setDefaultSla] = useState(2);
 
     const auth = getAuth(app);
@@ -37,6 +38,7 @@ export default function SettingsPage() {
                         const data = docSnap.data();
                         if (data.brandName) setBrandName(data.brandName);
                         if (data.supportEmail) setSupportEmail(data.supportEmail);
+                        if (data.logo) setLogoUrl(data.logo);
                         if (data.defaultSla) setDefaultSla(data.defaultSla);
                     }
                 } catch (err) {
@@ -59,6 +61,7 @@ export default function SettingsPage() {
             await setDoc(doc(db, "merchants", user.uid), {
                 brandName,
                 supportEmail,
+                logo: logoUrl,
                 defaultSla: Number(defaultSla)
             }, { merge: true });
 
@@ -188,6 +191,19 @@ export default function SettingsPage() {
                                 </div>
                                 <p className="text-xs text-gray-500">Where customers can reply to refund emails.</p>
                             </div>
+
+                            {/* Brand Logo URL */}
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-gray-300">Brand Logo URL</label>
+                                <input
+                                    type="text"
+                                    value={logoUrl}
+                                    onChange={(e) => setLogoUrl(e.target.value)}
+                                    placeholder="https://example.com/logo.png"
+                                    className="w-full bg-[#111] border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                                />
+                                <p className="text-xs text-gray-500">Public URL of your logo (renders in tracking pages and emails).</p>
+                            </div>
                         </div>
 
                         {/* Operational Defaults Section */}
@@ -237,6 +253,47 @@ export default function SettingsPage() {
                         </div>
 
                     </form>
+
+                    {/* Developer & API Section */}
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-6 space-y-6">
+                        <h2 className="text-lg font-semibold flex items-center gap-2 text-white border-b border-white/5 pb-2">
+                            <ShieldAlert size={18} className="text-blue-500" />
+                            API & Integrations
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                                <h3 className="text-sm font-bold text-blue-400 mb-1">Scale your operations</h3>
+                                <p className="text-xs text-zinc-500 leading-relaxed">
+                                    Integration with your existing ERP or custom storefront is available via our REST API.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-gray-300">Live API Key</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value="sk_live_••••••••••••••••"
+                                            className="flex-1 bg-black border border-white/10 rounded-lg px-4 py-2 text-zinc-600 text-sm font-mono"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => alert("API access is currently in invitation-only mode. Contact support to request access.")}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 shadow-lg shadow-blue-500/20 transition-all"
+                                        >
+                                            Generate API Key
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-600 italic mt-2">
+                                        * API access is currently in invitation-only mode. Contact support to request access.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Data Management Section */}
                     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-4">

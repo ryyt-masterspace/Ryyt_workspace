@@ -6,13 +6,17 @@ service cloud.firestore {
       allow read: if true;
       
       // Write/Delete: Only Authenticated Merchants owning the data
+      // Strict Check: Incoming merchantId must match User UID
       allow create: if request.auth != null && request.resource.data.merchantId == request.auth.uid;
+      
+      // Strict Check: Existing merchantId must match User UID
       allow update, delete: if request.auth != null && resource.data.merchantId == request.auth.uid;
     }
 
     // Merchants Collection
     match /merchants/{merchantId} {
-      allow read, write: if request.auth != null;
+      // Only the specific merchant can read/write their own profile
+      allow read, write: if request.auth != null && request.auth.uid == merchantId;
     }
 
     // --- NEW RULE FOR LEADS ---

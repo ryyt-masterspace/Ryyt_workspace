@@ -289,6 +289,50 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
                                 </div>
                             ))}
                         </div>
+
+                        {/* VOID ACTION */}
+                        {status !== 'VOIDED' && status !== 'SETTLED' && status !== 'FAILED' && (
+                            <div className="mt-8 p-4 border border-red-500/20 bg-red-500/5 rounded-xl flex flex-col items-center gap-3">
+                                <div className="text-center">
+                                    <h4 className="text-sm font-bold text-red-400">Mistake in this entry?</h4>
+                                    <p className="text-xs text-zinc-500">Voiding will cancel this refund and remove it from your total liability.</p>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm("Are you sure you want to VOID this refund? This cannot be undone.")) return;
+                                        setIsSaving(true);
+                                        try {
+                                            const refundRef = doc(db, 'refunds', refund.id);
+                                            await updateDoc(refundRef, {
+                                                status: 'VOIDED',
+                                                lastUpdated: Timestamp.now(),
+                                                timeline: arrayUnion({
+                                                    label: "Refund Voided",
+                                                    sub: "Marked as Error/Duplicate by Merchant",
+                                                    date: new Date().toISOString(),
+                                                    icon: 'X'
+                                                })
+                                            });
+
+                                            // Scoreboard Update (Subtract Liability)
+                                            const { updateScoreboard } = await import("@/lib/metrics");
+                                            await updateScoreboard(auth.currentUser!.uid, "VOID_REFUND", refund.amount);
+
+                                            if (onUpdate) await onUpdate();
+                                            onClose();
+                                        } catch (e) {
+                                            console.error(e);
+                                            alert("Voiding failed.");
+                                        } finally {
+                                            setIsSaving(false);
+                                        }
+                                    }}
+                                    className="px-4 py-1.5 border border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold transition-all"
+                                >
+                                    Void Refund (Oops)
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 

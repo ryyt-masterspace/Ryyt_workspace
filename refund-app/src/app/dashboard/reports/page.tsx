@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, orderBy, limit, addDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, limit, addDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Sidebar from "@/components/dashboard/Sidebar";
@@ -23,13 +23,26 @@ export default function ReportsPage() {
 
     // History Data
     const [history, setHistory] = useState<any[]>([]);
+    const [metrics, setMetrics] = useState<any>(null);
 
     useEffect(() => {
         if (user) {
             fetchHistory();
+            fetchMetrics();
             setLoading(false);
         }
     }, [user]);
+
+    const fetchMetrics = async () => {
+        if (!user) return;
+        try {
+            const mRef = doc(db, "merchants", user.uid, "metadata", "metrics");
+            const mSnap = await getDoc(mRef);
+            if (mSnap.exists()) setMetrics(mSnap.data());
+        } catch (err) {
+            console.error("Failed to fetch metrics", err);
+        }
+    };
 
     const fetchHistory = async () => {
         if (!user) return;
@@ -183,6 +196,22 @@ export default function ReportsPage() {
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Data & Reports</h1>
                         <p className="text-gray-500 text-sm">Export your refund data for accounting and reconciliation.</p>
+                    </div>
+
+                    {/* Summary Metrics (Synced with Scoreboard) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-xl">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 font-mono">Total Settled</p>
+                            <p className="text-2xl font-bold font-mono">₹{metrics?.totalSettledAmount?.toLocaleString('en-IN') || 0}</p>
+                        </div>
+                        <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-xl">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 font-mono">Active Liability</p>
+                            <p className="text-2xl font-bold font-mono text-orange-400">₹{metrics?.activeLiability?.toLocaleString('en-IN') || 0}</p>
+                        </div>
+                        <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-xl">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 font-mono">Total Refunds</p>
+                            <p className="text-2xl font-bold font-mono text-blue-400">{metrics?.totalRefunds || 0}</p>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -18,6 +18,7 @@ export default function SearchPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRefund, setSelectedRefund] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     const toggleSelection = (id: string, e: React.MouseEvent) => {
@@ -78,14 +79,20 @@ export default function SearchPage() {
         if (user) fetchRefunds();
     }, [user]);
 
-    // FILTER LOGIC: Pure search
+    // FILTER LOGIC: Pure search + Status
     const filteredRefunds = refunds.filter(r => {
         const lowerSearch = searchTerm.toLowerCase();
-        return (
+        const matchesSearch = (
             (r.orderId || "").toLowerCase().includes(lowerSearch) ||
             (r.customerName || "").toLowerCase().includes(lowerSearch) ||
+            (r.customerEmail || "").toLowerCase().includes(lowerSearch) ||
+            (r.targetUpi || "").toLowerCase().includes(lowerSearch) ||
             (r.amount?.toString() || "").includes(lowerSearch)
         );
+
+        const matchesStatus = statusFilter === "ALL" || (r.status || "").toString().toUpperCase() === statusFilter;
+
+        return matchesSearch && matchesStatus;
     });
 
 
@@ -110,17 +117,32 @@ export default function SearchPage() {
                         </Button>
                     </div>
 
-                    {/* Search Input (Prominent) */}
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                        <input
-                            type="text"
-                            placeholder="Type to search..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            autoFocus
-                            className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-12 pr-4 py-4 text-lg text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-all shadow-lg"
-                        />
+                    {/* Search & Filters */}
+                    <div className="flex gap-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                            <input
+                                type="text"
+                                placeholder="Search Order ID, Email, Name, or UPI..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                autoFocus
+                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-12 pr-4 py-4 text-lg text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-all shadow-lg"
+                            />
+                        </div>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="bg-[#0A0A0A] border border-white/10 rounded-xl px-4 py-4 text-sm text-gray-400 focus:outline-none focus:border-white/30 transition-all shadow-lg min-w-[160px]"
+                        >
+                            <option value="ALL">All Statuses</option>
+                            <option value="GATHERING_DATA">Gathering Data</option>
+                            <option value="REFUND_INITIATED">Initiated</option>
+                            <option value="PROCESSING_AT_BANK">Processing</option>
+                            <option value="SETTLED">Settled</option>
+                            <option value="FAILED">Failed</option>
+                            <option value="VOIDED">Voided</option>
+                        </select>
                     </div>
 
                     {/* Results Table */}

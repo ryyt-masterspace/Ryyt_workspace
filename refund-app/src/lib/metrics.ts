@@ -1,7 +1,7 @@
 import { db } from "./firebase";
 import { doc, updateDoc, increment, serverTimestamp } from "firebase/firestore";
 
-export type MetricChangeType = "NEW_REFUND" | "SETTLE_REFUND" | "FAIL_REFUND";
+export type MetricChangeType = "NEW_REFUND" | "SETTLE_REFUND" | "FAIL_REFUND" | "VOID_REFUND";
 
 /**
  * updateScoreboard
@@ -49,6 +49,15 @@ export async function updateScoreboard(
                     activeLiabilityAmount: increment(-amount),
                     stuckAmount: increment(amount),
                     failedCount: increment(1),
+                };
+                break;
+
+            case "VOID_REFUND":
+                // 4. Void Logic: Subtracts from Liability and Total Count
+                updates = {
+                    ...updates,
+                    activeLiabilityAmount: increment(-amount),
+                    totalRefundsCount: increment(-1),
                 };
                 break;
         }

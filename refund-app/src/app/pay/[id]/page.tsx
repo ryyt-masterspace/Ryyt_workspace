@@ -19,6 +19,7 @@ export default function PaymentPage() {
     const [refund, setRefund] = useState<any>(null);
     const [upiId, setUpiId] = useState("");
     const [brandName, setBrandName] = useState("Merchant");
+    const [brandLogo, setBrandLogo] = useState<string | null>(null);
 
     // Phase 2: Security Guard State
     const [isVerified, setIsVerified] = useState(false);
@@ -45,8 +46,10 @@ export default function PaymentPage() {
                     if (data.merchantId) {
                         try {
                             const merchantSnap = await getDoc(doc(db, "merchants", data.merchantId));
-                            if (merchantSnap.exists() && merchantSnap.data().brandName) {
-                                setBrandName(merchantSnap.data().brandName);
+                            if (merchantSnap.exists()) {
+                                const mData = merchantSnap.data();
+                                if (mData.brandName) setBrandName(mData.brandName);
+                                if (mData.logo) setBrandLogo(mData.logo);
                             }
                         } catch (err) {
                             console.error("Error fetching merchant brand:", err);
@@ -199,21 +202,31 @@ export default function PaymentPage() {
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl">
-                <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
-                    <div>
-                        <p className="text-xs text-blue-400 font-medium tracking-wider mb-1 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" /> SECURE LINK
+                <div className="flex flex-col items-center mb-8 border-b border-white/10 pb-6 w-full">
+                    {brandLogo ? (
+                        <img src={brandLogo} alt={brandName} className="h-10 w-auto max-w-[160px] object-contain mb-4" />
+                    ) : (
+                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4">
+                            {brandName.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                    <div className="text-center">
+                        <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] mb-1 flex items-center justify-center gap-1 uppercase">
+                            <ShieldCheck className="w-3 h-3" /> Secure Payout
                         </p>
-                        <h2 className="text-lg font-semibold text-white">Refund from {brandName}</h2>
-                        <p className="text-xs text-gray-500">Order #{refund?.orderId}</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-xs text-gray-500 mb-1">AMOUNT</p>
-                        <p className="text-xl font-bold text-white">
-                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund?.amount || 0)}
-                        </p>
+                        <h2 className="text-xl font-bold text-white leading-tight">Refund from {brandName}</h2>
+                        <p className="text-xs text-zinc-500 mt-1">Order #{refund?.orderId}</p>
                     </div>
                 </div>
+
+                {/* Amount Highlight */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6 flex justify-between items-center">
+                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Refund Amount</span>
+                    <span className="text-2xl font-bold text-white font-mono">
+                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(refund?.amount || 0)}
+                    </span>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-400 mb-2">Enter UPI ID for Refund</label>

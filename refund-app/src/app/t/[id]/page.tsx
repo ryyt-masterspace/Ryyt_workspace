@@ -14,6 +14,7 @@ export default function TrackingPage() {
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [error, setError] = useState(false);
     const [brandName, setBrandName] = useState("Ryyt Secure Track");
+    const [brandLogo, setBrandLogo] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchRefund = async () => {
@@ -42,8 +43,10 @@ export default function TrackingPage() {
                     if (data.merchantId) {
                         try {
                             const merchantSnap = await getDoc(doc(db, "merchants", data.merchantId));
-                            if (merchantSnap.exists() && merchantSnap.data().brandName) {
-                                setBrandName(merchantSnap.data().brandName);
+                            if (merchantSnap.exists()) {
+                                const mData = merchantSnap.data();
+                                if (mData.brandName) setBrandName(mData.brandName);
+                                if (mData.logo) setBrandLogo(mData.logo);
                             }
                         } catch (err) {
                             console.error("Error fetching merchant brand:", err);
@@ -143,10 +146,16 @@ export default function TrackingPage() {
 
                 {/* Header */}
                 <div className="flex items-center justify-center gap-2 opacity-80">
-                    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-black font-bold text-xs">
-                        {brandName.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="font-semibold tracking-wide text-sm">{brandName}</span>
+                    {brandLogo ? (
+                        <img src={brandLogo} alt={brandName} className="h-6 w-auto max-w-[120px] object-contain" />
+                    ) : (
+                        <>
+                            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-black font-bold text-xs">
+                                {brandName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-semibold tracking-wide text-sm">{brandName}</span>
+                        </>
+                    )}
                 </div>
 
                 {/* Hero Card */}
