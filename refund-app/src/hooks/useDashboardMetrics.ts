@@ -41,11 +41,12 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                 const snapshot = await getDocs(q);
                 const refunds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
-                // 2. Initialize Counters
                 let totalSettled = 0;
                 let liability = 0;
                 let breaches = 0;
                 let stuckAmount = 0;
+                let totalRefundsCount = refunds.length;
+
                 const methodCounts: Record<string, number> = {};
                 const dateCounts: Record<string, number> = {};
                 const failureReasonCounts: Record<string, number> = {};
@@ -113,7 +114,7 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                             totalSettled = data.totalSettledAmount ?? totalSettled;
                             liability = data.activeLiabilityAmount ?? liability;
                             stuckAmount = data.stuckAmount ?? stuckAmount;
-                            // refunds.length is still specific to the fetched batch, but scoreboard tracks total
+                            totalRefundsCount = data.totalRefundsCount ?? totalRefundsCount;
                         }
                     } catch (mErr) {
                         console.error("O(1) Metrics fetch failed, falling back to calculation", mErr);
@@ -138,7 +139,7 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                 setMetrics({
                     totalSettledAmount: totalSettled,
                     activeLiability: liability,
-                    totalRefunds: refunds.length,
+                    totalRefunds: totalRefundsCount,
                     slaBreachCount: breaches,
                     volumeData,
                     methodData,

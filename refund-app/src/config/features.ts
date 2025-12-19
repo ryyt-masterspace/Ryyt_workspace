@@ -5,7 +5,8 @@
  */
 export const FEATURE_FLAGS = {
     // Toggles the experimental scoreboard aggregation logic
-    ENABLE_SCOREBOARD_AGGREGATION: false,
+    // STATUS: ENABLED (Go-Live)
+    ENABLE_SCOREBOARD_AGGREGATION: true,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURE_FLAGS;
