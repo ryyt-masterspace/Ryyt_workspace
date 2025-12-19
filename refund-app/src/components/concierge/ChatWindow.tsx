@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
+import { getBotResponse } from "@/lib/chatbotEngine";
 
 interface Message {
     id: string;
@@ -43,38 +44,47 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
         }
     }, [messages, isOpen]);
 
+    // Proactive Nudge (Sales)
+    useEffect(() => {
+        const nudgeTimeout = setTimeout(() => {
+            if (messages.length <= 1 && !isOpen) { // Only if initial greeting is there or nothing
+                const nudge = "Did you know Ryyt can automate your entire COD refund flow? I'd love to show you how. 👋";
+                setMessages(prev => {
+                    // Avoid duplicate nudges
+                    if (prev.some(m => m.id === "proactive-nudge")) return prev;
+                    return [...prev, { id: "proactive-nudge", role: "agent", text: nudge }];
+                });
+            }
+        }, 10000); // 10 seconds
+
+        return () => clearTimeout(nudgeTimeout);
+    }, [isOpen, messages.length]);
+
     const handleSend = async () => {
         if (!input.trim()) return;
 
         const userMsg: Message = { id: Date.now().toString(), role: "user", text: input };
         setMessages(prev => [...prev, userMsg]);
+        const currentInput = input;
         setInput("");
         setIsTyping(true);
 
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: [...messages, userMsg],
-                    context: {
-                        userId: user ? user.uid : null,
-                        path: window.location.pathname
-                    }
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.error) throw new Error(data.error);
-
-            setMessages(prev => [...prev, { id: data.id, role: "agent", text: data.text }]);
-        } catch (error) {
-            console.error("Chat Error", error);
-            setMessages(prev => [...prev, { id: Date.now().toString(), role: "agent", text: "I'm having trouble connecting. Please try again." }]);
-        } finally {
-            setIsTyping(false);
-        }
+        // Simulated delay for "Thinking"
+        setTimeout(async () => {
+            try {
+                const responseText = await getBotResponse(currentInput, !!user);
+                setMessages(prev => [...prev, {
+                    id: Date.now().toString(),
+                    role: "agent",
+                    text: responseText
+                }]);
+            } catch (error) {
+                console.error("Chat Error", error);
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: "agent", text: "I'm having trouble thinking right now. Please try again." }]);
+            } finally {
+                setIsTyping(false);
+            }
+        }, 600);
     };
 
     return (

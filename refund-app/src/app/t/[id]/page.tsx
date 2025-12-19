@@ -163,7 +163,16 @@ export default function TrackingPage() {
                             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(refund.amount)}
                         </h1>
 
-                        <p className="text-sm text-gray-500 flex items-center gap-2">
+                        {refund.status === 'SETTLED' && (
+                            <div className="mt-4 p-4 bg-green-500/5 border border-green-500/20 rounded-2xl">
+                                <p className="text-[10px] text-green-500/80 uppercase tracking-widest font-bold mb-1">Payment Reference (UTR)</p>
+                                <p className="text-xl font-mono font-bold text-white tracking-wider">
+                                    {refund.proofs?.utr || 'N/A'}
+                                </p>
+                            </div>
+                        )}
+
+                        <p className="text-sm text-gray-500 flex items-center gap-2 mt-4">
                             <ShieldCheck className="w-4 h-4" />
                             Verified for Order #{refund.orderId}
                         </p>

@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { isFeatureEnabled } from "@/config/features";
 import { updateScoreboard } from "@/lib/metrics";
+import { sendUpdate } from "@/lib/notificationService";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { X, Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Play, Download } from "lucide-react";
@@ -189,31 +190,8 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                     }
                     // ---------------------------------------------
 
-                    // --- EMAIL TRIGGER (Bulk) ---
-                    try {
-                        const token = await user.getIdToken();
-                        await fetch('/api/email', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                customerEmail: row['Customer Email'],
-                                merchantEmail: user.email,
-                                triggerType: item.status, // 'GATHERING_DATA' or 'CREATED'/'REFUND_INITIATED'
-                                paymentMethod: item.paymentMethod,
-                                details: {
-                                    amount: item.amount,
-                                    link: `${window.location.origin}/t/${docRef.id}`
-                                }
-                            })
-                        });
-                    } catch (emailErr) {
-                        console.error(`Email failed for ${row['Order ID']}`, emailErr);
-                        // We do not stop the import for a failed email, but we log it.
-                        // Optionally add to errors if critical, but usually best effort is preferred/safe.
-                    }
+                    // --- EMAIL TRIGGER (Bulk via branded service) ---
+                    await sendUpdate(user.uid, { id: docRef.id, ...row, amount: item.amount, customerEmail: row['Customer Email'], orderId: row['Order ID'], paymentMethod: item.paymentMethod }, item.status);
                     // -----------------------------
                     successCount++;
                 } catch (rowErr) {

@@ -7,6 +7,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { isFeatureEnabled } from "@/config/features";
 import { updateScoreboard } from "@/lib/metrics";
+import { processSettlement } from "@/lib/payoutService";
+import { sendUpdate } from "@/lib/notificationService";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { X, Upload, FileSignature, Play, Download, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -76,9 +78,21 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
             const orderId = (row['orderId'] || row['Order ID'] || '').toString().trim();
             const rawStatus = (row['newStatus'] || row['Status'] || '').toString().trim();
             const status = normalizeStatus(rawStatus);
-            const note = row['note'] || row['Note'] || "";
+            const note = (row['note'] || row['Note'] || "").toString().trim();
 
-            const isValid = !!orderId && !!status;
+            let isValid = !!orderId && !!status;
+            let error = "";
+
+            if (isValid && status === 'SETTLED' && !note) {
+                isValid = false;
+                error = "UTR/Reference required for Settled status.";
+            }
+
+            if (isValid && status === 'FAILED' && !note) {
+                isValid = false;
+                error = "Failure Reason required for Failed status.";
+            }
+
             if (isValid) validCount++; else invalidCount++;
 
             return {
@@ -86,6 +100,7 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                 status,
                 note,
                 isValid,
+                error,
                 raw: row
             };
         });
@@ -146,53 +161,35 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                         updates['failureReason'] = (item.note || '').toString().trim() || 'Unspecified Failure (Bulk Update)';
                     }
 
-                    // 3. Update Firestore
-                    await updateDoc(docRef, {
-                        ...updates,
-                        timeline: arrayUnion({
-                            status: item.status,
-                            title: item.status === 'SETTLED' ? 'Refund Settled (Bulk)' :
-                                item.status === 'FAILED' ? 'Refund Failed' : 'Status Updated',
-                            date: now,
-                            note: item.note || "Bulk Update via CSV"
-                        })
-                    });
+                    if (item.status === 'SETTLED') {
+                        // --- USE UNIVERSAL PAYOUT SERVICE (PHASE 3/5) ---
+                        await processSettlement(docSnap.id, user.uid, "MANUAL", {
+                            utrNumber: item.note,
+                            extraFields: {}
+                        });
+                    } else {
+                        // 3. Update Firestore (Fallback for non-settled statuses)
+                        await updateDoc(docRef, {
+                            ...updates,
+                            timeline: arrayUnion({
+                                status: item.status,
+                                title: item.status === 'FAILED' ? 'Refund Failed' : 'Status Updated',
+                                date: now,
+                                note: item.note || "Bulk Update via CSV"
+                            })
+                        });
 
-                    // --- SCOREBOARD AGGREGATION (Conditional) ---
-                    if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
-                        if (item.status === 'SETTLED') {
-                            updateScoreboard(user.uid, "SETTLE_REFUND", refundData.amount);
-                        } else if (item.status === 'FAILED') {
+                        // 4. Update Scoreboard (If Failed)
+                        if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION") && item.status === 'FAILED') {
                             updateScoreboard(user.uid, "FAIL_REFUND", refundData.amount);
                         }
                     }
-                    // ---------------------------------------------
 
-                    // 4. Trigger Email (ALL Statuses)
-                    try {
-                        const token = await user.getIdToken();
-                        await fetch('/api/email', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                customerEmail: refundData.customerEmail,
-                                merchantEmail: user.email,
-                                triggerType: item.status,
-                                paymentMethod: refundData.paymentMethod,
-                                details: {
-                                    amount: refundData.amount,
-                                    link: `${window.location.origin}/t/${docSnap.id}`,
-                                    reason: item.note,      // For FAILED
-                                    proofValue: item.note   // For SETTLED (UTR)
-                                }
-                            })
-                        });
-                    } catch (emailErr) {
-                        console.error(`Email failed for ${item.orderId}`, emailErr);
-                    }
+                    // 4. Trigger Email (ALL Statuses via Branded Notification Service)
+                    await sendUpdate(user.uid, { id: docSnap.id, ...refundData }, item.status, {
+                        reason: item.note,      // For FAILED
+                        proofValue: item.note   // For SETTLED (UTR)
+                    });
 
                     successCount++;
                 } catch (err) {

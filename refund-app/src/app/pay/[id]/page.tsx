@@ -1,11 +1,11 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore"; // <--- FIXED IMPORT
+import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ShieldCheck, Lock, CheckCircle, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Lock, CheckCircle, AlertTriangle, Mail } from "lucide-react";
 import Button from "@/components/ui/Button";
+import { isFeatureEnabled } from "@/config/features";
+import { sendUpdate } from "@/lib/notificationService";
 
 export default function PaymentPage() {
     const params = useParams();
@@ -17,6 +17,13 @@ export default function PaymentPage() {
     const [refund, setRefund] = useState<any>(null);
     const [upiId, setUpiId] = useState("");
     const [brandName, setBrandName] = useState("Merchant");
+
+    // Phase 2: Security Guard State
+    const [isVerified, setIsVerified] = useState(false);
+    const [userInputEmail, setUserInputEmail] = useState("");
+    const [verificationError, setVerificationError] = useState("");
+
+    const isSecureLinkEnabled = isFeatureEnabled("ENABLE_SECURE_PAY_LINK");
 
     useEffect(() => {
         const fetchRefund = async () => {
@@ -57,6 +64,23 @@ export default function PaymentPage() {
         fetchRefund();
     }, [params.id]);
 
+    const maskEmail = (email: string) => {
+        if (!email) return "";
+        const [name, domain] = email.split("@");
+        if (name.length <= 2) return `${name}**@${domain}`;
+        return `${name.substring(0, 2)}**@${domain}`;
+    };
+
+    const handleVerifyEmail = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (userInputEmail.toLowerCase().trim() === refund?.customerEmail?.toLowerCase().trim()) {
+            setIsVerified(true);
+            setVerificationError("");
+        } else {
+            setVerificationError("Email address does not match our records.");
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const isValidUPI = /^[\w.-]+@[\w.-]+$/.test(upiId);
@@ -82,28 +106,9 @@ export default function PaymentPage() {
 
             setSuccess(true);
 
-            // --- EMAIL TRIGGER START ---
-            try {
-                // Public Action: No Auth Header needed (handled by API)
-                fetch('/api/email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        to: refund?.customerEmail, // From state
-                        triggerType: 'REFUND_INITIATED',
-                        paymentMethod: 'COD', // Explicitly COD context for this page
-                        data: {
-                            customerName: refund?.customerName,
-                            amount: refund?.amount,
-                            orderId: refund?.orderId,
-                            trackingLink: `${window.location.origin}/t/${params.id}`
-                        }
-                    })
-                });
-            } catch (err) {
-                console.error("Email trigger failed", err);
-            }
-            // --- EMAIL TRIGGER END ---
+            // --- EMAIL TRIGGER START (Phase 5/QA Sync) ---
+            await sendUpdate(refund.merchantId, { id: params.id, ...refund }, 'REFUND_INITIATED');
+            // ---------------------------------------------
 
             setTimeout(() => {
                 router.push(`/t/${params.id}`);
@@ -133,6 +138,61 @@ export default function PaymentPage() {
             <p className="text-gray-400">Redirecting to tracker...</p>
         </div>
     );
+
+    // Identity Verification Screen (Phase 2)
+    if (isSecureLinkEnabled && !isVerified) {
+        return (
+            <div className="min-h-screen bg-[#050505] text-white font-sans flex items-center justify-center p-4">
+                <div className="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-500">
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                            <ShieldCheck className="w-8 h-8 text-blue-500" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">Identity Check</h2>
+                        <p className="text-sm text-gray-500 mt-2">
+                            To protect your data, please verify your email address.
+                        </p>
+                    </div>
+
+                    <div className="mb-8 p-4 bg-white/5 rounded-xl border border-white/10 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center shrink-0">
+                            <Mail className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Verification Hint</p>
+                            <p className="text-lg font-mono text-blue-400">{maskEmail(refund?.customerEmail)}</p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleVerifyEmail} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">Confirm your full email</label>
+                            <input
+                                type="email"
+                                placeholder="name@example.com"
+                                value={userInputEmail}
+                                onChange={(e) => {
+                                    setUserInputEmail(e.target.value);
+                                    setVerificationError("");
+                                }}
+                                className={`w-full bg-black/50 border ${verificationError ? 'border-red-500/50' : 'border-white/10'} rounded-lg py-3 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500/50 transition-all`}
+                                required
+                            />
+                            {verificationError && (
+                                <p className="text-xs text-red-500 mt-2 font-medium">{verificationError}</p>
+                            )}
+                        </div>
+                        <Button className="w-full py-4 text-lg font-medium shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                            Unlock Payment Form
+                        </Button>
+                        <p className="text-xs text-center text-gray-600 flex items-center justify-center gap-1 mt-4 italic">
+                            Verification required for high-risk payouts.
+                        </p>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans flex items-center justify-center p-4">

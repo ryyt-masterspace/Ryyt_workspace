@@ -7,6 +7,12 @@ export const FEATURE_FLAGS = {
     // Toggles the experimental scoreboard aggregation logic
     // STATUS: ENABLED (Go-Live)
     ENABLE_SCOREBOARD_AGGREGATION: true,
+
+    // Toggles identity verification requirement on public payment links
+    ENABLE_SECURE_PAY_LINK: true,
+
+    // Toggles branded status email notifications
+    ENABLE_STATUS_EMAILS: true,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURE_FLAGS;

@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { isFeatureEnabled } from "@/config/features";
 import { updateScoreboard } from "@/lib/metrics";
+import { sendUpdate } from "@/lib/notificationService";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -123,40 +124,8 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
             }
             // ---------------------------------------------
 
-            // --- EMAIL TRIGGER START ---
-            try {
-                const token = await user.getIdToken(); // Get fresh token
-                const emailRes = await fetch('/api/email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        customerEmail: formData.customerEmail,
-                        merchantEmail: user.email,
-                        triggerType: initialStatus,
-                        paymentMethod: formData.paymentMethod,
-                        details: {
-                            amount: Number(formData.amount),
-                            link: `${window.location.origin}/t/${docRef.id}`
-                        }
-                    })
-                });
-
-                const emailData = await emailRes.json();
-
-                if (!emailRes.ok) {
-                    alert("EMAIL FAILED: " + (emailData.error || "Unknown Error"));
-                } else {
-                    alert("SUCCESS: Email sent to " + formData.customerEmail);
-                }
-
-            } catch (err) {
-                console.error("Failed to send email:", err);
-                alert("EMAIL FAILED: Network/Client Error");
-                // We don't block the UI if email fails, just log it.
-            }
+            // --- EMAIL TRIGGER START (Phase 5: Branded) ---
+            await sendUpdate(user.uid, { id: docRef.id, ...formData, amount: Number(formData.amount) }, initialStatus);
             // --- EMAIL TRIGGER END ---
 
             onSuccess(); // <--- Trigger refresh in parent
