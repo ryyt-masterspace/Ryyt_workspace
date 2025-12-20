@@ -268,7 +268,25 @@ export default function AdminMigratePage() {
 
                             {/* RIGHT COLUMN: MANAGEMENT CONSOLE (2/3) */}
                             <div className="lg:col-span-2">
-                                {selectedMerchantData ? (
+                                {!selectedMerchantData ? (
+                                    <div className="h-full min-h-[700px] border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center p-20 text-center bg-slate-50/50">
+                                        <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mb-10 shadow-xl shadow-slate-200/50 border border-slate-100 relative">
+                                            <div className="absolute -top-3 -right-3 w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center animate-bounce shadow-lg">
+                                                <Search size={14} className="text-white" />
+                                            </div>
+                                            <Users className="w-12 h-12 text-slate-200" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="text-3xl font-black text-slate-950 tracking-tight mb-4">Registry Access</h3>
+                                        <p className="max-w-md text-slate-500 text-lg leading-relaxed font-medium">
+                                            Select a merchant from the registry to manage billing, view plan details, and record life-cycle events.
+                                        </p>
+                                    </div>
+                                ) : isUsageLoading ? (
+                                    <div className="h-full min-h-[700px] bg-white border border-slate-200 rounded-3xl flex flex-col items-center justify-center p-20 text-center animate-pulse">
+                                        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Synchronizing Merchant Data...</p>
+                                    </div>
+                                ) : (
                                     <div className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden min-h-[700px] flex flex-col relative group">
                                         {/* Header Area */}
                                         <div className="p-10 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50/50">
@@ -278,23 +296,25 @@ export default function AdminMigratePage() {
                                                         <Users size={32} strokeWidth={2.5} />
                                                     </div>
                                                     <div>
-                                                        <h2 className="text-3xl font-black text-slate-950 tracking-tight">{selectedMerchantData.brandName}</h2>
+                                                        <h2 className="text-3xl font-black text-slate-950 tracking-tight">
+                                                            {selectedMerchantData?.brandName || "Unknown Merchant"}
+                                                        </h2>
                                                         <div className="flex items-center gap-3 mt-2">
                                                             <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black font-mono tracking-tighter uppercase border border-slate-200/50">
                                                                 ID: {selectedMerchantId}
                                                             </span>
-                                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-current ${selectedMerchantData.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                                                                • {selectedMerchantData.subscriptionStatus || 'Unknown'}
+                                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-current ${selectedMerchantData?.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                                                • {selectedMerchantData?.subscriptionStatus?.toUpperCase() || 'UNKNOWN'}
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">Last Billing Event</p>
+                                                    <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">Processing Period Start</p>
                                                     <p className="text-base font-bold text-slate-900">
-                                                        {selectedMerchantData.lastPaymentDate?.seconds
+                                                        {selectedMerchantData?.lastPaymentDate?.seconds
                                                             ? new Date(selectedMerchantData.lastPaymentDate.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                                                            : "Not Recorded"}
+                                                            : "Genesis"}
                                                     </p>
                                                 </div>
                                             </div>
@@ -302,24 +322,24 @@ export default function AdminMigratePage() {
                                             {/* Insights Row */}
                                             <div className="grid grid-cols-2 gap-8 mt-auto">
                                                 <div className="p-8 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-colors">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Zap size={14} className="text-indigo-400" /> Plan Profile</p>
-                                                    <p className="text-3xl font-black text-slate-950">{PLANS[selectedMerchantData.planType]?.name || "Startup"}</p>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Zap size={14} className="text-indigo-400" /> Selected Tier</p>
+                                                    <p className="text-3xl font-black text-slate-950">{PLANS[selectedMerchantData?.planType || 'startup']?.name || "Startup"}</p>
                                                     <div className="mt-2 text-indigo-600 flex items-baseline gap-1">
                                                         <span className="text-lg font-black uppercase">Total Due:</span>
-                                                        <span className="text-4xl font-black tracking-tighter">₹{PLANS[selectedMerchantData.planType]?.basePrice.toLocaleString()}</span>
+                                                        <span className="text-4xl font-black tracking-tighter">₹{(PLANS[selectedMerchantData?.planType || 'startup']?.basePrice || 0).toLocaleString()}</span>
                                                     </div>
                                                 </div>
-                                                <div className={`p-8 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all ${isUsageLoading ? 'animate-pulse' : 'hover:border-indigo-100'}`}>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-indigo-400" /> Processing Usage</p>
+                                                <div className={`p-8 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all hover:border-indigo-100`}>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-indigo-400" /> Usage Analysis</p>
                                                     <div className="flex items-baseline gap-3">
-                                                        <p className="text-5xl font-black text-slate-950 tracking-tighter">{merchantUsage}</p>
-                                                        <p className="text-xl font-bold text-slate-300">/ {PLANS[selectedMerchantData.planType]?.includedRefunds || 0} base</p>
+                                                        <p className="text-5xl font-black text-slate-950 tracking-tighter">{merchantUsage || 0}</p>
+                                                        <p className="text-xl font-bold text-slate-300">/ {PLANS[selectedMerchantData?.planType || 'startup']?.includedRefunds || 0} unit-base</p>
                                                     </div>
-                                                    {merchantUsage > (PLANS[selectedMerchantData.planType]?.includedRefunds || 0) && (
+                                                    {(merchantUsage || 0) > (PLANS[selectedMerchantData?.planType || 'startup']?.includedRefunds || 0) && (
                                                         <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-600 rounded-full border border-orange-100">
                                                             <AlertTriangle size={12} />
                                                             <span className="text-[10px] font-black uppercase tracking-wider">
-                                                                +{merchantUsage - PLANS[selectedMerchantData.planType].includedRefunds} Units Overage
+                                                                +{(merchantUsage || 0) - (PLANS[selectedMerchantData?.planType || 'startup']?.includedRefunds || 0)} Units Overage
                                                             </span>
                                                         </div>
                                                     )}
@@ -340,41 +360,28 @@ export default function AdminMigratePage() {
                                                     ) : (
                                                         <>
                                                             <RefreshCw size={24} strokeWidth={3} />
-                                                            Record & Renew Cycle
+                                                            Apply Payment & Renew
                                                         </>
                                                     )}
                                                 </Button>
                                                 <div className="flex bg-white/80 backdrop-blur p-4 rounded-xl border border-slate-100 shadow-sm items-start gap-4">
                                                     <ShieldCheck className="text-indigo-600 w-5 h-5 shrink-0 mt-0.5" />
                                                     <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                                                        Executing this action will force a renewal event, reset the cycle start date to <span className="text-slate-900 font-bold underline">NOW</span>, and log a formalized, branded receipt for the founder's ledger.
+                                                        Executes a cycle renewal. Sets start date to <span className="text-slate-900 font-bold underline text-[10px]">CURRENT TIMESTAMP</span> and generates a branded ledger entry ($0 for testing or base price).
                                                     </p>
                                                 </div>
                                             </div>
 
                                             {paymentSuccess && (
-                                                <div className="absolute inset-x-0 bottom-0 p-10 bg-emerald-600 text-white animate-in slide-in-from-bottom flex items-center justify-center gap-4 shadow-2xl">
+                                                <div className="absolute inset-x-0 bottom-0 p-10 bg-emerald-600 text-white animate-in slide-in-from-bottom flex items-center justify-center gap-4 shadow-2xl z-20">
                                                     <CheckCircle2 size={32} />
                                                     <div className="text-left">
-                                                        <p className="text-lg font-black leading-none">Renewal Executed</p>
-                                                        <p className="text-sm font-bold text-emerald-100 opacity-80 mt-1">Merchant access extended and transaction logged successfully.</p>
+                                                        <p className="text-lg font-black leading-none">Record Logged</p>
+                                                        <p className="text-sm font-bold text-emerald-100 opacity-80 mt-1">Payment captured. Merchant cycle has been reset and renewed.</p>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="h-full min-h-[700px] border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center p-20 text-center bg-slate-50/50">
-                                        <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mb-10 shadow-xl shadow-slate-200/50 border border-slate-100 relative">
-                                            <div className="absolute -top-3 -right-3 w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center animate-bounce shadow-lg">
-                                                <Search size={14} className="text-white" />
-                                            </div>
-                                            <Users className="w-12 h-12 text-slate-200" strokeWidth={1.5} />
-                                        </div>
-                                        <h3 className="text-3xl font-black text-slate-950 tracking-tight mb-4">Discovery Mode</h3>
-                                        <p className="max-w-md text-slate-500 text-lg leading-relaxed font-medium">
-                                            Select a specific merchant from the <span className="text-slate-900 font-bold">Registry</span> on the left to activate the Management Console and handle billing operations.
-                                        </p>
                                     </div>
                                 )}
                             </div>
