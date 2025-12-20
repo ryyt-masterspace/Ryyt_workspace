@@ -156,277 +156,311 @@ export default function AdminMigratePage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-8 bg-zinc-50 min-h-screen">
-            <header className="mb-12">
-                <div className="flex justify-between items-start">
+        <div className="bg-white min-h-screen font-sans text-slate-900 border-t-4 border-indigo-600">
+            <div className="max-w-6xl mx-auto px-4 py-12">
+                <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <ShieldCheck className="w-8 h-8 text-blue-600" />
-                            Ryyt Command Center
-                        </h1>
-                        <p className="text-gray-600 mt-2">
-                            Administrative tools for data integrity and manual payment management.
-                        </p>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-indigo-50 rounded-lg">
+                                <ShieldCheck className="w-6 h-6 text-indigo-600" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/50">Admin Console v2.0</span>
+                        </div>
+                        <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">Ryyt Command Center</h1>
+                        <p className="text-slate-500 mt-2 text-lg">Manage merchant access, billing cycles, and system integrity.</p>
                     </div>
                     {isAuthorized && (
-                        <div className="text-right">
-                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold border border-green-200">
-                                SYSTEM AUTHORIZED
-                            </span>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-100">
+                            <ShieldCheck size={14} />
+                            SYSTEM AUTHORIZED
                         </div>
                     )}
-                </div>
-            </header>
+                </header>
 
-            {!isAuthorized ? (
-                /* ... auth box ... */
-                <div className="flex justify-center mt-12">
-                    <Card className="w-full max-w-md p-8 border-2 border-gray-100 shadow-xl animate-in zoom-in-95 duration-300">
-                        <div className="flex flex-col items-center mb-6">
-                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                                <KeyRound className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <h2 className="text-xl font-bold text-gray-900">Admin Authorization</h2>
-                            <p className="text-sm text-gray-500 text-center mt-1">
-                                Enter the Master Admin Key to access migration tools.
-                            </p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
-                                    Master Admin Key
-                                </label>
-                                <Input
-                                    type="password"
-                                    placeholder="Enter your passkey"
-                                    value={passkey}
-                                    onChange={(e) => setPasskey(e.target.value)}
-                                    className="border-2 focus:border-blue-500 transition-all font-mono"
-                                />
-                            </div>
-                            <p className="text-[10px] text-gray-400 text-center">
-                                Logged in as: {user.email}
-                            </p>
-                        </div>
-                    </Card>
-                </div>
-            ) : (
-                <div className="space-y-12 animate-in fade-in slide-in-from-top-4 duration-500">
-
-                    {/* SECTION 1: MERCHANT REGISTRY & SEARCH */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Search Sidebar */}
-                        <div className="lg:col-span-1 space-y-6">
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <Input
-                                    placeholder="Search by Brand or Email..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-12 py-6 bg-white border-2 border-zinc-200 rounded-2xl"
-                                />
-                            </div>
-
-                            <div className="bg-white rounded-2xl border-2 border-zinc-100 overflow-hidden">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest p-4 border-b border-zinc-50 bg-zinc-50/50">
-                                    Registry ({filteredMerchants.length})
+                {!isAuthorized ? (
+                    <div className="flex justify-center py-20">
+                        <Card className="w-full max-w-md p-10 border border-slate-200 shadow-2xl rounded-2xl bg-white relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-indigo-600" />
+                            <div className="flex flex-col items-center mb-10">
+                                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100 shadow-inner">
+                                    <KeyRound className="w-8 h-8 text-indigo-600" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-slate-900">Security Gate</h2>
+                                <p className="text-sm text-slate-500 text-center mt-2 max-w-[240px]">
+                                    Please enter your Master Admin Key to gain system-level access.
                                 </p>
-                                <div className="max-h-[500px] overflow-y-auto divide-y divide-zinc-50">
-                                    {filteredMerchants.map(m => (
-                                        <button
-                                            key={m.id}
-                                            onClick={() => handleSelectMerchant(m)}
-                                            className={`w-full text-left p-4 hover:bg-blue-50 transition-colors flex items-center justify-between group ${selectedMerchantId === m.id ? 'bg-blue-50 border-r-4 border-blue-600' : ''}`}
-                                        >
-                                            <div className="min-w-0">
-                                                <p className="font-bold text-gray-900 truncate">{m.brandName || "No Brand"}</p>
-                                                <p className="text-xs text-gray-500 truncate">{m.email}</p>
-                                            </div>
-                                            <ChevronRight className={`w-4 h-4 text-zinc-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all ${selectedMerchantId === m.id ? 'text-blue-500 translate-x-1' : ''}`} />
-                                        </button>
-                                    ))}
-                                    {filteredMerchants.length === 0 && (
-                                        <div className="p-8 text-center">
-                                            <p className="text-sm text-gray-400">No matches found</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                        Master Admin Key
+                                    </label>
+                                    <Input
+                                        type="password"
+                                        placeholder="················"
+                                        value={passkey}
+                                        onChange={(e) => setPasskey(e.target.value)}
+                                        className="h-14 border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all font-mono text-center text-xl tracking-tighter rounded-xl"
+                                    />
+                                </div>
+                                <div className="pt-4 border-t border-slate-50">
+                                    <p className="text-[10px] text-slate-400 text-center uppercase tracking-wider">
+                                        Active Session: <span className="text-slate-600 font-bold">{user.email}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                ) : (
+                    <div className="space-y-16 animate-in fade-in duration-700">
+                        {/* MAIN WORKSPACE: TWO COLUMN GRID */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+                            {/* LEFT COLUMN: MERCHANT REGISTRY (1/3) */}
+                            <div className="lg:col-span-1 border border-slate-200 rounded-3xl bg-slate-50 overflow-hidden shadow-sm flex flex-col min-h-[700px]">
+                                <div className="p-6 bg-white border-b border-slate-200 space-y-4">
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                        <Users size={16} className="text-indigo-600" />
+                                        Merchant Registry
+                                    </h3>
+                                    <div className="relative group">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-600 transition-colors" />
+                                        <input
+                                            placeholder="Find brand or email..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 outline-none transition-all placeholder:text-slate-400"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[600px] scrollbar-hide">
+                                    {filteredMerchants.length > 0 ? (
+                                        filteredMerchants.map(m => (
+                                            <button
+                                                key={m.id}
+                                                onClick={() => handleSelectMerchant(m)}
+                                                className={`w-full text-left p-5 flex items-center justify-between transition-all group relative ${selectedMerchantId === m.id ? 'bg-white' : 'hover:bg-slate-100/50'}`}
+                                            >
+                                                {selectedMerchantId === m.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />}
+                                                <div className="min-w-0 pr-4">
+                                                    <p className={`font-bold truncate transition-colors ${selectedMerchantId === m.id ? 'text-indigo-600' : 'text-slate-900'}`}>
+                                                        {m.brandName || "Untitled Merchant"}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">{m.email}</p>
+                                                </div>
+                                                <ChevronRight className={`w-4 h-4 transition-all ${selectedMerchantId === m.id ? 'text-indigo-600 translate-x-1' : 'text-slate-200 group-hover:text-slate-400 group-hover:translate-x-1'}`} />
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="p-12 text-center">
+                                            <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">No results found</p>
                                         </div>
                                     )}
                                 </div>
+                                <div className="p-4 bg-white border-t border-slate-200">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                                        Total Items: {filteredMerchants.length}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* COMMAND CENTER CARD */}
-                        <div className="lg:col-span-2">
-                            {selectedMerchantData ? (
-                                <Card className="p-8 border-2 border-blue-600/20 bg-white shadow-2xl shadow-blue-600/5 h-full flex flex-col">
-                                    <div className="flex justify-between items-start mb-8">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
-                                                <Users className="w-8 h-8 text-blue-600" />
+                            {/* RIGHT COLUMN: MANAGEMENT CONSOLE (2/3) */}
+                            <div className="lg:col-span-2">
+                                {selectedMerchantData ? (
+                                    <div className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden min-h-[700px] flex flex-col relative group">
+                                        {/* Header Area */}
+                                        <div className="p-10 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50/50">
+                                            <div className="flex justify-between items-start mb-10">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center shadow-lg shadow-indigo-600/20 text-white transform group-hover:rotate-3 transition-transform">
+                                                        <Users size={32} strokeWidth={2.5} />
+                                                    </div>
+                                                    <div>
+                                                        <h2 className="text-3xl font-black text-slate-950 tracking-tight">{selectedMerchantData.brandName}</h2>
+                                                        <div className="flex items-center gap-3 mt-2">
+                                                            <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black font-mono tracking-tighter uppercase border border-slate-200/50">
+                                                                ID: {selectedMerchantId}
+                                                            </span>
+                                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-current ${selectedMerchantData.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                                                • {selectedMerchantData.subscriptionStatus || 'Unknown'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">Last Billing Event</p>
+                                                    <p className="text-base font-bold text-slate-900">
+                                                        {selectedMerchantData.lastPaymentDate?.seconds
+                                                            ? new Date(selectedMerchantData.lastPaymentDate.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                                            : "Not Recorded"}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-gray-900">{selectedMerchantData.brandName}</h2>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-xs font-mono text-zinc-400">{selectedMerchantId}</span>
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedMerchantData.subscriptionStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {selectedMerchantData.subscriptionStatus?.toUpperCase() || 'UNKNOWN'}
-                                                    </span>
+
+                                            {/* Insights Row */}
+                                            <div className="grid grid-cols-2 gap-8 mt-auto">
+                                                <div className="p-8 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-colors">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Zap size={14} className="text-indigo-400" /> Plan Profile</p>
+                                                    <p className="text-3xl font-black text-slate-950">{PLANS[selectedMerchantData.planType]?.name || "Startup"}</p>
+                                                    <div className="mt-2 text-indigo-600 flex items-baseline gap-1">
+                                                        <span className="text-lg font-black uppercase">Total Due:</span>
+                                                        <span className="text-4xl font-black tracking-tighter">₹{PLANS[selectedMerchantData.planType]?.basePrice.toLocaleString()}</span>
+                                                    </div>
+                                                </div>
+                                                <div className={`p-8 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all ${isUsageLoading ? 'animate-pulse' : 'hover:border-indigo-100'}`}>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-indigo-400" /> Processing Usage</p>
+                                                    <div className="flex items-baseline gap-3">
+                                                        <p className="text-5xl font-black text-slate-950 tracking-tighter">{merchantUsage}</p>
+                                                        <p className="text-xl font-bold text-slate-300">/ {PLANS[selectedMerchantData.planType]?.includedRefunds || 0} base</p>
+                                                    </div>
+                                                    {merchantUsage > (PLANS[selectedMerchantData.planType]?.includedRefunds || 0) && (
+                                                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-600 rounded-full border border-orange-100">
+                                                            <AlertTriangle size={12} />
+                                                            <span className="text-[10px] font-black uppercase tracking-wider">
+                                                                +{merchantUsage - PLANS[selectedMerchantData.planType].includedRefunds} Units Overage
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-widest">Billing Cycle</p>
-                                            <p className="text-sm font-bold">
-                                                {selectedMerchantData.lastPaymentDate?.seconds
-                                                    ? new Date(selectedMerchantData.lastPaymentDate.seconds * 1000).toLocaleDateString()
-                                                    : "N/A"}
-                                            </p>
-                                        </div>
-                                    </div>
 
-                                    <div className="grid grid-cols-2 gap-6 mb-8 mt-auto">
-                                        <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
-                                            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-1"><Zap size={10} /> Plan Insights</p>
-                                            <p className="text-2xl font-black text-gray-900">{PLANS[selectedMerchantData.planType]?.name || "Startup"}</p>
-                                            <p className="text-sm text-zinc-500">₹{PLANS[selectedMerchantData.planType]?.basePrice.toLocaleString()}/mo</p>
-                                        </div>
-                                        <div className={`p-6 bg-zinc-50 rounded-2xl border border-zinc-100 ${isUsageLoading ? 'animate-pulse' : ''}`}>
-                                            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-1"><Activity size={10} /> Usage Logic</p>
-                                            <div className="flex items-baseline gap-2">
-                                                <p className="text-2xl font-black text-gray-900">{merchantUsage}</p>
-                                                <p className="text-sm text-zinc-400">/ {PLANS[selectedMerchantData.planType]?.includedRefunds || 0}</p>
+                                        {/* Action Section */}
+                                        <div className="p-10 flex flex-col items-center justify-center flex-1 bg-slate-50/30">
+                                            <div className="w-full max-w-sm space-y-6">
+                                                <Button
+                                                    onClick={handleRecordPayment}
+                                                    disabled={isPaymentRunning}
+                                                    className="w-full py-8 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-2xl shadow-2xl shadow-indigo-600/30 text-xl font-black tracking-tight flex items-center justify-center gap-4 transition-all"
+                                                >
+                                                    {isPaymentRunning ? (
+                                                        <Loader2 className="animate-spin" />
+                                                    ) : (
+                                                        <>
+                                                            <RefreshCw size={24} strokeWidth={3} />
+                                                            Record & Renew Cycle
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                <div className="flex bg-white/80 backdrop-blur p-4 rounded-xl border border-slate-100 shadow-sm items-start gap-4">
+                                                    <ShieldCheck className="text-indigo-600 w-5 h-5 shrink-0 mt-0.5" />
+                                                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                                        Executing this action will force a renewal event, reset the cycle start date to <span className="text-slate-900 font-bold underline">NOW</span>, and log a formalized, branded receipt for the founder's ledger.
+                                                    </p>
+                                                </div>
                                             </div>
-                                            {merchantUsage > (PLANS[selectedMerchantData.planType]?.includedRefunds || 0) && (
-                                                <p className="text-[10px] text-orange-600 font-bold mt-1">
-                                                    + {merchantUsage - PLANS[selectedMerchantData.planType].includedRefunds} OVERAGE UNITS
-                                                </p>
+
+                                            {paymentSuccess && (
+                                                <div className="absolute inset-x-0 bottom-0 p-10 bg-emerald-600 text-white animate-in slide-in-from-bottom flex items-center justify-center gap-4 shadow-2xl">
+                                                    <CheckCircle2 size={32} />
+                                                    <div className="text-left">
+                                                        <p className="text-lg font-black leading-none">Renewal Executed</p>
+                                                        <p className="text-sm font-bold text-emerald-100 opacity-80 mt-1">Merchant access extended and transaction logged successfully.</p>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-
-                                    <div className="space-y-4">
-                                        <Button
-                                            onClick={handleRecordPayment}
-                                            disabled={isPaymentRunning}
-                                            className="w-full py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-600/20 text-lg font-bold flex items-center justify-center gap-3"
-                                        >
-                                            {isPaymentRunning ? <Loader2 className="animate-spin" /> : <><RefreshCw /> Record Payment & Renew Cycle</>}
-                                        </Button>
-                                        <p className="text-center text-[10px] text-gray-400">
-                                            Action: Sets lastPaymentDate to NOW, pushes status to ACTIVE, and logs branded receipt.
+                                ) : (
+                                    <div className="h-full min-h-[700px] border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center p-20 text-center bg-slate-50/50">
+                                        <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mb-10 shadow-xl shadow-slate-200/50 border border-slate-100 relative">
+                                            <div className="absolute -top-3 -right-3 w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center animate-bounce shadow-lg">
+                                                <Search size={14} className="text-white" />
+                                            </div>
+                                            <Users className="w-12 h-12 text-slate-200" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="text-3xl font-black text-slate-950 tracking-tight mb-4">Discovery Mode</h3>
+                                        <p className="max-w-md text-slate-500 text-lg leading-relaxed font-medium">
+                                            Select a specific merchant from the <span className="text-slate-900 font-bold">Registry</span> on the left to activate the Management Console and handle billing operations.
                                         </p>
                                     </div>
+                                )}
+                            </div>
+                        </div>
 
-                                    {paymentSuccess && (
-                                        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center gap-3 text-green-700 text-sm animate-in zoom-in-95">
-                                            <CheckCircle2 size={18} />
-                                            <p><strong>Success!</strong> Merchant access renewed and payment recorded.</p>
+                        {/* SECTION: SYSTEM MAINTENANCE */}
+                        <div className="pt-16 border-t border-slate-100">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 text-center">System Maintenance & Infrastructure</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Metrics Tool */}
+                                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-indigo-200 transition-all">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                            <Activity size={20} />
                                         </div>
-                                    )}
-                                </Card>
-                            ) : (
-                                <div className="h-full border-2 border-dashed border-zinc-200 rounded-3xl flex flex-col items-center justify-center p-12 text-center text-gray-400 bg-zinc-50/50">
-                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-zinc-100">
-                                        <Search className="w-8 h-8 text-zinc-200" />
+                                        <div>
+                                            <p className="font-bold text-slate-900">Scoreboard Sync (Phase 13)</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">O(1) Metrics Recalculation</p>
+                                        </div>
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Discovery Portal</h3>
-                                    <p className="max-w-xs text-sm">Select a merchant from the registry to access the Command Center and manage renewals.</p>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => handleMigration(true)}
+                                            className="px-4 py-2 bg-white text-slate-600 border-slate-200 text-xs font-black shadow-sm"
+                                        >
+                                            Scan
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleMigration(false)}
+                                            disabled={step !== 2}
+                                            className={`px-4 py-2 border-none text-xs font-black shadow-lg ${step === 2 ? 'bg-indigo-600 text-white shadow-indigo-600/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                                        >
+                                            Commit
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Repair Tool */}
+                                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-rose-200 transition-all">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all">
+                                            <AlertTriangle size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900">Document Repair (Phase 21)</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Non-Destructive Backfill</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => handleBackfill(true)}
+                                            disabled={isBackfillRunning}
+                                            className="px-4 py-2 bg-white text-slate-600 border-slate-200 text-xs font-black shadow-sm"
+                                        >
+                                            Check
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleBackfill(false)}
+                                            disabled={isBackfillRunning}
+                                            className="px-4 py-2 bg-indigo-600 text-white border-none text-xs font-black shadow-lg shadow-indigo-600/20"
+                                        >
+                                            Repair
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Summary Reports (Compact) */}
+                            {(summary || backfillSummary) && (
+                                <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl animate-in zoom-in-95">
+                                    <div className="flex items-center gap-3 p-4 bg-slate-800 border-b border-slate-700">
+                                        <Play size={14} className="text-emerald-400" />
+                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Execution Logs</span>
+                                    </div>
+                                    <div className="p-6 font-mono text-[11px] leading-relaxed text-emerald-400/80 max-h-[200px] overflow-y-auto whitespace-pre-wrap">
+                                        {summary && `[METRICS] Result: ${summary.status}\nRefunds Scanned: ${summary.totalRefunds}\nMerchants Affected: ${summary.merchantCount}\n------------------\n`}
+                                        {backfillSummary && `[REPAIR] Result: ${backfillSummary.status}\nProcessed: ${backfillSummary.totalProcessed}\nUpdated: ${backfillSummary.totalUpdated}`}
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    {/* SECTION 2: METRICS catch-up */}
-                    <div className="bg-white p-8 rounded-3xl border-2 border-zinc-100 opacity-60 hover:opacity-100 transition-opacity">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                                <Activity className="text-blue-600" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold">Metrics catch-up (Phase 13)</h2>
-                                <p className="text-sm text-gray-500">Recalculate O(1) Scoreboard for early adopters.</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <Card className={`p-6 border-2 ${step === 1 ? 'border-blue-500 bg-blue-50/30' : 'border-zinc-100'}`}>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${step >= 1 ? 'bg-blue-600' : 'bg-gray-300'}`}>1</div>
-                                    <h2 className="text-lg font-semibold">Dry Run</h2>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleMigration(true)}
-                                    className="w-full"
-                                >
-                                    Run Aggregation Scan
-                                </Button>
-                            </Card>
-
-                            <Card className={`p-6 border-2 ${step === 2 ? 'border-green-500 bg-green-50/30' : 'border-zinc-100'} ${step < 2 ? 'opacity-50' : ''}`}>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${step >= 2 ? 'bg-green-600' : 'bg-gray-300'}`}>2</div>
-                                    <h2 className="text-lg font-semibold">Commit</h2>
-                                </div>
-                                <Button
-                                    onClick={() => handleMigration(false)}
-                                    disabled={step !== 2}
-                                    className="w-full bg-green-600"
-                                >
-                                    Commit to LIVE
-                                </Button>
-                            </Card>
-                        </div>
-                    </div>
-
-                    {/* SECTION 3: MERCHANT DATA REPAIR */}
-                    <div className="bg-gradient-to-br from-amber-50 to-white p-8 rounded-3xl border-2 border-amber-200">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="p-2 bg-amber-100 rounded-lg">
-                                <AlertTriangle className="text-amber-600" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold">Merchant Data Repair (Phase 21)</h2>
-                                <p className="text-sm text-amber-900/60">Non-destructive repair for legacy documents missing core fields.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <Button
-                                variant="ghost"
-                                onClick={() => handleBackfill(true)}
-                                disabled={isBackfillRunning}
-                                className="flex-1 border-amber-600 text-amber-600 hover:bg-amber-100"
-                            >
-                                {isBackfillRunning ? "Scanning..." : "Dry Run Repair Scan"}
-                            </Button>
-                            <Button
-                                onClick={() => handleBackfill(false)}
-                                disabled={isBackfillRunning}
-                                className="flex-1 bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20"
-                            >
-                                {isBackfillRunning ? "Repairing..." : "Run Merchant Data Repair"}
-                            </Button>
-                        </div>
-
-                        {backfillSummary && (
-                            <div className="mt-6 p-4 bg-white/50 rounded-xl border border-amber-100">
-                                <p className="text-xs font-bold text-amber-800 mb-2 uppercase tracking-wide">Repair Summary</p>
-                                <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                                    <div className="p-3 bg-white rounded-lg border border-amber-50">
-                                        <p className="text-zinc-500">PROCESSED</p>
-                                        <p className="text-xl font-bold">{backfillSummary.totalProcessed}</p>
-                                    </div>
-                                    <div className="p-3 bg-white rounded-lg border border-amber-50">
-                                        <p className="text-zinc-500">REPAIRED</p>
-                                        <p className="text-xl font-bold text-amber-600">{backfillSummary.totalUpdated}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
