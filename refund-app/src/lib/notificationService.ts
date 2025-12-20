@@ -1,5 +1,5 @@
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { isFeatureEnabled } from "@/config/features";
 
 export interface NotificationRefundData {
@@ -33,13 +33,15 @@ export async function sendUpdate(
         const merchantSnap = await getDoc(merchantRef);
 
         const branding = {
-            brandName: "Ryyt", // Fallback
+            brandName: "Ryyt",         // Fallback
+            supportEmail: undefined,   // Correct field for Reply-To
             logo: null
         };
 
         if (merchantSnap.exists()) {
             const data = merchantSnap.data();
             branding.brandName = data.brandName || branding.brandName;
+            branding.supportEmail = data.supportEmail || undefined;
             branding.logo = data.logo || null;
         }
 
@@ -47,7 +49,7 @@ export async function sendUpdate(
         // We pass branding info so the API can personalize the template
         const payload = {
             customerEmail: refundData.customerEmail,
-            merchantEmail: branding.brandName, // Used for reply-to or context
+            merchantEmail: branding.supportEmail, // FIX: Use valid email, not brand string
             triggerType: triggerType,
             paymentMethod: refundData.paymentMethod,
             details: {
@@ -61,12 +63,21 @@ export async function sendUpdate(
             }
         };
 
-        // 3. Call Email API
-        // Note: This logic assumes it's called from a client-side component 
-        // with access to the window/origin.
+        // 3. Get Auth Token (FIX: The Badge)
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            console.error("[NotificationService] Cannot send email: No authenticated user.");
+            return { success: false, error: "Unauthorized" };
+        }
+        const token = await currentUser.getIdToken();
+
+        // 4. Call Email API
         const response = await fetch('/api/email', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // FIX: Added Badge
+            },
             body: JSON.stringify(payload)
         });
 
