@@ -120,7 +120,19 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
         { label: 'Failed', value: 'FAILED', icon: AlertTriangle }
     ];
 
-    const isStepDisabled = (stepValue: string) => stepValue === 'GATHERING_DATA';
+    const isStepDisabled = (stepValue: string) => {
+        // 1. Cannot manually return to 'Gathering Data' from other states easily (optional, but good practice)
+        if (stepValue === 'GATHERING_DATA') return true;
+
+        // 2. COD Guard: Cannot proceed from GATHERING_DATA unless we have UPI
+        // If current status is GATHERING_DATA and we DON'T have targetUpi...
+        if (status === 'GATHERING_DATA' && !refund.targetUpi) {
+            // ...block anything that isn't FAILED or staying in GATHERING
+            if (stepValue === 'REFUND_INITIATED' || stepValue === 'PROCESSING') return true;
+        }
+
+        return false;
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
@@ -135,6 +147,13 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
                             <span className="px-2 py-0.5 rounded text-[10px] font-medium border bg-blue-500/10 text-blue-500 border-blue-500/20">
                                 {(computedStatus || '').replace('_', ' ')}
                             </span>
+                            {/* Guard Warning UI */}
+                            {status === 'GATHERING_DATA' && !refund.targetUpi && (
+                                <span className="flex items-center gap-1 text-[10px] text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded border border-orange-400/20 font-bold uppercase tracking-wide animate-pulse">
+                                    <AlertTriangle size={10} />
+                                    Waiting for Customer UPI
+                                </span>
+                            )}
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white">
