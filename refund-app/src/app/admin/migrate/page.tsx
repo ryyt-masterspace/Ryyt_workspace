@@ -73,7 +73,7 @@ export default function AdminMigratePage() {
                 where("createdAt", ">=", start)
             );
             const snap = await getDocs(q);
-            setMerchantUsage(snap.size);
+            setMerchantUsage(snap.size || 0);
         } catch (err) {
             console.error("Usage Fetch Error:", err);
         } finally {
@@ -164,7 +164,7 @@ export default function AdminMigratePage() {
                             <div className="p-2 bg-indigo-50 rounded-lg">
                                 <ShieldCheck className="w-6 h-6 text-indigo-600" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/50">Admin Console v2.0</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/50">Admin Console v2.1</span>
                         </div>
                         <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">Ryyt Command Center</h1>
                         <p className="text-slate-500 mt-2 text-lg">Manage merchant access, billing cycles, and system integrity.</p>
@@ -261,7 +261,7 @@ export default function AdminMigratePage() {
                                 </div>
                                 <div className="p-4 bg-white border-t border-slate-200">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                                        Total Items: {filteredMerchants.length}
+                                        Total Records: {merchants.length}
                                     </p>
                                 </div>
                             </div>
@@ -389,7 +389,7 @@ export default function AdminMigratePage() {
 
                         {/* SECTION: SYSTEM MAINTENANCE */}
                         <div className="pt-16 border-t border-slate-100">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 text-center">System Maintenance & Infrastructure</h3>
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 text-center">Infrastructure & Maintenance</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Metrics Tool */}
                                 <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-indigo-200 transition-all">
@@ -398,8 +398,8 @@ export default function AdminMigratePage() {
                                             <Activity size={20} />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-900">Scoreboard Sync (Phase 13)</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">O(1) Metrics Recalculation</p>
+                                            <p className="font-bold text-slate-900">Aggregate Scan</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">O(1) Scoreboard Sync</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -427,7 +427,7 @@ export default function AdminMigratePage() {
                                             <AlertTriangle size={20} />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-900">Document Repair (Phase 21)</p>
+                                            <p className="font-bold text-slate-900">Schema Repair</p>
                                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Non-Destructive Backfill</p>
                                         </div>
                                     </div>
@@ -438,7 +438,7 @@ export default function AdminMigratePage() {
                                             disabled={isBackfillRunning}
                                             className="px-4 py-2 bg-white text-slate-600 border-slate-200 text-xs font-black shadow-sm"
                                         >
-                                            Check
+                                            Audit
                                         </Button>
                                         <Button
                                             onClick={() => handleBackfill(false)}
@@ -456,11 +456,11 @@ export default function AdminMigratePage() {
                                 <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl animate-in zoom-in-95">
                                     <div className="flex items-center gap-3 p-4 bg-slate-800 border-b border-slate-700">
                                         <Play size={14} className="text-emerald-400" />
-                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Execution Logs</span>
+                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">System Logs</span>
                                     </div>
                                     <div className="p-6 font-mono text-[11px] leading-relaxed text-emerald-400/80 max-h-[200px] overflow-y-auto whitespace-pre-wrap">
-                                        {summary && `[METRICS] Result: ${summary.status}\nRefunds Scanned: ${summary.totalRefunds}\nMerchants Affected: ${summary.merchantCount}\n------------------\n`}
-                                        {backfillSummary && `[REPAIR] Result: ${backfillSummary.status}\nProcessed: ${backfillSummary.totalProcessed}\nUpdated: ${backfillSummary.totalUpdated}`}
+                                        {summary && `[METRICS] Result: ${summary.status}\nRefunds Processed: ${summary.totalRefunds}\nMerchants Updated: ${summary.merchantCount}\n------------------\n`}
+                                        {backfillSummary && `[REPAIR] Result: ${backfillSummary.status}\nAudited: ${backfillSummary.totalProcessed}\nFixed: ${backfillSummary.totalUpdated}`}
                                     </div>
                                 </div>
                             )}
