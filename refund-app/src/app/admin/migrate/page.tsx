@@ -9,8 +9,12 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { collection, getDocs, doc, updateDoc, serverTimestamp, addDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { AlertTriangle, CheckCircle2, ShieldCheck, Play, Save, KeyRound, CreditCard, Users, RefreshCw, Loader2, Search, ChevronRight, Zap, Activity } from "lucide-react";
-import { PLANS } from "@/config/plans";
+import {
+    AlertTriangle, CheckCircle2, ShieldCheck, Play, KeyRound,
+    CreditCard, Users, RefreshCw, Loader2, Search, ChevronRight,
+    Zap, Activity, MoreVertical, Calendar, Settings, Lock, Unlock, FileText
+} from "lucide-react";
+import { PLANS, PlanType } from "@/config/plans";
 import { query, where } from "firebase/firestore";
 
 // MASTER ADMIN KEY - In a real app, this should be an environment variable
@@ -23,10 +27,14 @@ export default function AdminMigratePage() {
     const [isRunning, setIsRunning] = useState(false);
     const [isBackfillRunning, setIsBackfillRunning] = useState(false);
     const [isPaymentRunning, setIsPaymentRunning] = useState(false);
+    const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+    const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
     const [step, setStep] = useState(1);
     const [passkey, setPasskey] = useState("");
     const [merchants, setMerchants] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+
     const [selectedMerchantId, setSelectedMerchantId] = useState("");
     const [selectedMerchantData, setSelectedMerchantData] = useState<any>(null);
     const [merchantUsage, setMerchantUsage] = useState<number>(0);
@@ -87,35 +95,48 @@ export default function AdminMigratePage() {
         fetchMerchantUsage(m.id, m.lastPaymentDate);
     };
 
-    const handleMigration = async (isDryRun: boolean) => {
-        setIsRunning(true);
+    // --- LOGIC: PLAN CHANGE ---
+    const handlePlanChange = async (newPlan: string) => {
+        if (!selectedMerchantId) return;
+        setIsUpdatingPlan(true);
         try {
-            const result = await migrateMetrics(isDryRun);
-            setSummary(result);
-            if (!isDryRun && result.status === "COMMITTED") {
-                setStep(3); // Finished
-            } else if (isDryRun && result.status === "DRY_RUN") {
-                setStep(2); // Ready to commit
-            }
+            const ref = doc(db, "merchants", selectedMerchantId);
+            await updateDoc(ref, { planType: newPlan });
+
+            // Local Update
+            setSelectedMerchantData((prev: any) => ({ ...prev, planType: newPlan }));
+            setMerchants(prev => prev.map(m => m.id === selectedMerchantId ? { ...m, planType: newPlan } : m));
         } catch (error) {
-            console.error("Migration UI Error:", error);
+            console.error(error);
+            alert("Failed to update plan.");
         } finally {
-            setIsRunning(false);
+            setIsUpdatingPlan(false);
         }
     };
 
-    const handleBackfill = async (isDryRun: boolean) => {
-        setIsBackfillRunning(true);
+    // --- LOGIC: STATUS TOGGLE ---
+    const handleToggleStatus = async () => {
+        if (!selectedMerchantId) return;
+        setIsTogglingStatus(true);
         try {
-            const result = await backfillMerchants(isDryRun);
-            setBackfillSummary(result);
+            const currentStatus = selectedMerchantData?.subscriptionStatus || 'active';
+            const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+
+            const ref = doc(db, "merchants", selectedMerchantId);
+            await updateDoc(ref, { subscriptionStatus: newStatus });
+
+            // Local Update
+            setSelectedMerchantData((prev: any) => ({ ...prev, subscriptionStatus: newStatus }));
+            setMerchants(prev => prev.map(m => m.id === selectedMerchantId ? { ...m, subscriptionStatus: newStatus } : m));
         } catch (error) {
-            console.error("Backfill UI Error:", error);
+            console.error(error);
+            alert("Failed to toggle status.");
         } finally {
-            setIsBackfillRunning(false);
+            setIsTogglingStatus(false);
         }
     };
 
+    // --- LOGIC: RENEW & PAY ---
     const handleRecordPayment = async () => {
         if (!selectedMerchantId) return;
         setIsPaymentRunning(true);
@@ -136,7 +157,8 @@ export default function AdminMigratePage() {
                 planName: plan.name,
                 status: "SUCCESS",
                 issuer: "Calcure Technologies Private Limited", // Branded Identity
-                address: "Madhyamgram, Kolkata 700129"
+                address: "Madhyamgram, Kolkata 700129",
+                type: "RENEWAL"
             });
 
             // 3. Update Merchant Doc (Renew)
@@ -144,6 +166,11 @@ export default function AdminMigratePage() {
                 lastPaymentDate: serverTimestamp(),
                 subscriptionStatus: "active"
             });
+
+            // Local Update
+            const updatedSnap = await getDoc(merchantRef);
+            setSelectedMerchantData({ id: selectedMerchantId, ...updatedSnap.data() });
+            fetchMerchantUsage(selectedMerchantId, updatedSnap.data()?.lastPaymentDate);
 
             setPaymentSuccess(true);
             setTimeout(() => setPaymentSuccess(false), 5000);
@@ -155,24 +182,42 @@ export default function AdminMigratePage() {
         }
     };
 
+    // Maintenance Handlers
+    const handleMigration = async (isDryRun: boolean) => {
+        setIsRunning(true);
+        try {
+            const result = await migrateMetrics(isDryRun);
+            setSummary(result);
+            if (!isDryRun && result.status === "COMMITTED") setStep(3);
+            else if (isDryRun && result.status === "DRY_RUN") setStep(2);
+        } catch (error) { console.error(error); } finally { setIsRunning(false); }
+    };
+
+    const handleBackfill = async (isDryRun: boolean) => {
+        setIsBackfillRunning(true);
+        try {
+            const result = await backfillMerchants(isDryRun);
+            setBackfillSummary(result);
+        } catch (error) { console.error(error); } finally { setIsBackfillRunning(false); }
+    };
+
     return (
-        <div className="bg-white min-h-screen font-sans text-slate-900 border-t-4 border-indigo-600">
-            <div className="max-w-6xl mx-auto px-4 py-12">
-                <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="bg-slate-50 min-h-screen font-sans text-slate-900 border-t-4 border-indigo-600">
+            <div className="max-w-[1600px] mx-auto px-6 py-8">
+
+                {/* GLOBAL HEADER */}
+                <header className="mb-8 flex items-center justify-between">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-indigo-50 rounded-lg">
-                                <ShieldCheck className="w-6 h-6 text-indigo-600" />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/50">Admin Console v2.1</span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Ryyt Admin Console v3.0</span>
                         </div>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">Ryyt Command Center</h1>
-                        <p className="text-slate-500 mt-2 text-lg">Manage merchant access, billing cycles, and system integrity.</p>
+                        <h1 className="text-2xl font-bold text-slate-900">System Command Center</h1>
                     </div>
                     {isAuthorized && (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-100">
-                            <ShieldCheck size={14} />
-                            SYSTEM AUTHORIZED
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full shadow-sm text-xs font-medium text-slate-500">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            Secure Session Active
                         </div>
                     )}
                 </header>
@@ -190,7 +235,6 @@ export default function AdminMigratePage() {
                                     Please enter your Master Admin Key to gain system-level access.
                                 </p>
                             </div>
-
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -204,266 +248,286 @@ export default function AdminMigratePage() {
                                         className="h-14 border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all font-mono text-center text-xl tracking-tighter rounded-xl"
                                     />
                                 </div>
-                                <div className="pt-4 border-t border-slate-50">
-                                    <p className="text-[10px] text-slate-400 text-center uppercase tracking-wider">
-                                        Active Session: <span className="text-slate-600 font-bold">{user.email}</span>
-                                    </p>
-                                </div>
                             </div>
                         </Card>
                     </div>
                 ) : (
-                    <div className="space-y-16 animate-in fade-in duration-700">
-                        {/* MAIN WORKSPACE: TWO COLUMN GRID */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div className="grid grid-cols-12 gap-8 min-h-[800px]">
 
-                            {/* LEFT COLUMN: MERCHANT REGISTRY (1/3) */}
-                            <div className="lg:col-span-1 border border-slate-200 rounded-3xl bg-slate-50 overflow-hidden shadow-sm flex flex-col min-h-[700px]">
-                                <div className="p-6 bg-white border-b border-slate-200 space-y-4">
-                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                        <Users size={16} className="text-indigo-600" />
-                                        Merchant Registry
+                        {/* LEFT: MERCHANT REGISTRY (3 Cols) */}
+                        <div className="col-span-12 lg:col-span-3 flex flex-col gap-4 h-[calc(100vh-200px)] sticky top-6">
+                            <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
+                                <div className="p-4 border-b border-slate-100 space-y-3">
+                                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                                        <Users size={14} className="text-slate-400" />
+                                        Registry
                                     </h3>
                                     <div className="relative group">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-600 transition-colors" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                                         <input
-                                            placeholder="Find brand or email..."
+                                            placeholder="Search merchants..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 outline-none transition-all placeholder:text-slate-400"
+                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-indigo-600/10 focus:border-indigo-600 outline-none transition-all placeholder:text-slate-400"
                                         />
                                     </div>
                                 </div>
-
-                                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[600px] scrollbar-hide">
-                                    {filteredMerchants.length > 0 ? (
-                                        filteredMerchants.map(m => (
-                                            <button
-                                                key={m.id}
-                                                onClick={() => handleSelectMerchant(m)}
-                                                className={`w-full text-left p-5 flex items-center justify-between transition-all group relative ${selectedMerchantId === m.id ? 'bg-white' : 'hover:bg-slate-100/50'}`}
-                                            >
-                                                {selectedMerchantId === m.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />}
-                                                <div className="min-w-0 pr-4">
-                                                    <p className={`font-bold truncate transition-colors ${selectedMerchantId === m.id ? 'text-indigo-600' : 'text-slate-900'}`}>
-                                                        {m.brandName || "Untitled Merchant"}
-                                                    </p>
-                                                    <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">{m.email}</p>
+                                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                                    {filteredMerchants.map(m => (
+                                        <button
+                                            key={m.id}
+                                            onClick={() => handleSelectMerchant(m)}
+                                            className={`w-full text-left p-4 border-b border-slate-50 hover:bg-slate-50 transition-all group relative flex items-center justify-between ${selectedMerchantId === m.id ? 'bg-indigo-50/50 hover:bg-indigo-50/50' : ''}`}
+                                        >
+                                            {selectedMerchantId === m.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />}
+                                            <div className="min-w-0 pr-2">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <div className={`w-2 h-2 rounded-full ${m.subscriptionStatus === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500'}`} />
+                                                    <span className={`font-medium truncate text-sm ${selectedMerchantId === m.id ? 'text-indigo-900' : 'text-slate-700'}`}>
+                                                        {m.brandName || "Untitled"}
+                                                    </span>
                                                 </div>
-                                                <ChevronRight className={`w-4 h-4 transition-all ${selectedMerchantId === m.id ? 'text-indigo-600 translate-x-1' : 'text-slate-200 group-hover:text-slate-400 group-hover:translate-x-1'}`} />
-                                            </button>
-                                        ))
-                                    ) : (
-                                        <div className="p-12 text-center">
-                                            <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">No results found</p>
-                                        </div>
-                                    )}
+                                                <span className="text-[11px] text-slate-400 font-mono pl-4 block truncate">
+                                                    {m.email}
+                                                </span>
+                                            </div>
+                                            {selectedMerchantId === m.id && <ChevronRight size={14} className="text-indigo-400" />}
+                                        </button>
+                                    ))}
                                 </div>
-                                <div className="p-4 bg-white border-t border-slate-200">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                                        Total Records: {merchants.length}
-                                    </p>
+                                <div className="p-3 bg-slate-50 border-t border-slate-200 text-center">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        {filteredMerchants.length} Records
+                                    </span>
                                 </div>
-                            </div>
-
-                            {/* RIGHT COLUMN: MANAGEMENT CONSOLE (2/3) */}
-                            <div className="lg:col-span-2">
-                                {!selectedMerchantData ? (
-                                    <div className="h-full min-h-[700px] border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center p-20 text-center bg-slate-50/50">
-                                        <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mb-10 shadow-xl shadow-slate-200/50 border border-slate-100 relative">
-                                            <div className="absolute -top-3 -right-3 w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center animate-bounce shadow-lg">
-                                                <Search size={14} className="text-white" />
-                                            </div>
-                                            <Users className="w-12 h-12 text-slate-200" strokeWidth={1.5} />
-                                        </div>
-                                        <h3 className="text-3xl font-black text-slate-950 tracking-tight mb-4">Registry Access</h3>
-                                        <p className="max-w-md text-slate-500 text-lg leading-relaxed font-medium">
-                                            Select a merchant from the registry to manage billing, view plan details, and record life-cycle events.
-                                        </p>
-                                    </div>
-                                ) : isUsageLoading ? (
-                                    <div className="h-full min-h-[700px] bg-white border border-slate-200 rounded-3xl flex flex-col items-center justify-center p-20 text-center animate-pulse">
-                                        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Synchronizing Merchant Data...</p>
-                                    </div>
-                                ) : (
-                                    <div className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden min-h-[700px] flex flex-col relative group">
-                                        {/* Header Area */}
-                                        <div className="p-10 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50/50">
-                                            <div className="flex justify-between items-start mb-10">
-                                                <div className="flex items-center gap-6">
-                                                    <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center shadow-lg shadow-indigo-600/20 text-white transform group-hover:rotate-3 transition-transform">
-                                                        <Users size={32} strokeWidth={2.5} />
-                                                    </div>
-                                                    <div>
-                                                        <h2 className="text-3xl font-black text-slate-950 tracking-tight">
-                                                            {selectedMerchantData?.brandName || "Unknown Merchant"}
-                                                        </h2>
-                                                        <div className="flex items-center gap-3 mt-2">
-                                                            <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black font-mono tracking-tighter uppercase border border-slate-200/50">
-                                                                ID: {selectedMerchantId}
-                                                            </span>
-                                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-current ${selectedMerchantData?.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                                                                • {selectedMerchantData?.subscriptionStatus?.toUpperCase() || 'UNKNOWN'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">Processing Period Start</p>
-                                                    <p className="text-base font-bold text-slate-900">
-                                                        {selectedMerchantData?.lastPaymentDate?.seconds
-                                                            ? new Date(selectedMerchantData.lastPaymentDate.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                                                            : "Genesis"}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Insights Row */}
-                                            <div className="grid grid-cols-2 gap-8 mt-auto">
-                                                <div className="p-8 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-colors">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Zap size={14} className="text-indigo-400" /> Selected Tier</p>
-                                                    <p className="text-3xl font-black text-slate-950">{PLANS[selectedMerchantData?.planType || 'startup']?.name || "Startup"}</p>
-                                                    <div className="mt-2 text-indigo-600 flex items-baseline gap-1">
-                                                        <span className="text-lg font-black uppercase">Total Due:</span>
-                                                        <span className="text-4xl font-black tracking-tighter">₹{(PLANS[selectedMerchantData?.planType || 'startup']?.basePrice || 0).toLocaleString()}</span>
-                                                    </div>
-                                                </div>
-                                                <div className={`p-8 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all hover:border-indigo-100`}>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14} className="text-indigo-400" /> Usage Analysis</p>
-                                                    <div className="flex items-baseline gap-3">
-                                                        <p className="text-5xl font-black text-slate-950 tracking-tighter">{merchantUsage || 0}</p>
-                                                        <p className="text-xl font-bold text-slate-300">/ {PLANS[selectedMerchantData?.planType || 'startup']?.includedRefunds || 0} unit-base</p>
-                                                    </div>
-                                                    {(merchantUsage || 0) > (PLANS[selectedMerchantData?.planType || 'startup']?.includedRefunds || 0) && (
-                                                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-600 rounded-full border border-orange-100">
-                                                            <AlertTriangle size={12} />
-                                                            <span className="text-[10px] font-black uppercase tracking-wider">
-                                                                +{(merchantUsage || 0) - (PLANS[selectedMerchantData?.planType || 'startup']?.includedRefunds || 0)} Units Overage
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Section */}
-                                        <div className="p-10 flex flex-col items-center justify-center flex-1 bg-slate-50/30">
-                                            <div className="w-full max-w-sm space-y-6">
-                                                <Button
-                                                    onClick={handleRecordPayment}
-                                                    disabled={isPaymentRunning}
-                                                    className="w-full py-8 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-2xl shadow-2xl shadow-indigo-600/30 text-xl font-black tracking-tight flex items-center justify-center gap-4 transition-all"
-                                                >
-                                                    {isPaymentRunning ? (
-                                                        <Loader2 className="animate-spin" />
-                                                    ) : (
-                                                        <>
-                                                            <RefreshCw size={24} strokeWidth={3} />
-                                                            Apply Payment & Renew
-                                                        </>
-                                                    )}
-                                                </Button>
-                                                <div className="flex bg-white/80 backdrop-blur p-4 rounded-xl border border-slate-100 shadow-sm items-start gap-4">
-                                                    <ShieldCheck className="text-indigo-600 w-5 h-5 shrink-0 mt-0.5" />
-                                                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                                                        Executes a cycle renewal. Sets start date to <span className="text-slate-900 font-bold underline text-[10px]">CURRENT TIMESTAMP</span> and generates a branded ledger entry ($0 for testing or base price).
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {paymentSuccess && (
-                                                <div className="absolute inset-x-0 bottom-0 p-10 bg-emerald-600 text-white animate-in slide-in-from-bottom flex items-center justify-center gap-4 shadow-2xl z-20">
-                                                    <CheckCircle2 size={32} />
-                                                    <div className="text-left">
-                                                        <p className="text-lg font-black leading-none">Record Logged</p>
-                                                        <p className="text-sm font-bold text-emerald-100 opacity-80 mt-1">Payment captured. Merchant cycle has been reset and renewed.</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        {/* SECTION: SYSTEM MAINTENANCE */}
-                        <div className="pt-16 border-t border-slate-100">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 text-center">Infrastructure & Maintenance</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Metrics Tool */}
-                                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-indigo-200 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                            <Activity size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-slate-900">Aggregate Scan</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">O(1) Scoreboard Sync</p>
+                        {/* RIGHT: COMMAND CONSOLE (9 Cols) */}
+                        <div className="col-span-12 lg:col-span-9 flex flex-col gap-6">
+
+                            {!selectedMerchantData ? (
+                                <div className="h-full border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center p-20 text-center bg-slate-50/50">
+                                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-slate-200/50 border border-slate-100">
+                                        <Activity className="w-10 h-10 text-slate-300" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-900">Select a Merchant</h3>
+                                    <p className="text-slate-500 text-sm mt-2 max-w-sm">
+                                        Access controls, billing, and subscription settings from the registry on the left.
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* HEADER CARD */}
+                                    <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-32 bg-indigo-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                                        <div className="flex items-start justify-between relative z-10">
+                                            <div className="flex items-center gap-6">
+                                                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg text-white text-2xl font-bold uppercase ${selectedMerchantData.subscriptionStatus === 'active' ? 'bg-gradient-to-br from-indigo-500 to-indigo-700' : 'bg-slate-800'}`}>
+                                                    {selectedMerchantData.brandName?.[0] || "?"}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <h2 className="text-3xl font-bold text-slate-900">{selectedMerchantData.brandName}</h2>
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${selectedMerchantData.subscriptionStatus === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
+                                                            {selectedMerchantData.subscriptionStatus?.toUpperCase() || "UNKNOWN"}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-slate-500 font-mono text-sm mb-4">{selectedMerchantData.email}</p>
+                                                    <div className="flex gap-4 text-xs font-medium text-slate-600">
+                                                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <KeyRound size={12} className="text-slate-400" />
+                                                            ID: <span className="font-mono text-slate-900">{selectedMerchantData.id}</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* KPI Stats */}
+                                            <div className="text-right space-y-1">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Plan</p>
+                                                <div className="text-2xl font-black text-slate-900">
+                                                    {PLANS[selectedMerchantData.planType || 'startup']?.name || 'Startup'}
+                                                </div>
+                                                <p className="text-xs text-indigo-600 font-bold">
+                                                    ₹{PLANS[selectedMerchantData.planType || 'startup']?.basePrice.toLocaleString()}/mo
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => handleMigration(true)}
-                                            className="px-4 py-2 bg-white text-slate-600 border-slate-200 text-xs font-black shadow-sm"
-                                        >
-                                            Scan
-                                        </Button>
-                                        <Button
-                                            onClick={() => handleMigration(false)}
-                                            disabled={step !== 2}
-                                            className={`px-4 py-2 border-none text-xs font-black shadow-lg ${step === 2 ? 'bg-indigo-600 text-white shadow-indigo-600/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
-                                        >
-                                            Commit
-                                        </Button>
+
+                                    {/* CONTROL GRID */}
+                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+                                        {/* 1. SUBSCRIPTION MANAGEMENT */}
+                                        <Card className="p-8 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                                            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                                                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                                                    <Settings size={20} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-slate-900">Subscription Control</h3>
+                                                    <p className="text-xs text-slate-500">Manage tier and account access.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                {/* Plan Selector */}
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Plan Tier</label>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={selectedMerchantData.planType || 'startup'}
+                                                            onChange={(e) => handlePlanChange(e.target.value)}
+                                                            disabled={isUpdatingPlan}
+                                                            className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-900 text-sm font-medium rounded-xl p-4 pr-10 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all disabled:opacity-50"
+                                                        >
+                                                            <option value="startup">Startup (₹999)</option>
+                                                            <option value="growth">Growth (₹2,499)</option>
+                                                            <option value="scale">Scale (₹4,999)</option>
+                                                        </select>
+                                                        <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 pointer-events-none" size={16} />
+                                                    </div>
+                                                </div>
+
+                                                {/* Access Control */}
+                                                <div className="pt-2">
+                                                    <Button
+                                                        onClick={handleToggleStatus}
+                                                        disabled={isTogglingStatus}
+                                                        className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${selectedMerchantData.subscriptionStatus === 'active'
+                                                                ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 border border-rose-100'
+                                                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 border border-emerald-100'
+                                                            }`}
+                                                    >
+                                                        {isTogglingStatus ? <Loader2 className="animate-spin" size={18} /> : (
+                                                            selectedMerchantData.subscriptionStatus === 'active' ? (
+                                                                <>
+                                                                    <Lock size={18} /> Suspend Account Access
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Unlock size={18} /> Activate Account
+                                                                </>
+                                                            )
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+
+                                        {/* 2. BILLING & RENEWAL */}
+                                        <Card className="p-8 border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                                            {paymentSuccess && (
+                                                <div className="absolute inset-0 bg-emerald-600 z-20 flex flex-col items-center justify-center text-white animate-in fade-in zoom-in-95">
+                                                    <div className="p-4 bg-white/20 rounded-full mb-4 ring-4 ring-emerald-500">
+                                                        <CheckCircle2 size={40} />
+                                                    </div>
+                                                    <h3 className="text-2xl font-black mb-1">Renewed!</h3>
+                                                    <p className="text-emerald-100 font-medium">Invoice Generated & Cycle Reset</p>
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                                                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                                                    <CreditCard size={20} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-slate-900">Billing & Renewal</h3>
+                                                    <p className="text-xs text-slate-500">Process payments and reset cycles.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Cycle Start</p>
+                                                    <div className="flex items-center gap-2 text-slate-900 font-bold">
+                                                        <Calendar size={14} className="text-indigo-500" />
+                                                        {selectedMerchantData.lastPaymentDate?.seconds
+                                                            ? new Date(selectedMerchantData.lastPaymentDate.seconds * 1000).toLocaleDateString()
+                                                            : "N/A"
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Usage Overage</p>
+                                                    <div className="flex items-center gap-2 text-slate-900 font-bold">
+                                                        <Activity size={14} className="text-orange-500" />
+                                                        {isUsageLoading ? "..." : (
+                                                            (merchantUsage || 0) > (PLANS[selectedMerchantData.planType || 'startup']?.includedRefunds || 0)
+                                                                ? `+${(merchantUsage || 0) - (PLANS[selectedMerchantData.planType || 'startup']?.includedRefunds || 0)}`
+                                                                : "None"
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <Button
+                                                onClick={handleRecordPayment}
+                                                disabled={isPaymentRunning}
+                                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl shadow-lg shadow-indigo-600/30 font-bold tracking-tight flex items-center justify-center gap-3 transition-all"
+                                            >
+                                                {isPaymentRunning ? <Loader2 className="animate-spin" /> : (
+                                                    <>
+                                                        <FileText size={18} /> Apply Payment & Renew Cycle
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </Card>
+
+                                    </div>
+                                </>
+                            )}
+
+                            {/* BOTTOM TRAY: ADVANCED TOOLS */}
+                            <div className="mt-auto pt-10 pb-20">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 pl-1">Advanced Maintenance</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Aggregation Tool */}
+                                    <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl group hover:border-indigo-300 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-100 text-slate-500 rounded-lg group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                                <Zap size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900">Metrics Sync</p>
+                                                <p className="text-[10px] text-slate-500 font-medium">Rebuild scoreboard caches</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" className="h-8 text-[10px]" onClick={() => handleMigration(true)}>Scan</Button>
+                                            <Button className="h-8 text-[10px] bg-indigo-600 text-white" onClick={() => handleMigration(false)} disabled={step !== 2}>Run</Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Schema Tool */}
+                                    <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl group hover:border-rose-300 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-100 text-slate-500 rounded-lg group-hover:bg-rose-50 group-hover:text-rose-600 transition-colors">
+                                                <AlertTriangle size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900">Schema Repair</p>
+                                                <p className="text-[10px] text-slate-500 font-medium">Fix missing fields</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" className="h-8 text-[10px]" onClick={() => handleBackfill(true)} disabled={isBackfillRunning}>Audit</Button>
+                                            <Button className="h-8 text-[10px] bg-rose-600 text-white" onClick={() => handleBackfill(false)} disabled={isBackfillRunning}>Fix</Button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Repair Tool */}
-                                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-rose-200 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all">
-                                            <AlertTriangle size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-slate-900">Schema Repair</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Non-Destructive Backfill</p>
-                                        </div>
+                                {/* Logs Console */}
+                                {(summary || backfillSummary) && (
+                                    <div className="mt-4 p-4 bg-slate-900 rounded-xl border border-slate-800 font-mono text-[10px] text-emerald-400 max-h-40 overflow-y-auto">
+                                        {summary && `[METRICS] ${summary.status}: ${summary.totalRefunds} processed.\n`}
+                                        {backfillSummary && `[REPAIR] ${backfillSummary.status}: ${backfillSummary.totalUpdated} fixed.`}
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => handleBackfill(true)}
-                                            disabled={isBackfillRunning}
-                                            className="px-4 py-2 bg-white text-slate-600 border-slate-200 text-xs font-black shadow-sm"
-                                        >
-                                            Audit
-                                        </Button>
-                                        <Button
-                                            onClick={() => handleBackfill(false)}
-                                            disabled={isBackfillRunning}
-                                            className="px-4 py-2 bg-indigo-600 text-white border-none text-xs font-black shadow-lg shadow-indigo-600/20"
-                                        >
-                                            Repair
-                                        </Button>
-                                    </div>
-                                </div>
+                                )}
                             </div>
 
-                            {/* Summary Reports (Compact) */}
-                            {(summary || backfillSummary) && (
-                                <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl animate-in zoom-in-95">
-                                    <div className="flex items-center gap-3 p-4 bg-slate-800 border-b border-slate-700">
-                                        <Play size={14} className="text-emerald-400" />
-                                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">System Logs</span>
-                                    </div>
-                                    <div className="p-6 font-mono text-[11px] leading-relaxed text-emerald-400/80 max-h-[200px] overflow-y-auto whitespace-pre-wrap">
-                                        {summary && `[METRICS] Result: ${summary.status}\nRefunds Processed: ${summary.totalRefunds}\nMerchants Updated: ${summary.merchantCount}\n------------------\n`}
-                                        {backfillSummary && `[REPAIR] Result: ${backfillSummary.status}\nAudited: ${backfillSummary.totalProcessed}\nFixed: ${backfillSummary.totalUpdated}`}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}
