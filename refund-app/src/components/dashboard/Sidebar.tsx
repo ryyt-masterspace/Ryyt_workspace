@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Activity, AlertTriangle, Search, Settings, LogOut, XCircle, CheckCircle2, FileBarChart } from "lucide-react";
+import { LayoutGrid, Activity, AlertTriangle, Search, Settings, LogOut, XCircle, CheckCircle2, FileBarChart, CreditCard } from "lucide-react";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -132,6 +132,18 @@ export default function Sidebar() {
                     >
                         <FileBarChart strokeWidth={isActive("/dashboard/reports") ? 2.5 : 2} className="w-5 h-5" />
                         <span className="text-sm font-medium hidden md:block">Reports</span>
+                    </Link>
+
+                    {/* Billing */}
+                    <Link
+                        href="/dashboard/billing"
+                        className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive("/dashboard/billing")
+                            ? "bg-white/10 text-white"
+                            : "text-gray-400 hover:bg-white/5 hover:text-white"
+                            }`}
+                    >
+                        <CreditCard strokeWidth={isActive("/dashboard/billing") ? 2.5 : 2} className="w-5 h-5" />
+                        <span className="text-sm font-medium hidden md:block">Billing</span>
                     </Link>
                 </div>
             </div>

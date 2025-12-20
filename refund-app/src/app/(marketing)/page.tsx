@@ -2,6 +2,7 @@
 import FinalHero from '@/components/marketing/FinalHero';
 import BentoFeatures from '@/components/marketing/BentoFeatures';
 import WhyUs from '@/components/marketing/WhyUs';
+import Pricing from '@/components/marketing/Pricing';
 import TestimonialsMarquee from '@/components/marketing/TestimonialsMarquee';
 import FAQ from '@/components/marketing/FAQ';
 import MouseSpotlight from '@/components/marketing/MouseSpotlight';
@@ -20,6 +21,7 @@ export default function LandingPage() {
         <FinalHero />
         <BentoFeatures />
         <WhyUs />
+        <Pricing />
         <TestimonialsMarquee />
         <FAQ />
       </div>
