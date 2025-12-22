@@ -19,6 +19,18 @@ export interface DashboardMetrics {
     failureReasonDistribution: { name: string; value: number }[];
 }
 
+interface RefundData {
+    id: string;
+    merchantId: string;
+    status?: string;
+    amount?: number | string;
+    failureReason?: string;
+    slaDueDate?: string;
+    paymentMethod?: string;
+    createdAt?: { seconds: number } | string;
+    [key: string]: unknown; // Allow other fields but keep it safe
+}
+
 export function useDashboardMetrics(volumeWindowDays: number = 30) {
     const { user } = useAuth();
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -34,12 +46,14 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
 
             try {
                 // 1. Fetch ALL refunds for the merchant
+
+                // ... inside fetchMetrics ...
                 const q = query(
                     collection(db, "refunds"),
                     where("merchantId", "==", user.uid)
                 );
                 const snapshot = await getDocs(q);
-                const refunds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+                const refunds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RefundData));
 
                 let totalSettled = 0;
                 let liability = 0;
@@ -94,7 +108,13 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
 
                     // D. Volume Trends
                     if (refund.createdAt) {
-                        const d = refund.createdAt.seconds ? new Date(refund.createdAt.seconds * 1000) : new Date(refund.createdAt);
+                        let d: Date;
+                        if (typeof refund.createdAt === 'object' && refund.createdAt !== null && 'seconds' in refund.createdAt) {
+                            d = new Date((refund.createdAt as { seconds: number }).seconds * 1000);
+                        } else {
+                            d = new Date(refund.createdAt as string);
+                        }
+
                         const key = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
                         if (dateCounts.hasOwnProperty(key)) {
                             dateCounts[key]++;
@@ -145,19 +165,36 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                     methodData,
                     conversionRate: refunds.length > 0 ? (refunds.filter(r => r.status === 'SETTLED').length / refunds.length) * 100 : 0,
                     recentFailures: refunds
-                        .filter(r => (r.status || '').toUpperCase().includes('FAILED'))
-                        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)) // Newest first
+                        .filter(r => (r.status || '').toString().toUpperCase().includes('FAILED'))
+                        .sort((a, b) => {
+                            const timeA = (typeof a.createdAt === 'object' && a.createdAt && 'seconds' in a.createdAt)
+                                ? (a.createdAt as { seconds: number }).seconds
+                                : 0;
+                            const timeB = (typeof b.createdAt === 'object' && b.createdAt && 'seconds' in b.createdAt)
+                                ? (b.createdAt as { seconds: number }).seconds
+                                : 0;
+                            return timeB - timeA;
+                        }) // Newest first
                         .slice(0, 5)
-                        .map(r => ({ id: r.id, orderId: r.orderId, failureReason: r.failureReason, amount: r.amount })),
+                        .map(r => ({
+                            id: r.id,
+                            orderId: r.orderId as string || 'N/A',
+                            failureReason: r.failureReason || 'Unknown',
+                            amount: Number(r.amount) || 0
+                        })),
 
                     // New Fields
                     stuckAmount,
                     failureReasonDistribution
                 });
 
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Error calculating metrics:", err);
-                setError(err.message);
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError("An unknown error occurred");
+                }
             } finally {
                 setLoading(false);
             }

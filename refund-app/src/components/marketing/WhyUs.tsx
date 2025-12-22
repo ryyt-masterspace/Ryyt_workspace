@@ -4,9 +4,9 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function WhyUs() {
     return (
-        <section id="why-us" className="py-20 relative z-10 overflow-hidden border-y border-white/5">
+        <section id="why-us" className="py-24 relative z-10 overflow-hidden border-y border-white/5 bg-black">
             <div className="container mx-auto px-4 text-center">
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-12 tracking-tight">The 'Standard Way' is costing you ₹100/day.</h2>
+                <h2 className="text-3xl md:text-5xl font-bold text-white mb-16 tracking-tight">The 'Manual Way' is costing you more than just time.</h2>
 
                 {/* GLASS MONOLITH CARD */}
                 <motion.div
@@ -18,79 +18,78 @@ export default function WhyUs() {
                 >
                     {/* Inner Glow */}
                     <div className="absolute top-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
-                    <div className="absolute inset-0 bg-[#0052FF]/5 pointer-events-none" />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 relative">
 
-                        {/* LEFT: THE VILLAIN (The Gateway Trap) */}
-                        <div className="p-12 border-b md:border-b-0 md:border-r border-white/5 bg-zinc-950/50">
-                            <h3 className="text-xl font-bold text-zinc-500 mb-8 uppercase tracking-widest text-left">The Gateway Trap</h3>
-                            <div className="space-y-8 text-left">
+                        {/* LEFT: THE CHAOS (The Refund Chaos) */}
+                        <div className="p-10 md:p-12 border-b md:border-b-0 md:border-r border-white/5 bg-zinc-950/20 opacity-80 group">
+                            <h3 className="text-sm font-black text-zinc-600 mb-10 uppercase tracking-[0.2em] text-left">THE REFUND CHAOS</h3>
+                            <div className="space-y-10 text-left">
                                 <div className="group">
-                                    <div className="flex items-start gap-4 mb-2">
-                                        <XCircle className="text-red-900 shrink-0 mt-1" />
-                                        <h4 className="text-lg font-bold text-zinc-400 group-hover:text-red-400 transition-colors">Frozen Liquidity.</h4>
+                                    <div className="flex items-start gap-4 mb-3">
+                                        <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
+                                        <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Manual Grind.</h4>
                                     </div>
                                     <p className="pl-10 text-zinc-600 text-sm leading-relaxed">
-                                        You have to keep dead cash in a separate wallet "just in case" of refunds. That's money you can't use for ads or inventory.
+                                        Chasing UPI IDs over WhatsApp and manually updating Excel sheets wastes your team's most valuable hours.
                                     </p>
                                 </div>
                                 <div className="group">
-                                    <div className="flex items-start gap-4 mb-2">
-                                        <XCircle className="text-red-900 shrink-0 mt-1" />
-                                        <h4 className="text-lg font-bold text-zinc-400 group-hover:text-red-400 transition-colors">Hidden RBI Penalties.</h4>
+                                    <div className="flex items-start gap-4 mb-3">
+                                        <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
+                                        <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Support Flood.</h4>
                                     </div>
                                     <p className="pl-10 text-zinc-600 text-sm leading-relaxed">
-                                        They won't warn you when you breach the timeline. They just let the ₹100/day penalty pile up on your bill.
+                                        Vague '7-day' refund windows leave customers anxious, triggering a wave of 'Where is my money?' tickets daily.
                                     </p>
                                 </div>
                                 <div className="group">
-                                    <div className="flex items-start gap-4 mb-2">
-                                        <XCircle className="text-red-900 shrink-0 mt-1" />
-                                        <h4 className="text-lg font-bold text-zinc-400 group-hover:text-red-400 transition-colors">Zero Transparency.</h4>
+                                    <div className="flex items-start gap-4 mb-3">
+                                        <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
+                                        <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Brand Disconnect.</h4>
                                     </div>
                                     <p className="pl-10 text-zinc-600 text-sm leading-relaxed">
-                                        Excel sheets, phone calls, and "Where is my money?" emails clogging your support inbox every day.
+                                        Generic, cold notifications make your brand look unreliable. Every return becomes a potential bad review.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* RIGHT: THE SUCCESS (The Ryyt Standard) */}
-                        <div className="p-12 bg-gradient-to-br from-[#0052FF]/10 to-transparent relative overflow-hidden">
+                        {/* RIGHT: THE ADVANTAGE (The Ryyt Advantage) */}
+                        <div className="p-10 md:p-12 bg-gradient-to-br from-[#0052FF]/15 to-black relative overflow-hidden">
                             {/* Blue Glow Effect */}
-                            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#0052FF]/20 blur-[100px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
+                            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#0052FF]/20 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
 
-                            <h3 className="text-xl font-bold text-white mb-8 uppercase tracking-widest text-left flex items-center gap-3">
-                                <span className="w-2 h-2 rounded-full bg-[#0052FF]" /> The Ryyt Standard
+                            <h3 className="text-sm font-black text-blue-500 mb-10 uppercase tracking-[0.2em] text-left flex items-center gap-3">
+                                <span className="w-2 h-2 rounded-full bg-[#0052FF] animate-pulse" /> THE RYYT ADVANTAGE
                             </h3>
 
-                            <div className="space-y-8 text-left relative z-10">
-                                <div>
-                                    <div className="flex items-start gap-4 mb-2">
-                                        <CheckCircle2 className="text-[#0052FF] shrink-0 mt-1 drop-shadow-[0_0_10px_rgba(0,82,255,0.5)]" />
-                                        <h4 className="text-lg font-bold text-white">Fluid Cash Flow.</h4>
+                            <div className="space-y-10 text-left relative z-10">
+                                <div className="group">
+                                    <div className="flex items-start gap-4 mb-3">
+                                        <CheckCircle2 className="text-blue-500 shrink-0 mt-1 w-6 h-6 drop-shadow-[0_0_8px_rgba(0,82,255,0.6)]" />
+                                        <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Zero-Touch Automation.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed">
-                                        Pay refunds directly from your bank account. Keep your cash flow free for growth until the last second.
+                                    <p className="pl-10 text-zinc-300 text-sm leading-relaxed font-medium">
+                                        Automated portals collect customer data for you. Securely verified and ready for payout in one click. No more chasing.
                                     </p>
                                 </div>
-                                <div>
-                                    <div className="flex items-start gap-4 mb-2">
-                                        <CheckCircle2 className="text-[#0052FF] shrink-0 mt-1 drop-shadow-[0_0_10px_rgba(0,82,255,0.5)]" />
-                                        <h4 className="text-lg font-bold text-white">Automated Compliance.</h4>
+                                <div className="group">
+                                    <div className="flex items-start gap-4 mb-3">
+                                        <CheckCircle2 className="text-blue-500 shrink-0 mt-1 w-6 h-6 drop-shadow-[0_0_8px_rgba(0,82,255,0.6)]" />
+                                        <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Proactive Transparency.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed">
-                                        We track every SLA breach in real-time so you never lose money to fines again.
+                                    <p className="pl-10 text-zinc-300 text-sm leading-relaxed font-medium">
+                                        Live, branded tracking links and real-time updates keep customers calm and your support inbox empty.
                                     </p>
                                 </div>
-                                <div>
-                                    <div className="flex items-start gap-4 mb-2">
-                                        <CheckCircle2 className="text-[#0052FF] shrink-0 mt-1 drop-shadow-[0_0_10px_rgba(0,82,255,0.5)]" />
-                                        <h4 className="text-lg font-bold text-white">Brand Loyalty.</h4>
+                                <div className="group">
+                                    <div className="flex items-start gap-4 mb-3">
+                                        <CheckCircle2 className="text-blue-500 shrink-0 mt-1 w-6 h-6 drop-shadow-[0_0_8px_rgba(0,82,255,0.6)]" />
+                                        <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Enterprise Trust.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed">
-                                        We collect bank details via WhatsApp, process the payout, and notify the customer. Zero manual work.
+                                    <p className="pl-10 text-zinc-300 text-sm leading-relaxed font-medium">
+                                        100% white-labeled emails and professional PDF invoices. Look like a billion-dollar brand to every single customer.
                                     </p>
                                 </div>
                             </div>

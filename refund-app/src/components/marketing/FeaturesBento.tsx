@@ -1,239 +1,137 @@
-"use client";
+import { ShieldCheck, Zap, Tag } from 'lucide-react';
 
 export default function FeaturesBento() {
     return (
         <section id="features" className="py-32 px-6 relative z-10">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-20 text-center">
-                    <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                        Everything you need to <br />
-                        <span className="text-blue-500">win back trust.</span>
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        Built for <span className="text-blue-500">Enterprise Scale.</span>
                     </h2>
+                    <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
+                        Replace manual chaos with a system designed for high-volume D2C brands.
+                    </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-6 h-auto md:h-[800px]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                    {/* Card 1: Hero Refund Proof (Large) */}
-                    <div className="md:col-span-2 md:row-span-2 bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 md:p-10 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
-                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    {/* Card 1: Security (Large) */}
+                    <div className="md:col-span-2 bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 md:p-10 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
+                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
-                        <div className="relative z-10 mb-6 flex justify-between items-start">
-                            <div className="max-w-md">
-                                <h3 className="text-3xl font-bold text-white mb-3">Instant Refund Proof</h3>
-                                <p className="text-gray-400 text-lg">
-                                    Don't wait for the UTR. Give customers <span className="text-white">instant proof</span> with Gateway IDs, timestamps, and clear timelines immediately.
-                                </p>
-                            </div>
-                            <div className="hidden md:flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                                </span>
-                                <span className="text-xs font-medium text-blue-400 uppercase tracking-wider">Real-time</span>
-                            </div>
-                        </div>
-
-                        {/* Visual: Proof Card Mockup */}
-                        <div className="relative w-full flex-1 bg-[#111] rounded-t-2xl border-t border-l border-r border-white/10 p-6 shadow-2xl transform group-hover:scale-[1.02] transition-transform duration-500 origin-bottom mt-4">
-                            {/* Status Header */}
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center relative">
-                                        <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping opacity-75"></div>
-                                        <svg className="w-5 h-5 text-green-500 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div className="text-white font-medium flex items-center gap-2">
-                                            Refund Initiated
-                                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                        </div>
-                                        <div className="text-xs text-gray-500">Just now</div>
-                                    </div>
+                        <div className="relative z-10 flex flex-col h-full justify-between">
+                            <div className="mb-8">
+                                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-6 border border-blue-500/20">
+                                    <ShieldCheck className="w-6 h-6 text-blue-500" />
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-xs text-gray-500 uppercase tracking-wider">Amount</div>
-                                    <div className="text-white font-mono text-lg">₹2,499.00</div>
-                                </div>
+                                <h3 className="text-3xl font-bold text-white mb-3">Stop Refund Fraud with Identity Guard</h3>
                             </div>
 
-                            {/* Order Summary */}
-                            <div className="flex gap-4 mb-6 bg-[#1A1A1A] p-4 rounded-xl border border-white/5">
-                                <div className="w-16 h-16 bg-white/5 rounded-lg flex-shrink-0 overflow-hidden relative">
-                                    <img
-                                        src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop"
-                                        alt="Product"
-                                        className="w-full h-full object-cover opacity-80"
-                                    />
-                                </div>
-                                <div>
-                                    <div className="text-white font-medium text-sm">Nike Air Max 90</div>
-                                    <div className="text-xs text-gray-500 mt-1">Order #8821 • Size 9</div>
-                                    <div className="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
-                                        Return Reason: Size too small
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Data Rows */}
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5 group/row hover:bg-[#222] transition-colors">
-                                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Gateway Ref ID</div>
-                                        <div className="text-white font-mono text-xs flex items-center gap-2">
-                                            rf_3k92...92j1
-                                            <span className="text-blue-400 opacity-0 group-hover/row:opacity-100 transition-opacity text-[10px]">Copy</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
-                                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Est. Settlement</div>
-                                        <div className="text-white font-mono text-xs">Dec 12 - Dec 14</div>
-                                    </div>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* The Risk */}
+                                <div className="bg-red-500/5 border border-red-500/10 p-6 rounded-2xl relative overflow-hidden group/risk">
+                                    <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover/risk:opacity-100 transition-opacity"></div>
+                                    <p className="text-red-400 text-xs font-bold tracking-widest uppercase mb-3 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> The Risk
+                                    </p>
+                                    <p className="text-zinc-400 leading-relaxed text-sm">
+                                        Manual UPI collection is a security nightmare. Chasing bank details over WhatsApp leads to data leaks and fraud.
+                                    </p>
                                 </div>
 
-                                <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Payment Source</div>
-                                    <div className="text-white font-mono text-xs flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[8px]">H</div>
-                                        HDFC Bank **** 8821
-                                    </div>
-                                </div>
-
-                                <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
-                                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Merchant Note</div>
-                                    <div className="text-gray-300 text-xs italic">"Return received. Quality check passed. Refund processed."</div>
-                                </div>
-
-                                {/* Timeline Steps */}
-                                <div className="pt-4 mt-2 border-t border-white/5">
-                                    <div className="flex items-center justify-between relative">
-                                        {/* Connecting Line */}
-                                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-800 -z-10"></div>
-
-                                        {/* Step 1 */}
-                                        <div className="flex flex-col items-center gap-2 bg-[#111] px-2">
-                                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50">
-                                                <svg className="w-3 h-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </div>
-                                            <div className="text-[10px] text-gray-400">Picked Up</div>
-                                        </div>
-
-                                        {/* Step 2 */}
-                                        <div className="flex flex-col items-center gap-2 bg-[#111] px-2">
-                                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50">
-                                                <svg className="w-3 h-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </div>
-                                            <div className="text-[10px] text-gray-400">QC Passed</div>
-                                        </div>
-
-                                        {/* Step 3 */}
-                                        <div className="flex flex-col items-center gap-2 bg-[#111] px-2">
-                                            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500 relative">
-                                                <div className="absolute inset-0 rounded-full animate-ping bg-blue-500/20"></div>
-                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                            </div>
-                                            <div className="text-[10px] text-white font-medium">Processing</div>
-                                        </div>
-                                    </div>
+                                {/* The Guard */}
+                                <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl shadow-[0_0_30px_-10px_rgba(0,82,255,0.15)] relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/20 blur-[40px] rounded-full"></div>
+                                    <p className="text-blue-400 text-xs font-bold tracking-widest uppercase mb-3 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> The Guard
+                                    </p>
+                                    <p className="text-zinc-200 leading-relaxed text-sm font-medium">
+                                        Automated customer email verification before any UPI data is collected. Your customers' data is locked in a private vault.
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Card 2: Automated Updates (Medium) */}
+                    {/* Card 2: Performance (Vertical) */}
                     <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
-                        <div className="relative z-10 mb-4">
-                            <h3 className="text-xl font-bold text-white mb-2">Zero Support Tickets</h3>
-                            <p className="text-gray-400 text-sm">
-                                Automated email updates at every step.
-                            </p>
-                        </div>
+                        <div className="relative z-10 flex flex-col h-full">
+                            <div className="mb-8">
+                                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center mb-6 border border-amber-500/20">
+                                    <Zap className="w-6 h-6 text-amber-500" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-3">Enterprise Speed at Any Scale</h3>
+                            </div>
 
-                        {/* Visual: Email Notification */}
-                        <div className="flex-1 bg-[#111] rounded-xl border border-white/10 p-5 flex flex-col justify-center transform group-hover:translate-y-[-5px] transition-transform duration-300 mt-4">
-                            {/* Simulated Email Header */}
-                            <div className="flex items-center gap-3 mb-4 opacity-50 group-hover:opacity-100 transition-opacity">
-                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">R</div>
-                                <div>
-                                    <div className="text-xs text-white font-medium">Refund Update</div>
-                                    <div className="text-[10px] text-gray-500">to me</div>
+                            <div className="space-y-4 mt-auto">
+                                <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
+                                    <p className="text-red-400 text-[10px] font-bold tracking-widest uppercase mb-2">The Bottleneck</p>
+                                    <p className="text-zinc-500 text-xs leading-relaxed">
+                                        Legacy tools that slow down as you grow. Waiting for dashboards to load costs your team 10+ hours a week.
+                                    </p>
                                 </div>
-                            </div>
-                            {/* Simulated Email Body */}
-                            <div className="space-y-1.5 min-h-[60px]">
-                                <div className="overflow-hidden w-0 group-hover:w-full transition-[width] duration-700 ease-out whitespace-nowrap">
-                                    <p className="text-xs text-gray-300">Hi Shuva,</p>
-                                </div>
-                                <div className="overflow-hidden w-0 group-hover:w-full transition-[width] duration-1000 delay-500 ease-out whitespace-nowrap">
-                                    <p className="text-xs text-gray-300">Your refund of <span className="text-white font-medium">₹2,499</span> is processed.</p>
-                                </div>
-                                <div className="overflow-hidden w-0 group-hover:w-full transition-[width] duration-700 delay-[1200ms] ease-out whitespace-nowrap">
-                                    <p className="text-[10px] text-gray-500">Ref ID: <span className="font-mono">rf_3k92...92j1</span></p>
-                                </div>
-                            </div>
-                            <div className="mt-4 pt-4 border-t border-white/5">
-                                <div className="h-8 w-full bg-blue-500/10 rounded flex items-center justify-center text-xs text-blue-400 font-medium">
-                                    Track Refund Status
+                                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)]">
+                                    <p className="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-2">The Engine</p>
+                                    <p className="text-zinc-300 text-xs leading-relaxed font-medium">
+                                        Built on a high-performance O(1) architecture. Your dashboard loads in milliseconds, whether you process 10 or 10,000 refunds.
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Card 3: Failure Recovery (Medium) */}
-                    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
-                        <div className="relative z-10 mb-4">
-                            <h3 className="text-xl font-bold text-white mb-2">Failure Recovery</h3>
-                            <p className="text-gray-400 text-sm">
-                                Automatically collect correct <span className="text-white font-medium">UPI ID</span> if a refund fails.
-                            </p>
-                        </div>
+                    {/* Card 3: Trust (Standard, spans bottom if needed, but 3 cols suggests wrapping. Let's make it span full width or use a different grid. 
+                       Wait, original was 2 rows, cols-3. 
+                       Layout: 
+                       [ Card 1 (2 cols) ] [ Card 2 (1 col) ]
+                       [ Card 3 (3 cols) ?? No, usually bento is uneven. ]
+                       
+                       Let's make Card 3 span 3 cols? Or maybe Card 2 and 3 share the bottom row.
+                       The previous layout had Card 1 span 2 cols, 2 rows. And Card 2, Card 3 were stacked?
+                       "md:col-span-2 md:row-span-2" for Card 1.
+                       Card 2 and 3 were implicit 1 col.
+                       
+                       Let's look at the requirement: "Card 1 (Security)", "Card 2 (Performance)", "Card 3 (Trust)".
+                       If Card 1 is big, Card 2 and 3 fit in the remaining column?
+                       The previous grid was `grid-cols-1 md:grid-cols-3 grid-rows-2`.
+                       Card 1: `col-span-2 row-span-2`.
+                       Card 2: `bg-[#0A0A0A]...` (implicit col-span-1)
+                       Card 3: `bg-[#0A0A0A]...` (implicit col-span-1)
+                       
+                       So Card 2 is top-right, Card 3 is bottom-right.
+                       
+                       I will preserve this layout.
+                       Card 1: Security.
+                       Card 2: Performance.
+                       Card 3: Trust.
+                       
+                       Wait, "Overhaul Card 3 (The Trust Card)".
+                       I need to make sure Card 3 fits in the grid.
+                       I'll just put Card 3 below Card 2.
+                    */}
 
-                        {/* Visual: Failure -> Success Input */}
-                        <div className="flex-1 relative mt-4">
-                            {/* State 1: Failed (Visible initially) */}
-                            <div className="absolute inset-0 bg-[#1A0505] border border-red-500/20 rounded-xl p-4 flex flex-col justify-center group-hover:opacity-0 transition-opacity duration-300">
-                                <div className="flex items-center gap-2 text-red-400 text-sm font-medium mb-2">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Refund Failed
+                    {/* Card 3: Trust (Vertical) */}
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors md:col-start-3 md:row-start-2">
+                        <div className="relative z-10 flex flex-col h-full">
+                            <div className="mb-8">
+                                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-6 border border-emerald-500/20">
+                                    <Tag className="w-6 h-6 text-emerald-500" />
                                 </div>
-                                <div className="text-xs text-red-500/60">Invalid UPI ID provided.</div>
+                                <h3 className="text-2xl font-bold text-white mb-3">100% White-Labeled</h3>
                             </div>
 
-                            {/* State 2: Success Input (Visible on Hover) */}
-                            <div className="absolute inset-0 bg-[#051A05] border border-green-500/20 rounded-xl p-4 flex flex-col justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="text-xs text-green-400 font-medium flex items-center gap-1.5">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Secure Link Sent
-                                    </div>
-                                    <div className="text-[10px] text-green-500/50 uppercase tracking-wider">Via SMS</div>
+                            <div className="space-y-4 mt-auto">
+                                <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
+                                    <p className="text-red-400 text-[10px] font-bold tracking-widest uppercase mb-2">The Friction</p>
+                                    <p className="text-zinc-500 text-xs leading-relaxed">
+                                        Generic, spam-like emails that confuse customers and trigger support tickets asking 'Where is my money?'
+                                    </p>
                                 </div>
-
-                                {/* Simulated SMS Bubble */}
-                                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center">
-                                            <svg className="w-2 h-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                            </svg>
-                                        </div>
-                                        <div className="text-[10px] text-green-200">"Update UPI for Order #8821"</div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-[#0A0A0A] border border-white/10 rounded px-3 py-2 flex items-center justify-between">
-                                    <div className="text-xs text-white">shuva@okhdfcbank</div>
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)]">
+                                    <p className="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-2">The Proof</p>
+                                    <p className="text-zinc-300 text-xs leading-relaxed font-medium">
+                                        Fully branded tracking pages and professional PDF invoices issued by Calcure Technologies.
+                                    </p>
                                 </div>
                             </div>
                         </div>

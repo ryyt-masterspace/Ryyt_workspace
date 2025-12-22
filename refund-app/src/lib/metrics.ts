@@ -19,7 +19,8 @@ export async function updateScoreboard(
     try {
         const metricsRef = doc(db, "merchants", merchantId, "metadata", "metrics");
 
-        let updates: Record<string, any> = {
+        // Use unknown to accommodate FieldValue/Timestamp mixed types safely
+        let updates: Record<string, unknown> = {
             lastUpdated: serverTimestamp(),
         };
 

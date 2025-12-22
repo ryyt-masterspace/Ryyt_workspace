@@ -6,7 +6,7 @@
 
 export const SALES_NUDGES = [
     "Shuvam built me to save you time. Did you know I can cut your refund processing time by 90%?",
-    "I can secure your brand's reputation by making refunds instant and transparent. Shuvam calls it 'Trust Engineering'.",
+    "I can secure your brand's reputation by making refunds instant and transparent. Every return becomes a reason to love your brand.",
     "Manual refunds are a pain. I turn them into a 15-second task. Want to see how?"
 ];
 

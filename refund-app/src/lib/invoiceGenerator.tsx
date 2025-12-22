@@ -3,27 +3,26 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// 1. Strict Interfaces
 export interface InvoiceMerchantData {
-    brandName?: string;
-    email?: string;
+    brandName: string;
+    email: string;
     gstin?: string; // Optional GSTIN
     address?: string; // Optional Address
-    [key: string]: any;
 }
 
 export interface InvoicePaymentData {
     id?: string;
     amount?: number; // Total Paid
     planName?: string;
-    date?: { seconds: number } | Date | string;
+    date?: { seconds: number } | Date | string | number;
 
     // Hybrid Billing Details
     basePrice?: number;
     usageCount?: number;
     limit?: number; // Included Refunds
     excessRate?: number;
-
-    [key: string]: any;
+    email?: string; // Optional override
 }
 
 export const generateInvoice = (merchantData: InvoiceMerchantData, paymentData: InvoicePaymentData) => {
@@ -42,7 +41,7 @@ export const generateInvoice = (merchantData: InvoiceMerchantData, paymentData: 
         if (typeof paymentData.date === 'object' && 'seconds' in paymentData.date) {
             dateObj = new Date(paymentData.date.seconds * 1000);
         } else {
-            dateObj = new Date(paymentData.date as any);
+            dateObj = new Date(paymentData.date);
         }
     }
 
@@ -203,7 +202,7 @@ export const generateInvoice = (merchantData: InvoiceMerchantData, paymentData: 
     });
 
     // 8. FOOTER
-    const finalY = (doc as any).lastAutoTable?.finalY || 120;
+    const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY || 120;
 
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);

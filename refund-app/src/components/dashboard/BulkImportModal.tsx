@@ -70,7 +70,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             header: true,
             skipEmptyLines: true,
             complete: (results) => {
-                const rows = results.data as any[];
+                const rows = results.data as Record<string, string>[];
                 validateRows(rows);
                 setIsParsing(false);
             },
@@ -82,7 +82,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         });
     };
 
-    const validateRows = (rows: any[]) => {
+    const validateRows = (rows: Record<string, string>[]) => {
         let validCount = 0;
         let invalidCount = 0;
         const processed = rows.map((row, index) => {

@@ -78,9 +78,14 @@ export default function Footer() {
 
                 {/* Copyright Row */}
                 <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-[10px] text-zinc-600">
-                        &copy; {new Date().getFullYear()} Ryyt Inc. All rights reserved.
-                    </p>
+                    <div className="flex flex-col gap-1">
+                        <p className="text-[10px] text-zinc-600">
+                            &copy; 2025 Calcure Technologies Private Limited. All rights reserved.
+                        </p>
+                        <p className="text-[10px] text-zinc-700">
+                            3 no. Basunagar, Madhaymgram, Kolkata 700129
+                        </p>
+                    </div>
                     <div className="flex items-center gap-2 text-[10px] text-zinc-600">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         All Systems Operational

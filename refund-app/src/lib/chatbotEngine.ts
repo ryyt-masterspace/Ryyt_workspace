@@ -21,19 +21,10 @@ export async function getBotResponse(
     scenarioId?: string
 ): Promise<BotResponse> {
 
-    // 1. Direct Scenario Navigation (Button Click)
-    if (scenarioId && SCENARIO_MAP[scenarioId]) {
-        const scenario = SCENARIO_MAP[scenarioId];
-        return {
-            text: scenario.message,
-            actions: scenario.options
-        };
-    }
-
     const cleanMsg = input.toLowerCase().trim();
 
-    // 2. Handle Lead Capture (Email + Phone)
-    // Only capture if they ARE NOT logged in (Visitors)
+    // 1. Lead Capture Priority (Email + Phone)
+    // CRITICAL: Check this BEFORE any other logic.
     if (!isLoggedIn) {
         const emailRegex = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
         const phoneRegex = /(?:\+?91)?[6-9]\d{9}/g;
@@ -43,12 +34,15 @@ export async function getBotResponse(
         const contacts = Array.from(new Set([...emailMatches, ...phoneMatches]));
 
         if (contacts.length > 0) {
+            console.log("Lead Detected in Input:", contacts); // Debugging for Founder
+
             let leadCaptured = false;
             for (const contact of contacts) {
                 try {
+                    console.log("Attempting to save lead:", contact);
                     await saveLead(contact, interestContext);
                     leadCaptured = true;
-                } catch (err) {
+                } catch (err: unknown) {
                     console.error("Failed to save lead", contact, err);
                 }
             }
@@ -56,11 +50,20 @@ export async function getBotResponse(
             if (leadCaptured) {
                 return {
                     text: LEAD_CAPTURE_SUCCESS,
-                    actions: [], // Actions are handled by the Guided Exit UI in ChatWindow
+                    actions: [],
                     captureLead: true
                 };
             }
         }
+    }
+
+    // 2. Direct Scenario Navigation (Button Click)
+    if (scenarioId && SCENARIO_MAP[scenarioId]) {
+        const scenario = SCENARIO_MAP[scenarioId];
+        return {
+            text: scenario.message,
+            actions: scenario.options
+        };
     }
 
     // 3. Handle Greetings
@@ -83,10 +86,7 @@ export async function getBotResponse(
         }
     }
 
-    // 5. Merchant Support /LoggedIn Logic can remain as fallback text or map to a generic support scenario
-    // For now, if logged in, we give a standard helpful response, but we really want to drive them to the scenarios.
-
-    // 6. Fallback
+    // 5. Fallback
     const fallbackRoot = SCENARIO_MAP["root"];
     return {
         text: "I'm not exactly sure what you mean, but I can help you with these topics:",

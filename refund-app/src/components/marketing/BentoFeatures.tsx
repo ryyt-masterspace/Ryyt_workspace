@@ -1,84 +1,153 @@
-'use client';
-import { motion } from 'framer-motion';
-import { Wallet, PhoneOff, MailWarning } from 'lucide-react';
+import { ShieldCheck, MessageSquare, Tag, History } from 'lucide-react';
 
 export default function BentoFeatures() {
-    const features = [
-        {
-            icon: Wallet,
-            title: "Escape the Settlement Trap",
-            pain: "Waiting for new sales just to fund a refund.",
-            fix: "Pay instantly via Bank QR. Your money, your rules.",
-            color: "text-red-400",
-            painLabel: "The Trap",
-            fixLabel: "The Freedom"
-        },
-        {
-            icon: PhoneOff,
-            title: "End the Data Chase",
-            pain: "Manually calling customers for bank details.",
-            fix: "Auto-pilot collection. We get the details; you click approve.",
-            color: "text-orange-400",
-            painLabel: "The Drudgery",
-            fixLabel: "The System"
-        },
-        {
-            icon: MailWarning,
-            title: "Kill the Anxiety Loop",
-            pain: "Customers thinking you are lying about the refund.",
-            fix: "Live tracking links that build trust, not tickets.",
-            color: "text-yellow-400",
-            painLabel: "The Friction",
-            fixLabel: "The Proof"
-        }
-    ];
-
     return (
-        <section id="features" className="py-20 relative z-10 overflow-hidden">
-            <div className="container mx-auto px-4 relative z-10">
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">From Operational Chaos to Financial Control.</h2>
-                    <p className="text-zinc-400 text-lg max-w-2xl mx-auto">Why is giving money back harder than taking it? <br /> Ryyt replaces the chaos with a simple, automated workflow.</p>
+        <section id="features" className="py-24 px-6 relative z-10">
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-16 text-center">
+                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                        Built for <span className="text-blue-500">Enterprise Scale.</span>
+                    </h2>
+                    <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
+                        Replace manual chaos with a system designed for high-volume D2C brands.
+                    </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {features.map((f, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 p-8 rounded-3xl hover:border-[#0052FF]/50 hover:shadow-[0_0_30px_-10px_rgba(0,82,255,0.3)] transition-all duration-500 group relative overflow-hidden"
-                        >
-                            {/* Card Inner Glow */}
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#0052FF]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                            <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 group-hover:bg-[#0052FF] transition-colors duration-300 border border-white/5">
-                                <f.icon className="text-zinc-400 group-hover:text-white group-hover:scale-110 transition-all duration-300" size={24} />
+                    {/* Card 1: Data / Manual Chase */}
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-blue-500/20 transition-colors">
+                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                        <div className="relative z-10 flex flex-col">
+                            <div className="mb-6">
+                                <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4 border border-blue-500/20">
+                                    <ShieldCheck className="w-5 h-5 text-blue-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">End the Manual UPI Chase</h3>
                             </div>
 
-                            <h3 className="text-xl font-bold text-white mb-6">{f.title}</h3>
-
-                            <div className="space-y-4">
-                                <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-xl group-hover:border-red-500/20 transition-colors">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                        <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">{f.painLabel}</p>
-                                    </div>
-                                    <p className="text-sm text-zinc-400 leading-relaxed">"{f.pain}"</p>
+                            <div className="space-y-4 lg:space-y-0 lg:flex lg:gap-4">
+                                <div className="w-full lg:w-1/2 bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
+                                    <p className="text-red-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> The Risk
+                                    </p>
+                                    <p className="text-zinc-500 text-sm leading-relaxed">
+                                        Wasting hours collecting payment details over WhatsApp. Human errors lead to failed or incorrect payouts.
+                                    </p>
                                 </div>
-
-                                <div className="p-4 bg-[#0052FF]/5 border border-[#0052FF]/10 rounded-xl group-hover:bg-[#0052FF]/10 group-hover:border-[#0052FF]/30 transition-all">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#0052FF]" />
-                                        <p className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#0052FF] to-cyan-400 uppercase tracking-wider">{f.fixLabel}</p>
-                                    </div>
-                                    <p className="text-sm text-zinc-200 leading-relaxed font-medium">{f.fix}</p>
+                                <div className="w-full lg:w-1/2 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)] relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/20 blur-[40px] rounded-full"></div>
+                                    <p className="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> The Solution
+                                    </p>
+                                    <p className="text-zinc-200 text-sm leading-relaxed font-medium">
+                                        Automated, secure links handle the collection for you. We verify the customer, you just click 'Approve'.
+                                    </p>
                                 </div>
                             </div>
-                        </motion.div>
-                    ))}
+                        </div>
+                    </div>
+
+                    {/* Card 2: Support / Tickets */}
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-blue-500/20 transition-colors">
+                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                        <div className="relative z-10 flex flex-col">
+                            <div className="mb-6">
+                                <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center mb-4 border border-amber-500/20">
+                                    <MessageSquare className="w-5 h-5 text-amber-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Kill the 'Where is my refund?' Tickets</h3>
+                            </div>
+
+                            <div className="space-y-4 lg:space-y-0 lg:flex lg:gap-4">
+                                <div className="w-full lg:w-1/2 bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
+                                    <p className="text-red-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> The Risk
+                                    </p>
+                                    <p className="text-zinc-500 text-sm leading-relaxed">
+                                        Customer anxiety peaks after a return. Your support team is flooded with status inquiries daily.
+                                    </p>
+                                </div>
+                                <div className="w-full lg:w-1/2 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)]">
+                                    <p className="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> The Solution
+                                    </p>
+                                    <p className="text-zinc-300 text-sm leading-relaxed font-medium">
+                                        Real-time, branded tracking links for every customer. Total transparency from initiation to settlement.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Card 3: Trust */}
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-blue-500/20 transition-colors">
+                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                        <div className="relative z-10 flex flex-col">
+                            <div className="mb-6">
+                                <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4 border border-emerald-500/20">
+                                    <Tag className="w-5 h-5 text-emerald-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Build Trust with Every Transaction</h3>
+                            </div>
+
+                            <div className="space-y-4 lg:space-y-0 lg:flex lg:gap-4">
+                                <div className="w-full lg:w-1/2 bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
+                                    <p className="text-red-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> The Risk
+                                    </p>
+                                    <p className="text-zinc-500 text-sm leading-relaxed">
+                                        Generic emails that look like spam. Inconsistent communication makes customers doubt your brand's legitimacy.
+                                    </p>
+                                </div>
+                                <div className="w-full lg:w-1/2 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)]">
+                                    <p className="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> The Solution
+                                    </p>
+                                    <p className="text-zinc-300 text-sm leading-relaxed font-medium">
+                                        100% white-labeled emails and professional PDF invoices. High-end branding that builds customer loyalty.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Card 4: SLA / Scale */}
+                    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:border-blue-500/20 transition-colors">
+                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                        <div className="relative z-10 flex flex-col">
+                            <div className="mb-6">
+                                <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center mb-4 border border-purple-500/20">
+                                    <History className="w-5 h-5 text-purple-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Accounting on Auto-Pilot</h3>
+                            </div>
+
+                            <div className="space-y-4 lg:space-y-0 lg:flex lg:gap-4">
+                                <div className="w-full lg:w-1/2 bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
+                                    <p className="text-red-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> The Risk
+                                    </p>
+                                    <p className="text-zinc-500 text-sm leading-relaxed">
+                                        RBI compliance stress and missing deadlines. Manual spreadsheets that lag as your D2C brand grows.
+                                    </p>
+                                </div>
+                                <div className="w-full lg:w-1/2 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)]">
+                                    <p className="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> The Solution
+                                    </p>
+                                    <p className="text-zinc-300 text-sm leading-relaxed font-medium">
+                                        O(1) high-performance architecture with automated SLA timers. Scale to 10k+ refunds without breaking a sweat.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </section>

@@ -10,9 +10,16 @@ import { PLANS, BillingPlan } from "@/config/plans";
 import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt, FileText } from "lucide-react";
 import { generateInvoice, InvoiceMerchantData, InvoicePaymentData } from "@/lib/invoiceGenerator";
 
+// Local extension for this page
+interface BillingMerchantData extends InvoiceMerchantData {
+    lastPaymentDate?: { seconds: number };
+    subscriptionStatus?: string;
+    planType?: string;
+}
+
 export default function BillingPage() {
     const { user } = useAuth();
-    const [merchant, setMerchant] = useState<InvoiceMerchantData | null>(null);
+    const [merchant, setMerchant] = useState<BillingMerchantData | null>(null);
     const [metrics, setMetrics] = useState<any>(null);
     const [cycleUsage, setCycleUsage] = useState(0);
     const [payments, setPayments] = useState<InvoicePaymentData[]>([]);
@@ -35,11 +42,11 @@ export default function BillingPage() {
                 // 1. Fetch Merchant Profile
                 const mDoc = doc(db, "merchants", user.uid);
                 const mSnap = await getDoc(mDoc);
-                const mData = mSnap.data() as InvoiceMerchantData;
+                const mData = mSnap.data() as BillingMerchantData;
                 if (mSnap.exists()) setMerchant(mData);
 
                 // 2. Cycle Usage Count (Only refunds created since lastPaymentDate)
-                const lastPayDate = mData?.lastPaymentDate?.seconds
+                const lastPayDate = (mData && mData.lastPaymentDate && mData.lastPaymentDate.seconds)
                     ? new Date(mData.lastPaymentDate.seconds * 1000)
                     : new Date(new Date().setDate(new Date().getDate() - 30));
 
@@ -120,7 +127,7 @@ export default function BillingPage() {
                                         <h2 className="text-3xl font-bold text-white">{plan.name}</h2>
                                     </div>
                                     <div className="bg-blue-600/10 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/20">
-                                        {(merchant as any)?.subscriptionStatus?.toUpperCase() || "ACTIVE"}
+                                        {(merchant?.subscriptionStatus || "ACTIVE").toUpperCase()}
                                     </div>
                                 </div>
 

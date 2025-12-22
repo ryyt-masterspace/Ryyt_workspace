@@ -36,7 +36,7 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     // Initial Greeting (Load 'root' scenario)
     useEffect(() => {
         if (messages.length === 0) {
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 const root = SCENARIO_MAP["root"];
                 setMessages([{
                     id: "init",
@@ -45,8 +45,9 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                     actions: root.options
                 }]);
             }, 600);
+            return () => clearTimeout(timer);
         }
-    }, [user]);
+    }, [messages.length]);
 
     // Auto-scroll
     useEffect(() => {
@@ -65,7 +66,7 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                     return [...prev, { id: "proactive-nudge", role: "agent", text: nudge }];
                 });
             }
-        }, 10000);
+        }, 15000);
 
         return () => clearTimeout(nudgeTimeout);
     }, [isOpen, messages.length]);
@@ -80,8 +81,6 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
 
         setTimeout(async () => {
             try {
-                // Determine if this is a lead capture interest or just navigation
-                // For navigation, we pass the nextId directly
                 const response = await getBotResponse(label, !!user, label, nextId);
 
                 if (response.captureLead) {
@@ -113,7 +112,6 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
 
         setTimeout(async () => {
             try {
-                // Free text input: No specific scenario ID, let engine match keywords
                 const response = await getBotResponse(currentInput, !!user, lastInterest);
 
                 if (response.captureLead) {
@@ -132,6 +130,12 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                 setIsTyping(false);
             }
         }, 600);
+    };
+
+    const resetChat = () => {
+        setHasCapturedLead(false);
+        setMessages([]); // Clear history
+        // The useEffect will pick up messages.length === 0 and trigger the initial greeting
     };
 
     return (
@@ -213,31 +217,20 @@ export default function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                                     onClick={onClose}
                                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 text-sm"
                                 >
-                                    All set, thanks!
+                                    All set
                                 </button>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => {
-                                            setHasCapturedLead(false);
-                                            // Reset to root
-                                            const root = SCENARIO_MAP["root"];
-                                            const menuMsg: Message = {
-                                                id: Date.now().toString(),
-                                                role: "agent",
-                                                text: "Back to the start. How can I help?",
-                                                actions: root.options
-                                            };
-                                            setMessages(prev => [...prev, menuMsg]);
-                                        }}
+                                        onClick={resetChat}
                                         className="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 p-3 rounded-xl transition-colors text-sm border border-white/5 font-medium"
                                     >
                                         Main Menu
                                     </button>
                                     <button
-                                        onClick={() => handleActionClick("I'd like to book a demo with Shuvam", "story_contact")}
+                                        onClick={() => handleActionClick("I'm ready to book a demo.", "story_contact")}
                                         className="flex-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 p-3 rounded-xl transition-colors text-sm border border-indigo-500/20 font-medium"
                                     >
-                                        Book a demo
+                                        Book Demo
                                     </button>
                                 </div>
                             </div>
