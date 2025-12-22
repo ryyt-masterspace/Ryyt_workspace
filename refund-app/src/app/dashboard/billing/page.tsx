@@ -7,15 +7,26 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { PLANS, BillingPlan } from "@/config/plans";
-import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt } from "lucide-react";
+import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt, FileText } from "lucide-react";
+import { generateInvoice, InvoiceMerchantData, InvoicePaymentData } from "@/lib/invoiceGenerator";
 
 export default function BillingPage() {
     const { user } = useAuth();
-    const [merchant, setMerchant] = useState<any>(null);
+    const [merchant, setMerchant] = useState<InvoiceMerchantData | null>(null);
     const [metrics, setMetrics] = useState<any>(null);
     const [cycleUsage, setCycleUsage] = useState(0);
-    const [payments, setPayments] = useState<any[]>([]);
+    const [payments, setPayments] = useState<InvoicePaymentData[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const handleDownloadInvoice = async (payment: InvoicePaymentData) => {
+        if (!merchant) return;
+        try {
+            await generateInvoice(merchant, payment);
+        } catch (e) {
+            console.error(e);
+            alert("Could not generate invoice.");
+        }
+    };
 
     useEffect(() => {
         async function fetchData() {
@@ -24,11 +35,11 @@ export default function BillingPage() {
                 // 1. Fetch Merchant Profile
                 const mDoc = doc(db, "merchants", user.uid);
                 const mSnap = await getDoc(mDoc);
-                const mData = mSnap.data();
+                const mData = mSnap.data() as InvoiceMerchantData;
                 if (mSnap.exists()) setMerchant(mData);
 
                 // 2. Cycle Usage Count (Only refunds created since lastPaymentDate)
-                const lastPay = mData?.lastPaymentDate?.seconds
+                const lastPayDate = mData?.lastPaymentDate?.seconds
                     ? new Date(mData.lastPaymentDate.seconds * 1000)
                     : new Date(new Date().setDate(new Date().getDate() - 30));
 
@@ -36,7 +47,7 @@ export default function BillingPage() {
                 const cycleQuery = query(
                     refundsRef,
                     where("merchantId", "==", user.uid),
-                    where("createdAt", ">=", lastPay)
+                    where("createdAt", ">=", lastPayDate)
                 );
                 const countSnap = await getCountFromServer(cycleQuery);
                 setCycleUsage(countSnap.data().count);
@@ -49,7 +60,7 @@ export default function BillingPage() {
                 const paymentsRef = collection(db, "merchants", user.uid, "payments");
                 const pQuery = query(paymentsRef, orderBy("date", "desc"));
                 const pSnap = await getDocs(pQuery);
-                setPayments(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+                setPayments(pSnap.docs.map(d => ({ id: d.id, ...d.data() } as InvoicePaymentData)));
             } catch (err) {
                 console.error("Failed to fetch billing data", err);
             } finally {
@@ -109,7 +120,7 @@ export default function BillingPage() {
                                         <h2 className="text-3xl font-bold text-white">{plan.name}</h2>
                                     </div>
                                     <div className="bg-blue-600/10 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/20">
-                                        {merchant?.subscriptionStatus?.toUpperCase() || "ACTIVE"}
+                                        {(merchant as any)?.subscriptionStatus?.toUpperCase() || "ACTIVE"}
                                     </div>
                                 </div>
 
@@ -233,7 +244,7 @@ export default function BillingPage() {
                                                 payments.map((p) => (
                                                     <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
                                                         <td className="px-6 py-4 text-sm font-mono text-gray-400">
-                                                            {p.date?.seconds ? new Date(p.date.seconds * 1000).toLocaleDateString() : 'Processing'}
+                                                            {(p.date as any)?.seconds ? new Date((p.date as any).seconds * 1000).toLocaleDateString() : 'Processing'}
                                                         </td>
                                                         <td className="px-6 py-4 font-mono text-white">
                                                             ₹{p.amount?.toLocaleString()}
@@ -243,12 +254,15 @@ export default function BillingPage() {
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <div className="flex justify-center">
-                                                                <Link
-                                                                    href={`/dashboard/reports?month=${p.date?.seconds ? new Date(p.date.seconds * 1000).getMonth() : ''}`}
+                                                                <button
+                                                                    onClick={() => handleDownloadInvoice(p)}
                                                                     className="flex items-center gap-1.5 text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors"
                                                                 >
-                                                                    <Receipt size={12} /> View Report
-                                                                </Link>
+                                                                    <div className="p-1 bg-blue-500/10 rounded-md">
+                                                                        <Receipt size={12} />
+                                                                    </div>
+                                                                    Download XML/PDF
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>

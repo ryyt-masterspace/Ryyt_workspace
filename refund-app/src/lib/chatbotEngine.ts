@@ -1,75 +1,95 @@
-import { PUBLIC_KNOWLEDGE, MERCHANT_SUPPORT, SALES_NUDGES, LEAD_CAPTURE_SUCCESS } from "@/config/chatbotData";
+import { SCENARIO_MAP, KEYWORD_MAP, SALES_NUDGES, LEAD_CAPTURE_SUCCESS, Scenario } from "@/config/chatbotData";
 import { saveLead } from "@/lib/leadService";
 
 /**
- * Smart Librarian Engine
- * Zero-Cost, Keyword-Based Logic
+ * Smart Librarian Engine (Navigator Edition)
+ * Scenario-Based State Machine
  */
 const GREETINGS = ["hi", "hello", "hey", "good morning", "good evening", "namaste"];
-const CLOSING = "\n\nDoes that help, or is there anything else I can explain?";
 
-export async function getBotResponse(message: string, isLoggedIn: boolean): Promise<string> {
-    const cleanMsg = message.toLowerCase().trim();
+// Response Interface
+export interface BotResponse {
+    text: string;
+    actions: { label: string; nextId: string }[];
+    captureLead?: boolean;
+}
 
-    // 1. Handle Greetings
-    if (GREETINGS.some(g => cleanMsg === g)) {
-        return `Hi there! I'm the Ryyt assistant. How can I help you today?`;
+export async function getBotResponse(
+    input: string,
+    isLoggedIn: boolean,
+    interestContext: string = "General",
+    scenarioId?: string
+): Promise<BotResponse> {
+
+    // 1. Direct Scenario Navigation (Button Click)
+    if (scenarioId && SCENARIO_MAP[scenarioId]) {
+        const scenario = SCENARIO_MAP[scenarioId];
+        return {
+            text: scenario.message,
+            actions: scenario.options
+        };
     }
 
-    // 2. Email Detection (Lead Capture)
-    const emailRegex = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g;
-    const emailMatch = cleanMsg.match(emailRegex);
+    const cleanMsg = input.toLowerCase().trim();
 
-    if (emailMatch && !isLoggedIn) {
-        try {
-            await saveLead(emailMatch[0]);
-            return LEAD_CAPTURE_SUCCESS;
-        } catch (err) {
-            console.error("Failed to save lead", err);
-            // Fallback to normal processing if save fails
-        }
-    }
+    // 2. Handle Lead Capture (Email + Phone)
+    // Only capture if they ARE NOT logged in (Visitors)
+    if (!isLoggedIn) {
+        const emailRegex = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
+        const phoneRegex = /(?:\+?91)?[6-9]\d{9}/g;
 
-    // 3. Determine which pool to search
-    const pool = isLoggedIn ? [...MERCHANT_SUPPORT, ...PUBLIC_KNOWLEDGE] : PUBLIC_KNOWLEDGE;
+        const emailMatches = cleanMsg.match(emailRegex) || [];
+        const phoneMatches = cleanMsg.match(phoneRegex) || [];
+        const contacts = Array.from(new Set([...emailMatches, ...phoneMatches]));
 
-    // 4. Find ALL hits (Multi-hit logic)
-    const matches: string[] = [];
-    let containsSalesKeyword = false;
+        if (contacts.length > 0) {
+            let leadCaptured = false;
+            for (const contact of contacts) {
+                try {
+                    await saveLead(contact, interestContext);
+                    leadCaptured = true;
+                } catch (err) {
+                    console.error("Failed to save lead", contact, err);
+                }
+            }
 
-    for (const entry of pool) {
-        if (entry.keywords.some(keyword => cleanMsg.includes(keyword))) {
-            matches.push(entry.answer);
-            if (entry.keywords.some(k => ["pricing", "demo", "quote"].includes(k))) {
-                containsSalesKeyword = true;
+            if (leadCaptured) {
+                return {
+                    text: LEAD_CAPTURE_SUCCESS,
+                    actions: [], // Actions are handled by the Guided Exit UI in ChatWindow
+                    captureLead: true
+                };
             }
         }
     }
 
-    if (matches.length > 0) {
-        let finalResponse = matches.join("\n\n");
-
-        // Add a random Sales Nudge for certain keywords
-        if (containsSalesKeyword && !isLoggedIn) {
-            const randomNudge = SALES_NUDGES[Math.floor(Math.random() * SALES_NUDGES.length)];
-            finalResponse += `\n\n**Quick Tip:** ${randomNudge}`;
-        }
-
-        return finalResponse + CLOSING;
+    // 3. Handle Greetings
+    if (GREETINGS.some(g => cleanMsg === g)) {
+        const root = SCENARIO_MAP["root"];
+        return {
+            text: root.message,
+            actions: root.options
+        };
     }
 
-    // 5. Logic Check: Logged-out user asking about dashboard features
-    if (!isLoggedIn) {
-        const dashboardKeywords = ["manual", "bulk", "csv", "status", "dashboard", "metrics", "find", "search"];
-        if (dashboardKeywords.some(kw => cleanMsg.includes(kw))) {
-            return "That sounds like a Merchant feature. Please log in to your dashboard to manage refunds and view analytics!" + CLOSING;
+    // 4. Keyword Matching -> Map to Scenario
+    for (const mapping of KEYWORD_MAP) {
+        if (mapping.keywords.some(kw => cleanMsg.includes(kw))) {
+            const scenario = SCENARIO_MAP[mapping.scenarioId];
+            return {
+                text: scenario.message,
+                actions: scenario.options
+            };
         }
     }
+
+    // 5. Merchant Support /LoggedIn Logic can remain as fallback text or map to a generic support scenario
+    // For now, if logged in, we give a standard helpful response, but we really want to drive them to the scenarios.
 
     // 6. Fallback
-    const fallbackText = isLoggedIn
-        ? "I'm not quite sure how to help with that yet. You can ask me about manual refunds, bulk CSV updates, or what different statuses mean!"
-        : "I'm sorry, I don't have a specific answer for that yet. You can ask me about how Ryyt works, our pricing, or security compliance!";
-
-    return fallbackText + CLOSING;
+    const fallbackRoot = SCENARIO_MAP["root"];
+    return {
+        text: "I'm not exactly sure what you mean, but I can help you with these topics:",
+        actions: fallbackRoot.options
+    };
 }

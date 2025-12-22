@@ -28,13 +28,13 @@ export async function sendUpdate(
     }
 
     try {
-        // 1. Fetch Merchant Branding Data
+        // 1. Fetch Merchant Branding Data (Robust Fetch)
         const merchantRef = doc(db, "merchants", merchantId);
         const merchantSnap = await getDoc(merchantRef);
 
         const branding = {
-            brandName: "Ryyt",         // Fallback
-            supportEmail: undefined,   // Correct field for Reply-To
+            brandName: "Ryyt",         // Default
+            supportEmail: undefined,
             logo: null
         };
 
@@ -42,20 +42,22 @@ export async function sendUpdate(
             const data = merchantSnap.data();
             branding.brandName = data.brandName || branding.brandName;
             branding.supportEmail = data.supportEmail || undefined;
-            branding.logo = data.logo || null;
+            branding.logo = data.logo || data.brandLogo || null; // Support both field names
         }
 
         // 2. Prepare Email Request
-        // We pass branding info so the API can personalize the template
+        // FIX: Order ID Fallback (Handle casing mismatch)
+        const safeOrderId = refundData.orderId || refundData.orderID || refundData.id?.slice(-6).toUpperCase() || "N/A";
+
         const payload = {
             customerEmail: refundData.customerEmail,
-            merchantEmail: branding.supportEmail, // FIX: Use valid email, not brand string
+            merchantEmail: branding.supportEmail,
             triggerType: triggerType,
             paymentMethod: refundData.paymentMethod,
             details: {
                 ...details,
                 amount: refundData.amount,
-                orderId: refundData.orderId,
+                orderId: safeOrderId,
                 refundId: refundData.id,
                 brandName: branding.brandName,
                 brandLogo: branding.logo,

@@ -10,8 +10,8 @@ export default function GlobalConcierge() {
     const [isOpen, setIsOpen] = useState(false);
     const [isIdle, setIsIdle] = useState(false);
 
-    // Hide on Auth pages (Login/Register) if needed, currently showing everywhere
-    const isHidden = false;
+    // Hide on all pages EXCEPT the Landing Page ("/")
+    const isHidden = pathname !== "/";
 
     // Idle Detection (Trigger "Nudge" after 30s)
     useEffect(() => {
