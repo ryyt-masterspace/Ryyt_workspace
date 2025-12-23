@@ -12,10 +12,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const auth = getAuth(app);
     const [status, setStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showRetry, setShowRetry] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
         let unsubscribeMerchant: (() => void) | null = null;
+
+        // Task 4: Safety Timeout (Show retry link after 5 seconds)
+        const timeoutId = setTimeout(() => {
+            if (loading) setShowRetry(true);
+        }, 5000);
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -39,7 +45,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             }
                         });
                         setStatus("pending_payment");
-                        router.replace('/onboarding');
+                        // Task 2: Instant Redirect
+                        window.location.href = '/onboarding';
                     } else {
                         const userData = userSnap.data();
                         const userStatus = userData?.subscriptionStatus || "active";
@@ -47,24 +54,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                         const isLegacyOnboarded = userData?.brandName && userData?.planType;
                         if (userStatus === "pending_payment" && !isLegacyOnboarded) {
-                            router.replace('/onboarding');
+                            // Task 2: Instant Redirect
+                            window.location.href = '/onboarding';
                         }
                     }
                     setLoading(false);
+                    clearTimeout(timeoutId);
                 }, (error) => {
                     console.error("Layout onSnapshot Error:", error);
                     setLoading(false);
+                    clearTimeout(timeoutId);
                 });
 
             } else {
-                router.push('/login');
+                window.location.href = '/login';
                 setLoading(false);
+                clearTimeout(timeoutId);
             }
         });
 
         return () => {
             unsubscribeAuth();
             if (unsubscribeMerchant) unsubscribeMerchant();
+            clearTimeout(timeoutId);
         };
     }, [auth, router]);
 
@@ -73,10 +85,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         window.location.href = "/login";
     };
 
+    const handleRetry = () => {
+        window.location.reload();
+    };
+
     // 4. THE IRON-CLAD GATEKEEPER
     // 4a. Still Loading
     if (loading) {
-        return <Loading />;
+        return (
+            <div className="relative min-h-screen">
+                <Loading />
+                {showRetry && (
+                    <div className="fixed bottom-12 left-0 right-0 flex justify-center z-50 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                        <div className="bg-[#0A0A0A] border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-4 shadow-2xl">
+                            <p className="text-xs text-gray-400">Session taking too long?</p>
+                            <button
+                                onClick={handleRetry}
+                                className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                            >
+                                <Lock size={12} /> Click here to retry
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
     }
 
     // 4b. Explicit Suspension
