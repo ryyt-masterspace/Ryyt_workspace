@@ -60,18 +60,19 @@ export default function Footer() {
                     <div>
                         <h4 className="font-semibold text-white text-sm mb-3">Company</h4>
                         <ul className="space-y-1.5 text-xs text-zinc-400">
-                            <li><Link href="/blog" className="hover:text-[#0052FF] transition-colors">Blog</Link></li>
-                            <li><Link href="/about" className="hover:text-[#0052FF] transition-colors">About Us</Link></li>
-                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Careers</Link></li>
-                            <li><Link href="#" className="hover:text-[#0052FF] transition-colors">Contact</Link></li>
+                            <li><Link href="/blog" className="hover:text-indigo-400 transition-colors">Blog</Link></li>
+                            <li><Link href="/about" className="hover:text-indigo-400 transition-colors">About Us</Link></li>
+                            <li><Link href="/contact-us" className="hover:text-indigo-400 transition-colors">Contact Us</Link></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="font-semibold text-white text-sm mb-3">Legal</h4>
                         <ul className="space-y-1.5 text-xs text-zinc-400">
-                            <li><Link href="/privacy" className="hover:text-[#0052FF] transition-colors">Privacy Policy</Link></li>
-                            <li><Link href="/terms" className="hover:text-[#0052FF] transition-colors">Terms of Service</Link></li>
+                            <li><Link href="/privacy" className="hover:text-indigo-400 transition-colors">Privacy Policy</Link></li>
+                            <li><Link href="/terms" className="hover:text-indigo-400 transition-colors">Terms of Service</Link></li>
+                            <li><Link href="/shipping-policy" className="hover:text-indigo-400 transition-colors">Shipping Policy</Link></li>
+                            <li><Link href="/cancellation-refund-policy" className="hover:text-indigo-400 transition-colors">Cancellation Policy</Link></li>
                         </ul>
                     </div>
                 </div>
@@ -83,9 +84,10 @@ export default function Footer() {
                             &copy; 2025 Calcure Technologies Private Limited. All rights reserved.
                         </p>
                         <p className="text-[10px] text-zinc-700">
-                            3 no. Basunagar, Madhaymgram, Kolkata 700129
+                            Shantiniketan Apartment, 3 No Basunagar, Madhyamgram, Kolkata 700129
                         </p>
                     </div>
+
                     <div className="flex items-center gap-2 text-[10px] text-zinc-600">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         All Systems Operational
