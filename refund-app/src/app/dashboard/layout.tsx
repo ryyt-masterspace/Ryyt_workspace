@@ -38,11 +38,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         setStatus("pending_payment");
                         router.replace('/onboarding');
                     } else {
-                        const userStatus = userSnap.data()?.subscriptionStatus || "active";
+                        const userData = userSnap.data();
+                        const userStatus = userData?.subscriptionStatus || "active";
                         setStatus(userStatus);
 
-                        // IMMEDIATE REDIRECT: Avoid any chance of children rendering
-                        if (userStatus === "pending_payment") {
+                        // Task 3: Onboarding Guard Exception for Legacy Users
+                        // If they ALREADY have a brandName and planType, they are technically "onboarded"
+                        const isLegacyOnboarded = userData?.brandName && userData?.planType;
+
+                        // IMMEDIATE REDIRECT: Only redirect if they actually LACK the setup
+                        if (userStatus === "pending_payment" && !isLegacyOnboarded) {
                             router.replace('/onboarding');
                             return;
                         }

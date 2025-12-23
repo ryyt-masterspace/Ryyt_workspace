@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import Razorpay from 'razorpay';
+import { calculateOverageAddon, resetMonthlyCounter } from '@/lib/billingService';
 
 export async function POST(req: Request) {
     try {
@@ -40,25 +42,68 @@ export async function POST(req: Request) {
         switch (eventName) {
             case 'subscription.authenticated':
             case 'subscription.charged':
-                // Renewal or Initial Success
+                // 1. Calculate Overage before resetting
+                let overageData = { amountInPaise: 0, usage: 0, limit: 0, excessRate: 0 };
+                try {
+                    overageData = await calculateOverageAddon(merchantId);
+
+                    // 2. If overage exists, create a Razorpay Add-on
+                    if (overageData.amountInPaise > 0) {
+                        try {
+                            const rzp = new Razorpay({
+                                key_id: process.env.RAZORPAY_KEY_ID || '',
+                                key_secret: process.env.RAZORPAY_KEY_SECRET || '',
+                            });
+
+                            await rzp.subscriptions.createAddon(subscription.id, {
+                                item: {
+                                    name: "Usage Overage Fee",
+                                    amount: overageData.amountInPaise,
+                                    currency: "INR"
+                                }
+                            });
+                            console.log(`[Billing] Created Overage Add-on for ${merchantId}: ₹${overageData.amountInPaise / 100}`);
+                        } catch (addonError) {
+                            // Task 3: Log failure but don't block access
+                            console.error(`[Admin Critical] Failed to create Razorpay Add-on for ${merchantId}:`, addonError);
+                        }
+                    }
+                } catch (calcError) {
+                    console.error(`[Billing Error] Failed to calculate overage for ${merchantId}:`, calcError);
+                }
+
+                // 3. Renewal Success: Update Status
                 await updateDoc(merchantRef, {
                     subscriptionStatus: 'active',
                     lastPaymentDate: serverTimestamp(),
                 });
 
-                // Record Payment for Invoice
+                // 4. Record Payment for Invoice
                 const paymentData = payload.payment?.entity;
+                const baseNetPrice = (paymentData?.amount || subscription.billing_amount || 0) / 100;
+
                 await addDoc(collection(db, 'merchants', merchantId, 'payments'), {
-                    amount: (paymentData?.amount || subscription.billing_amount || 0) / 100, // Razorpay is in paise
+                    amount: baseNetPrice,
                     currency: paymentData?.currency || 'INR',
                     razorpayPaymentId: paymentData?.id || 'SUB_RENEWAL',
                     razorpaySubscriptionId: subscription.id,
-                    planType: subscription.plan_id, // This might need mapping back to 'startup' etc if needed
+                    planType: subscription.plan_id,
                     status: 'paid',
                     timestamp: serverTimestamp(),
                     method: paymentData?.method || 'subscription',
-                    invoiceId: `CAL-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}` // Simple fallback ID
+                    invoiceId: `CAL-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
+
+                    // Explicitly pass basePrice so invoiceGenerator doesn't use inclusive amount as net
+                    basePrice: baseNetPrice,
+
+                    // Task 4: Store usage stats for the Invoice Machine
+                    usageCount: overageData.usage,
+                    limit: overageData.limit,
+                    excessRate: overageData.excessRate
                 });
+
+                // 5. Scoreboard Reset: Start fresh for the new cycle
+                await resetMonthlyCounter(merchantId);
                 break;
 
             case 'subscription.halted':

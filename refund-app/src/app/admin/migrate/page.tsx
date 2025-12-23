@@ -430,7 +430,7 @@ export default function AdminMigratePage() {
                                                 </div>
 
                                                 {/* Access Control */}
-                                                <div className="pt-2">
+                                                <div className="pt-2 space-y-3">
                                                     <Button
                                                         onClick={handleToggleStatus}
                                                         disabled={isTogglingStatus}
@@ -450,6 +450,42 @@ export default function AdminMigratePage() {
                                                                 </>
                                                             )
                                                         )}
+                                                    </Button>
+
+                                                    {/* Task 2: Force Success Rescue button */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={async () => {
+                                                            if (!confirm("Are you sure? This will force-activate the merchant and initialize legacy fields.")) return;
+                                                            setIsTogglingStatus(true);
+                                                            try {
+                                                                const ref = doc(db, "merchants", selectedMerchantId);
+                                                                const now = new Date();
+                                                                const updates = {
+                                                                    subscriptionStatus: "active",
+                                                                    planType: selectedMerchantData.planType || "startup",
+                                                                    lastPaymentDate: selectedMerchantData.lastPaymentDate || now,
+                                                                    brandName: selectedMerchantData.brandName || "Legacy Partner",
+                                                                    logo: selectedMerchantData.logo || ""
+                                                                };
+                                                                await updateDoc(ref, updates);
+
+                                                                // Sync metrics scoreboard for this merchant
+                                                                await migrateMetrics(false, selectedMerchantId);
+
+                                                                alert("Merchant Rescued & Scoreboard Synced!");
+                                                                window.location.reload();
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                                alert("Force-unlock failed.");
+                                                            } finally {
+                                                                setIsTogglingStatus(false);
+                                                            }
+                                                        }}
+                                                        disabled={isTogglingStatus}
+                                                        className="w-full py-3 text-xs border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/10 rounded-xl flex items-center justify-center gap-2"
+                                                    >
+                                                        <Zap size={14} /> Force Complete Onboarding (Rescue)
                                                     </Button>
                                                 </div>
                                             </div>

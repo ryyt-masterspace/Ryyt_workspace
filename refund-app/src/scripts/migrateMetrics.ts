@@ -1,5 +1,5 @@
 import { db } from "../lib/firebase";
-import { collection, getDocs, doc, setDoc, serverTimestamp, query, limit, orderBy, startAfter } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, serverTimestamp, query, limit, orderBy, startAfter, where } from "firebase/firestore";
 
 interface MigrationSummary {
     totalRefunds: number;
@@ -13,8 +13,9 @@ interface MigrationSummary {
  * One-time catch-up script to initialize the O(1) Scoreboard for existing data.
  * Optimized with batching (500 docs/batch) to handle large datasets safely.
  */
-export async function migrateMetrics(isDryRun: boolean = true): Promise<MigrationSummary> {
+export async function migrateMetrics(isDryRun: boolean = true, targetMerchantId?: string): Promise<MigrationSummary> {
     console.log(`--- STARTING METRICS MIGRATION (${isDryRun ? "DRY RUN MODE" : "LIVE MODE"}) ---`);
+    if (targetMerchantId) console.log(`Targeting Merchant: ${targetMerchantId}`);
 
     const summary: MigrationSummary = {
         totalRefunds: 0,
@@ -31,10 +32,18 @@ export async function migrateMetrics(isDryRun: boolean = true): Promise<Migratio
 
         while (hasMore) {
             console.log(`Fetching batch of ${BATCH_SIZE} refunds...`);
-            let q = query(collection(db, "refunds"), orderBy("__name__"), limit(BATCH_SIZE));
-            if (lastDoc) {
-                q = query(collection(db, "refunds"), orderBy("__name__"), startAfter(lastDoc), limit(BATCH_SIZE));
+
+            let qConstraints: any[] = [orderBy("__name__"), limit(BATCH_SIZE)];
+            if (targetMerchantId) {
+                // If targeting, we filter by merchantId
+                // Note: If we use where, we might need an index if combined with orderBy __name__
+                // But for a single merchant, simple where is fine.
+                qConstraints = [where("merchantId", "==", targetMerchantId), limit(BATCH_SIZE)];
+            } else if (lastDoc) {
+                qConstraints = [orderBy("__name__"), startAfter(lastDoc), limit(BATCH_SIZE)];
             }
+
+            let q = query(collection(db, "refunds"), ...qConstraints);
 
             const snapshot = await getDocs(q);
             if (snapshot.empty) {

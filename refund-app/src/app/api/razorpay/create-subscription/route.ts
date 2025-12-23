@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { PLANS } from '@/config/plans';
 
 // Initialize Razorpay
 // Note: These should be in your .env.local
@@ -30,15 +31,17 @@ export async function POST(req: Request) {
         // 2. Create Subscription
         // total_count: 12 means 1 year if billed monthly
         // customer_notify: 1 means Razorpay sends emails
-        const subscription = await razorpay.subscriptions.create({
+        // max_amount: Set mandate limit to cover base + overage
+        const subscription: any = await razorpay.subscriptions.create({
             plan_id: razorpayPlanId,
             total_count: 12,
             quantity: 1,
             customer_notify: 1,
+            max_amount: (PLANS[planType].maxMandateAmount || 10000) * 100, // in paise
             notes: {
                 merchantId: userId
             }
-        });
+        } as any);
 
         return NextResponse.json({
             subscriptionId: subscription.id

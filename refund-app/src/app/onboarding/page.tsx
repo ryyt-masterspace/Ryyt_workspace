@@ -360,6 +360,12 @@ export default function OnboardingWizard() {
                                         </div>
                                     </div>
 
+                                    <div className="mb-6 px-4">
+                                        <p className="text-[10px] text-zinc-500 italic leading-relaxed text-center">
+                                            Note: The bank mandate shows a maximum limit to allow for your base plan + any usage overages. You will only be charged for your actual usage and will receive an invoice for every transaction.
+                                        </p>
+                                    </div>
+
                                     <button
                                         onClick={handleProceedToPayment}
                                         disabled={paymentStatus === 'connecting'}
