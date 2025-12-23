@@ -9,6 +9,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import { PLANS, BillingPlan } from "@/config/plans";
 import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt, FileText } from "lucide-react";
 import { generateInvoice, InvoiceMerchantData, InvoicePaymentData } from "@/lib/invoiceGenerator";
+import { calculateFinalBill } from "@/lib/taxCalculator";
 
 // Local extension for this page
 interface BillingMerchantData extends InvoiceMerchantData {
@@ -97,7 +98,9 @@ export default function BillingPage() {
     const overageCount = Math.max(0, usage - limit);
     const overageFee = overageCount * plan.excessRate;
     const baseFee = plan.basePrice;
-    const totalUpcoming = baseFee + overageFee;
+
+    // Centralized GST Math
+    const { subtotal, gstAmount, total: totalUpcoming } = calculateFinalBill(baseFee + overageFee);
 
     return (
         <div className="flex min-h-screen bg-[#050505]">
@@ -198,8 +201,14 @@ export default function BillingPage() {
 
                                     <div className="flex justify-between items-end">
                                         <div>
-                                            <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Total Upcoming Bill</p>
-                                            <p className="text-2xl font-bold text-blue-400">₹{totalUpcoming.toLocaleString()}</p>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Subtotal (Net)</p>
+                                            <p className="text-sm font-bold text-white mb-2">₹{subtotal.toLocaleString()}</p>
+
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">GST (18%)</p>
+                                            <p className="text-sm font-bold text-white mb-3">₹{gstAmount.toLocaleString()}</p>
+
+                                            <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest">Total Upcoming Bill</p>
+                                            <p className="text-3xl font-bold text-blue-400">₹{totalUpcoming.toLocaleString()}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[10px] text-gray-500 font-bold">DUE ON RENEWAL</p>

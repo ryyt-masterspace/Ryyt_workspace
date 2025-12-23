@@ -4,50 +4,48 @@ import { useEffect, useState } from 'react';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { app, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ShieldAlert, LogOut, Loader2 } from 'lucide-react';
+import { ShieldAlert, LogOut, Loader2, Lock } from 'lucide-react';
+import { useRouter, redirect } from 'next/navigation';
+import Loading from './loading';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const auth = getAuth(app);
     const [status, setStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
-                    // 1. Check Existence
                     const userRef = doc(db, 'merchants', user.uid);
                     const userSnap = await getDoc(userRef);
 
-                    // 2. Auto-Create if Missing
                     if (!userSnap.exists()) {
                         await setDoc(userRef, {
                             email: user.email,
-                            brandName: "New Merchant",
+                            brandName: "",
                             logo: "",
                             createdAt: serverTimestamp(),
                             planType: "startup",
-                            subscriptionStatus: "active",
+                            subscriptionStatus: "pending_payment",
                             lastPaymentDate: serverTimestamp(),
                             settings: {
                                 slaDays: 2,
                                 paymentMethod: 'UPI'
                             }
                         });
-
-                        const metricsRef = doc(db, 'merchants', user.uid, 'metadata', 'metrics');
-                        await setDoc(metricsRef, {
-                            totalSettledAmount: 0,
-                            activeLiabilityAmount: 0,
-                            totalRefundsCount: 0,
-                            stuckAmount: 0,
-                            failedCount: 0,
-                            lastUpdated: new Date(),
-                            status: "INITIALIZED"
-                        });
-                        setStatus("active");
+                        setStatus("pending_payment");
+                        router.replace('/onboarding');
                     } else {
-                        setStatus(userSnap.data()?.subscriptionStatus || "active");
+                        const userStatus = userSnap.data()?.subscriptionStatus || "active";
+                        setStatus(userStatus);
+
+                        // IMMEDIATE REDIRECT: Avoid any chance of children rendering
+                        if (userStatus === "pending_payment") {
+                            router.replace('/onboarding');
+                            return;
+                        }
                     }
                 } catch (error) {
                     console.error("Layout Init Error:", error);
@@ -55,28 +53,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setLoading(false);
                 }
             } else {
-                setLoading(false);
+                router.push('/login');
             }
         });
         return () => unsubscribe();
-    }, [auth]);
+    }, [auth, router]);
 
     const handleLogout = async () => {
         await signOut(auth);
         window.location.href = "/login";
     };
 
+    // 4. THE IRON-CLAD GATEKEEPER
+    // 4a. Still Loading
     if (loading) {
-        return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
-            </div>
-        );
+        return <Loading />;
     }
 
+    // 4b. Explicit Suspension
     if (status === "suspended") {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6">
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 text-white">
                 <div className="max-w-md w-full bg-[#0A0A0A] border border-red-500/20 rounded-2xl p-8 text-center shadow-2xl shadow-red-500/5">
                     <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <ShieldAlert className="text-red-500" size={32} />
@@ -100,13 +97,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <LogOut size={18} /> Sign Out
                     </button>
 
-                    <p className="mt-6 text-[10px] text-gray-600">
-                        Ryyt Enterprise Security Layer v2.1
+                    <p className="mt-6 text-[10px] text-zinc-700 font-bold uppercase tracking-[0.2em]">
+                        Ryyt Security Layer v2.5
                     </p>
                 </div>
             </div>
         );
     }
 
+    // 4c. Not Active (Wait for Redirect or continue Loading)
+    if (status !== "active") {
+        return <Loading />;
+    }
+
+    // 4d. Iron-Clad: Render children ONLY if status === "active"
     return <>{children}</>;
 }

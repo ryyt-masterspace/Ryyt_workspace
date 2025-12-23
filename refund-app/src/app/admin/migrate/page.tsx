@@ -17,6 +17,7 @@ import {
 import { PLANS } from "@/config/plans";
 import { query, where, orderBy, limit } from "firebase/firestore";
 import { Copy } from "lucide-react";
+import { calculateFinalBill } from "@/lib/taxCalculator";
 
 // MASTER ADMIN KEY - In a real app, this should be an environment variable
 const MASTER_KEY = "Ryyt-Admin-2025";
@@ -178,7 +179,9 @@ export default function AdminMigratePage() {
             const currentUsage = merchantUsage; // Captured from state
             const excess = Math.max(0, currentUsage - limit);
             const overageFee = excess * plan.excessRate;
-            const totalDue = plan.basePrice + overageFee;
+
+            // Centralized GST Math
+            const { total: totalDue } = calculateFinalBill(plan.basePrice + overageFee);
 
             // 3. Record Payment with ELITE Details
             await addDoc(collection(db, "merchants", selectedMerchantId, "payments"), {
@@ -386,7 +389,7 @@ export default function AdminMigratePage() {
                                                     {PLANS[selectedMerchantData.planType || 'startup']?.name || 'Startup'}
                                                 </div>
                                                 <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">
-                                                    ₹{PLANS[selectedMerchantData.planType || 'startup']?.basePrice.toLocaleString()}/mo
+                                                    ₹{calculateFinalBill(PLANS[selectedMerchantData.planType || 'startup']?.basePrice).total.toLocaleString()} /mo (Inc. GST)
                                                 </p>
                                             </div>
                                         </div>
@@ -501,11 +504,16 @@ export default function AdminMigratePage() {
                                             <Button
                                                 onClick={handleRecordPayment}
                                                 disabled={isPaymentRunning}
-                                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl shadow-lg shadow-indigo-600/30 font-bold tracking-tight flex items-center justify-center gap-3 transition-all"
+                                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl shadow-lg shadow-indigo-600/30 font-bold tracking-tight flex flex-col items-center justify-center gap-1 transition-all"
                                             >
                                                 {isPaymentRunning ? <Loader2 className="animate-spin" /> : (
                                                     <>
-                                                        <FileText size={18} /> Apply Payment & Renew Cycle
+                                                        <div className="flex items-center gap-3">
+                                                            <FileText size={18} /> Apply Payment & Renew Cycle
+                                                        </div>
+                                                        <span className="text-[10px] opacity-80">
+                                                            Total to be Paid via UPI (Inc. GST): ₹{calculateFinalBill(PLANS[selectedMerchantData.planType || 'startup']?.basePrice + (Math.max(0, (merchantUsage || 0) - (PLANS[selectedMerchantData.planType || 'startup']?.includedRefunds || 100)) * (PLANS[selectedMerchantData.planType || 'startup']?.excessRate || 15))).total.toLocaleString()}
+                                                        </span>
                                                     </>
                                                 )}
                                             </Button>

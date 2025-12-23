@@ -56,12 +56,12 @@ export default function Navbar() {
                     </Link>
 
                     {/* 3. The Fixed Button */}
-                    <button
-                        onClick={openLeadModal}
+                    <Link
+                        href="/signup"
                         className="text-sm font-medium px-5 py-2.5 rounded-full bg-[#0052FF] text-white hover:bg-[#0040DD] shadow-lg shadow-blue-900/20 transition-all"
                     >
                         Get Started
-                    </button>
+                    </Link>
                 </div>
             </div>
         </motion.nav>

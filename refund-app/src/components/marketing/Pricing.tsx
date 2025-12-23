@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check, Shield, Zap, Rocket } from "lucide-react";
+import Link from "next/link";
 import { PLANS } from "@/config/plans";
 import { useModal } from "@/context/ModalContext";
 
@@ -45,7 +46,6 @@ export default function Pricing() {
                         features={REAL_FEATURES}
                         icon={<Zap className="text-blue-400" size={24} />}
                         delay={0.1}
-                        onStart={openLeadModal}
                     />
 
                     {/* Growth Plan (Highlighted) */}
@@ -55,7 +55,6 @@ export default function Pricing() {
                         icon={<Rocket className="text-blue-500" size={24} />}
                         highlighted={true}
                         delay={0.2}
-                        onStart={openLeadModal}
                     />
 
                     {/* Scale Plan */}
@@ -64,7 +63,6 @@ export default function Pricing() {
                         features={REAL_FEATURES}
                         icon={<Shield className="text-purple-400" size={24} />}
                         delay={0.3}
-                        onStart={openLeadModal}
                     />
 
                 </div>
@@ -79,7 +77,13 @@ export default function Pricing() {
     );
 }
 
-function PricingCard({ plan, features, icon, highlighted = false, delay = 0, onStart }: any) {
+function PricingCard({ plan, features, icon, highlighted = false, delay = 0 }: {
+    plan: any,
+    features: string[],
+    icon: React.ReactNode,
+    highlighted?: boolean,
+    delay?: number
+}) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -107,7 +111,8 @@ function PricingCard({ plan, features, icon, highlighted = false, delay = 0, onS
                         <span className="text-4xl font-bold text-white">₹{plan.basePrice.toLocaleString()}</span>
                         <span className="text-zinc-500 text-sm">/mo</span>
                     </div>
-                    <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-1">Billed Monthly</span>
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-1">+ 18% GST</span>
+                    <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Billed Monthly</span>
                 </div>
                 <div className="bg-white/5 border border-white/5 rounded-xl p-4">
                     <p className="text-white font-bold text-sm">
@@ -130,14 +135,14 @@ function PricingCard({ plan, features, icon, highlighted = false, delay = 0, onS
                 </ul>
             </div>
 
-            <button
-                onClick={onStart}
-                className={`w-full py-4 rounded-xl font-bold transition-all duration-300 ${highlighted
+            <Link
+                href="/signup"
+                className={`w-full py-4 rounded-xl font-bold text-center transition-all duration-300 ${highlighted
                     ? "bg-[#0052FF] text-white hover:bg-[#0040DD] shadow-xl shadow-blue-900/40"
                     : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
                     }`}>
                 Get Started
-            </button>
+            </Link>
         </motion.div>
     );
 }

@@ -2,6 +2,7 @@
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { calculateFinalBill } from "./taxCalculator";
 
 // 1. Strict Interfaces
 export interface InvoiceMerchantData {
@@ -165,6 +166,11 @@ export const generateInvoice = (merchantData: InvoiceMerchantData, paymentData: 
         ]);
     }
 
+    // 6.5 Calculate GST Breakdown
+    const { subtotal, gstAmount, total: grandTotal } = calculateFinalBill(basePrice + (paymentData.usageCount && paymentData.limit && paymentData.usageCount > paymentData.limit ? (paymentData.usageCount - paymentData.limit) * (paymentData.excessRate || 15) : 0));
+    // Fallback if paymentData.amount was already stored as total inclusive in DB
+    const finalTotal = paymentData.amount || grandTotal;
+
     // 7. GENERATE TABLE
     autoTable(doc, {
         startY: 95,
@@ -191,13 +197,29 @@ export const generateInvoice = (merchantData: InvoiceMerchantData, paymentData: 
             1: { cellWidth: 40 },
             2: { cellWidth: 40, halign: 'right', fontStyle: 'bold' }
         },
-        foot: [[
-            { content: 'Total Paid (INR):', colSpan: 2, styles: { halign: 'right', fontSize: 12, fontStyle: 'bold' } },
-            { content: `Rs. ${totalAmount.toLocaleString()}`, styles: { halign: 'right', fontSize: 12, fontStyle: 'bold', textColor: [0, 0, 0] } }
-        ]],
+        bodyStyles: {
+            halign: 'left'
+        },
+        // Adding the tax breakdown rows
+        foot: [
+            [
+                { content: 'Subtotal:', colSpan: 2, styles: { halign: 'right', fontSize: 10, fontStyle: 'normal' } },
+                { content: `Rs. ${subtotal.toLocaleString()}`, styles: { halign: 'right', fontSize: 10, fontStyle: 'normal' } }
+            ],
+            [
+                { content: 'GST (18%):', colSpan: 2, styles: { halign: 'right', fontSize: 10, fontStyle: 'normal' } },
+                { content: `Rs. ${gstAmount.toLocaleString()}`, styles: { halign: 'right', fontSize: 10, fontStyle: 'normal' } }
+            ],
+            [
+                { content: 'Grand Total (Inclusive of Tax):', colSpan: 2, styles: { halign: 'right', fontSize: 12, fontStyle: 'bold' } },
+                { content: `Rs. ${finalTotal.toLocaleString()}`, styles: { halign: 'right', fontSize: 12, fontStyle: 'bold', textColor: [0, 0, 0] } }
+            ]
+        ],
         footStyles: {
             fillColor: [249, 250, 251], // Gray-50
-            textColor: [0, 0, 0]
+            textColor: [0, 0, 0],
+            lineColor: [230, 230, 230],
+            lineWidth: 0.1
         }
     });
 

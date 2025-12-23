@@ -26,4 +26,6 @@ export const PLANS: Record<string, BillingPlan> = {
     }
 };
 
+export const GST_RATE = 0.18;
+
 export type PlanType = keyof typeof PLANS;
