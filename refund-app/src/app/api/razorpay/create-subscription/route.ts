@@ -24,14 +24,14 @@ export async function POST(req: Request) {
         const razorpayPlanId = process.env[planKey];
 
         if (!razorpayPlanId) {
-            console.error(`Plan mapping missing for: ${planKey}`);
-            return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 500 });
+            const errorMsg = `Missing Environment Variable for Plan: ${planKey}`;
+            console.error(errorMsg);
+            return NextResponse.json({ error: errorMsg }, { status: 500 });
         }
 
         // 2. Create Subscription
-        // total_count: 12 means 1 year if billed monthly
-        // customer_notify: 1 means Razorpay sends emails
-        // max_amount: Set mandate limit to cover base + overage
+        console.log(`[Razorpay] Creating subscription for Plan ID: ${razorpayPlanId} (User: ${userId})`);
+
         const subscription: any = await razorpay.subscriptions.create({
             plan_id: razorpayPlanId,
             total_count: 12,
@@ -48,9 +48,9 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error('Razorpay Subscription Error:', error);
+        console.error("RAZORPAY_ERROR:", error);
         return NextResponse.json({
-            error: error.message || 'Failed to create subscription'
+            error: error.description || error.message || 'Failed to create subscription'
         }, { status: 500 });
     }
 }
