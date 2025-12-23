@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, serverTimestamp, getDoc } from 'firebase/firestore';
 import Razorpay from 'razorpay';
 import { calculateOverageAddon, resetMonthlyCounter } from '@/lib/billingService';
+import { PLANS } from '@/config/plans';
 
 export async function POST(req: Request) {
     try {
@@ -73,9 +74,42 @@ export async function POST(req: Request) {
                 }
 
                 // 3. Renewal Success: Update Status
+                // Task 4: Webhook Switcher - Check for pending plan changes
+                const merchSnap = await getDoc(merchantRef);
+                const merchData = merchSnap.data();
+                let actualPlanType = merchData?.planType || 'startup';
+
+                if (merchData?.pendingPlanChange) {
+                    const newType = merchData.pendingPlanChange.newPlanType;
+                    console.log(`[Switcher] Detected pending change to ${newType} for ${merchantId}`);
+
+                    try {
+                        const rzp = new Razorpay({
+                            key_id: process.env.RAZORPAY_KEY_ID || '',
+                            key_secret: process.env.RAZORPAY_KEY_SECRET || '',
+                        });
+
+                        const planKey = `RAZORPAY_PLAN_${newType.toUpperCase()}`;
+                        const rzpPlanId = process.env[planKey];
+
+                        if (rzpPlanId) {
+                            await rzp.subscriptions.update(subscription.id, {
+                                plan_id: rzpPlanId,
+                                schedule_change_at: 'now'
+                            });
+                            actualPlanType = newType;
+                            console.log(`[Switcher] Subscription updated to ${newType} in Razorpay.`);
+                        }
+                    } catch (switchError) {
+                        console.error(`[Switcher Error] Failed to execute pending change for ${merchantId}:`, switchError);
+                    }
+                }
+
                 await updateDoc(merchantRef, {
                     subscriptionStatus: 'active',
                     lastPaymentDate: serverTimestamp(),
+                    planType: actualPlanType,
+                    pendingPlanChange: null // Always clear after processing
                 });
 
                 // 4. Record Payment for Invoice
@@ -87,16 +121,12 @@ export async function POST(req: Request) {
                     currency: paymentData?.currency || 'INR',
                     razorpayPaymentId: paymentData?.id || 'SUB_RENEWAL',
                     razorpaySubscriptionId: subscription.id,
-                    planType: subscription.plan_id,
+                    planName: PLANS[actualPlanType]?.name || actualPlanType,
                     status: 'paid',
-                    timestamp: serverTimestamp(),
+                    date: serverTimestamp(),
                     method: paymentData?.method || 'subscription',
                     invoiceId: `CAL-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
-
-                    // Explicitly pass basePrice so invoiceGenerator doesn't use inclusive amount as net
                     basePrice: baseNetPrice,
-
-                    // Task 4: Store usage stats for the Invoice Machine
                     usageCount: overageData.usage,
                     limit: overageData.limit,
                     excessRate: overageData.excessRate

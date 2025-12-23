@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { doc, getDoc, collection, query, orderBy, getDocs, where, getCountFromServer } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, getDocs, where, getCountFromServer, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Sidebar from "@/components/dashboard/Sidebar";
@@ -37,16 +37,16 @@ export default function BillingPage() {
     };
 
     useEffect(() => {
-        async function fetchData() {
-            if (!user) return;
-            try {
-                // 1. Fetch Merchant Profile
-                const mDoc = doc(db, "merchants", user.uid);
-                const mSnap = await getDoc(mDoc);
-                const mData = mSnap.data() as BillingMerchantData;
-                if (mSnap.exists()) setMerchant(mData);
+        if (!user) return;
 
-                // 2. Cycle Usage Count (Only refunds created since lastPaymentDate)
+        // 1. Real-time Merchant Listener
+        const mRef = doc(db, "merchants", user.uid);
+        const unsubscribeMerchant = onSnapshot(mRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                const mData = docSnap.data() as BillingMerchantData;
+                setMerchant(mData);
+
+                // 2. Fetch Cycle Usage whenever Merchant (lastPaymentDate) changes
                 const lastPayDate = (mData && mData.lastPaymentDate && mData.lastPaymentDate.seconds)
                     ? new Date(mData.lastPaymentDate.seconds * 1000)
                     : new Date(new Date().setDate(new Date().getDate() - 30));
@@ -59,29 +59,63 @@ export default function BillingPage() {
                 );
                 const countSnap = await getCountFromServer(cycleQuery);
                 setCycleUsage(countSnap.data().count);
-
-                // 3. Fetch Metrics for Global Context
-                const metricsSnap = await getDoc(doc(db, "merchants", user.uid, "metadata", "metrics"));
-                if (metricsSnap.exists()) setMetrics(metricsSnap.data());
-
-                // 4. Fetch Payment History
-                const paymentsRef = collection(db, "merchants", user.uid, "payments");
-                const pQuery = query(paymentsRef, orderBy("date", "desc"));
-                const pSnap = await getDocs(pQuery);
-                setPayments(pSnap.docs.map(d => ({ id: d.id, ...d.data() } as InvoicePaymentData)));
-            } catch (err) {
-                console.error("Failed to fetch billing data", err);
-            } finally {
-                setLoading(false);
             }
-        }
-        fetchData();
+            setLoading(false);
+        });
+
+        // 3. Real-time Payments Listener
+        const pRef = collection(db, "merchants", user.uid, "payments");
+        const pQuery = query(pRef, orderBy("date", "desc"));
+        const unsubscribePayments = onSnapshot(pQuery, (snap) => {
+            setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as InvoicePaymentData)));
+        });
+
+        // 4. One-time metrics fetch (context only)
+        getDoc(doc(db, "merchants", user.uid, "metadata", "metrics")).then(m => {
+            if (m.exists()) setMetrics(m.data());
+        });
+
+        return () => {
+            unsubscribeMerchant();
+            unsubscribePayments();
+        };
     }, [user]);
+
+    const [showPlanModal, setShowPlanModal] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const handleUpdatePlan = async (newPlanType: string) => {
+        if (!user || !merchant) return;
+        setIsUpdating(true);
+        try {
+            const res = await fetch('/api/razorpay/update-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.uid, newPlanType })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert(data.mode === 'upgrade'
+                    ? "Upgrade successful! Your new limits are active."
+                    : `Downgrade scheduled for ${new Date(data.effectiveDate).toLocaleDateString()}.`);
+                window.location.reload();
+            } else {
+                alert(data.error || "Failed to change plan.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred.");
+        } finally {
+            setIsUpdating(false);
+            setShowPlanModal(false);
+        }
+    };
 
     if (loading) return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">Loading...</div>;
 
-    const planKey = merchant?.planType || "startup";
-    const plan: BillingPlan = PLANS[planKey];
+    const currentPlanKey = merchant?.planType || "startup";
+    const plan: BillingPlan = PLANS[currentPlanKey];
     const usage = cycleUsage;
     const limit = plan.includedRefunds;
     const usagePercent = Math.min((usage / limit) * 100, 100);
@@ -93,6 +127,15 @@ export default function BillingPage() {
 
     const nextRenewal = new Date(lastPayment);
     nextRenewal.setDate(nextRenewal.getDate() + 30);
+
+    // Task 5: Upgrade Cost Preview
+    const getUpgradePratatedCost = (targetPlan: BillingPlan) => {
+        const remainingDays = Math.max(1, Math.ceil((nextRenewal.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+        const diff = targetPlan.basePrice - plan.basePrice;
+        if (diff <= 0) return 0;
+        const prorated = (diff / 30) * remainingDays;
+        return calculateFinalBill(prorated).total;
+    };
 
     // Calculations
     const overageCount = Math.max(0, usage - limit);
@@ -108,6 +151,30 @@ export default function BillingPage() {
 
             <main className="flex-1 ml-[64px] md:ml-[240px] p-8 bg-[#050505] text-white transition-all duration-300">
                 <div className="max-w-4xl mx-auto space-y-8">
+
+                    {/* Pending Change Alert */}
+                    {(merchant as any)?.pendingPlanChange && (
+                        <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                                <AlertCircle className="text-amber-500" size={20} />
+                                <div>
+                                    <p className="text-sm font-bold text-amber-500">Scheduled Plan Change</p>
+                                    <p className="text-xs text-amber-500/80">
+                                        Your subscription will switch to <strong>{PLANS[(merchant as any).pendingPlanChange.newPlanType].name}</strong> on {(() => {
+                                            const effectiveDate = (merchant as any).pendingPlanChange.effectiveDate;
+                                            try {
+                                                const dateObj = effectiveDate?.toDate ? effectiveDate.toDate() : (effectiveDate ? new Date(effectiveDate) : null);
+                                                if (!dateObj || isNaN(dateObj.getTime())) return nextRenewal.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                                                return dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                                            } catch (e) {
+                                                return nextRenewal.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                                            }
+                                        })()}.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Header */}
                     <div>
@@ -218,10 +285,10 @@ export default function BillingPage() {
                                 </div>
                                 <div className="mt-6 p-4 bg-blue-600/10 border border-blue-500/20 rounded-xl">
                                     <p className="text-sm font-bold text-blue-400 mb-1 flex items-center gap-2">
-                                        <Zap size={14} /> Invite-Only Mode Active
+                                        <Zap size={14} /> Automated Billing Active
                                     </p>
                                     <p className="text-[10px] text-gray-400 leading-relaxed">
-                                        Ryyt is currently in Invite-Only mode. Please settle your overage and subscription via your assigned account manager's UPI/Bank details. Automatic card billing is disabled.
+                                        Your subscription is managed via Razorpay. Overage charges are calculated and billed automatically at the end of each cycle.
                                     </p>
                                 </div>
                                 <p className="text-[10px] text-gray-600 mt-4 flex items-center gap-1.5 italic">
@@ -287,11 +354,6 @@ export default function BillingPage() {
                                         </tbody>
                                     </table>
                                 </div>
-                                <div className="p-4 bg-orange-500/5 border-t border-white/5">
-                                    <p className="text-[10px] text-orange-400/80 text-center italic">
-                                        Payment history is updated within 24 hours of your UPI transfer.
-                                    </p>
-                                </div>
                             </div>
                         </div>
 
@@ -299,15 +361,15 @@ export default function BillingPage() {
                         <div className="space-y-6">
                             <div className="bg-blue-600/5 border border-blue-500/10 rounded-2xl p-6">
                                 <Rocket size={32} className="text-blue-500 mb-4" />
-                                <h4 className="font-bold text-white mb-2">Need a bigger plan?</h4>
+                                <h4 className="font-bold text-white mb-2">Modify Subscription</h4>
                                 <p className="text-sm text-gray-500 leading-relaxed mb-6">
-                                    Upgrading to Growth or Scale reduces your excess rate and includes more monthly refunds.
+                                    Switch your plan to better align with your monthly refund volume.
                                 </p>
                                 <button
-                                    onClick={() => alert("Redirecting to concierge upgrade... Contact support@ryyt.com")}
+                                    onClick={() => setShowPlanModal(true)}
                                     className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20"
                                 >
-                                    Upgrade Tier
+                                    Change Plan
                                 </button>
                             </div>
 
@@ -329,6 +391,86 @@ export default function BillingPage() {
 
                     </div>
                 </div>
+
+                {/* Task 1: Change Plan Modal */}
+                {showPlanModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-[#0A0A0A] border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+                            <div className="p-8 border-b border-white/5 flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-2xl font-bold">Select New Plan</h2>
+                                    <p className="text-sm text-gray-500">Choose the best fit for your growth.</p>
+                                </div>
+                                <button onClick={() => setShowPlanModal(false)} className="text-gray-500 hover:text-white transition-colors">
+                                    <Zap className="rotate-45" size={24} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {Object.entries(PLANS).map(([key, p]) => {
+                                    const isCurrent = key === currentPlanKey;
+                                    const isUpgrade = p.basePrice > plan.basePrice;
+                                    const upgradeCost = getUpgradePratatedCost(p);
+
+                                    return (
+                                        <div
+                                            key={key}
+                                            className={`p-6 rounded-2xl border transition-all ${isCurrent ? 'border-blue-500 bg-blue-500/5' : 'border-white/5 bg-white/[0.02] hover:border-white/10'}`}
+                                        >
+                                            <div className="mb-4">
+                                                <h3 className="font-bold text-lg">{p.name}</h3>
+                                                <p className="text-xl font-mono">₹{p.basePrice}</p>
+                                            </div>
+
+                                            <ul className="text-[10px] space-y-2 text-gray-400 mb-6">
+                                                <li>• {p.includedRefunds} Refunds/mo</li>
+                                                <li>• ₹{p.excessRate} Overage Rate</li>
+                                            </ul>
+
+                                            {isCurrent ? (
+                                                <div className="w-full py-2 text-center text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 rounded-lg">
+                                                    Current Plan
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleUpdatePlan(key)}
+                                                    disabled={isUpdating}
+                                                    className="w-full py-2 bg-white text-black rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                                >
+                                                    {isUpdating ? 'Wait...' : 'Switch'}
+                                                </button>
+                                            )}
+
+                                            {!isCurrent && isUpgrade && upgradeCost > 0 && (
+                                                <p className="mt-3 text-[9px] text-emerald-400 leading-tight">
+                                                    Upgrade now for ₹{upgradeCost.toFixed(0)}* proration
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="p-6 bg-white/[0.02] border-t border-white/5 space-y-4">
+                                <div className="flex gap-3">
+                                    <div className="p-2 bg-blue-500/10 rounded-lg h-fit">
+                                        <Info size={16} className="text-blue-400" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-white">How charges work:</p>
+                                        <p className="text-[10px] text-gray-400 leading-relaxed">
+                                            <strong>Upgrades:</strong> You will be charged the prorated difference for the remainder of this month immediately to activate your new limits.
+                                        </p>
+                                        <p className="text-[10px] text-gray-400 leading-relaxed">
+                                            <strong>Downgrades:</strong> Your plan change will take effect on your next billing date ({nextRenewal.toLocaleDateString()}).
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-gray-600 italic">* Estimated cost includes 18% GST. Actual charge may vary by a few rupees based on exact timing.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

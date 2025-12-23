@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { isFeatureEnabled } from "@/config/features";
@@ -38,21 +38,18 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        async function fetchMetrics() {
-            if (!user) {
-                setLoading(false);
-                return;
-            }
+        if (!user) {
+            setLoading(false);
+            return;
+        }
 
+        const q = query(
+            collection(db, "refunds"),
+            where("merchantId", "==", user.uid)
+        );
+
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
             try {
-                // 1. Fetch ALL refunds for the merchant
-
-                // ... inside fetchMetrics ...
-                const q = query(
-                    collection(db, "refunds"),
-                    where("merchantId", "==", user.uid)
-                );
-                const snapshot = await getDocs(q);
                 const refunds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RefundData));
 
                 let totalSettled = 0;
@@ -65,24 +62,18 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                 const dateCounts: Record<string, number> = {};
                 const failureReasonCounts: Record<string, number> = {};
 
-                // Helper for Date Bucketing (Dynamic Window)
                 const today = new Date();
-                // Initialize last X days with 0 to ensure continuity in charts
                 for (let i = volumeWindowDays - 1; i >= 0; i--) {
                     const d = new Date();
                     d.setDate(today.getDate() - i);
-                    const key = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }); // DD/MM
+                    const key = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
                     dateCounts[key] = 0;
                 }
 
-                // 3. Process Logic
-                refunds.forEach(doc => {
-                    const refund = doc;
+                refunds.forEach(refund => {
                     const status = (refund.status || '').toString().toUpperCase().trim();
-                    const rawAmount = refund.amount;
-                    const amount = Number(rawAmount) || 0;
+                    const amount = Number(refund.amount) || 0;
 
-                    // A. Financials (Fallback calculation)
                     if (status.includes('SETTLED')) {
                         totalSettled += amount;
                     } else if (status.includes('FAILED') || status.includes('REJECTED')) {
@@ -94,19 +85,14 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                         liability += amount;
                     }
 
-                    // B. SLA Breaches
                     if (!status.includes('SETTLED') && !status.includes('FAILED') && !status.includes('REJECTED') && refund.slaDueDate) {
-                        if (new Date() > new Date(refund.slaDueDate)) {
-                            breaches++;
-                        }
+                        if (new Date() > new Date(refund.slaDueDate)) breaches++;
                     }
 
-                    // C. Method Distribution
                     const rawMethod = refund.paymentMethod || 'Unknown';
                     const method = rawMethod.toString().toUpperCase().replace(/_/g, ' ');
                     methodCounts[method] = (methodCounts[method] || 0) + 1;
 
-                    // D. Volume Trends
                     if (refund.createdAt) {
                         let d: Date;
                         if (typeof refund.createdAt === 'object' && refund.createdAt !== null && 'seconds' in refund.createdAt) {
@@ -114,67 +100,39 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                         } else {
                             d = new Date(refund.createdAt as string);
                         }
-
                         const key = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-                        if (dateCounts.hasOwnProperty(key)) {
-                            dateCounts[key]++;
-                        }
+                        if (dateCounts.hasOwnProperty(key)) dateCounts[key]++;
                     }
                 });
 
-                // 4. O(1) OVERRIDE (Conditional)
-                // If enabled, we overwrite the calculated totals with pre-aggregated metadata
+                // O(1) Override
                 if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
-                    try {
-                        const metricsRef = doc(db, "merchants", user.uid, "metadata", "metrics");
-                        const mSnap = await getDoc(metricsRef);
-                        if (mSnap.exists()) {
-                            const data = mSnap.data();
-                            console.log("[Dashboard] Using O(1) Pre-aggregated Metrics");
-                            totalSettled = data.totalSettledAmount ?? totalSettled;
-                            liability = data.activeLiabilityAmount ?? liability;
-                            stuckAmount = data.stuckAmount ?? stuckAmount;
-                            totalRefundsCount = data.totalRefundsCount ?? totalRefundsCount;
-                        }
-                    } catch (mErr) {
-                        console.error("O(1) Metrics fetch failed, falling back to calculation", mErr);
+                    const metricsRef = doc(db, "merchants", user.uid, "metadata", "metrics");
+                    const mSnap = await getDoc(metricsRef);
+                    if (mSnap.exists()) {
+                        const data = mSnap.data();
+                        totalSettled = data.totalSettledAmount ?? totalSettled;
+                        liability = data.activeLiabilityAmount ?? liability;
+                        stuckAmount = data.stuckAmount ?? stuckAmount;
+                        totalRefundsCount = data.totalRefundsCount ?? totalRefundsCount;
                     }
                 }
-
-                // 5. Transform for Recharts
-                const volumeData = Object.entries(dateCounts).map(([date, count]) => ({
-                    date,
-                    count
-                }));
-
-                const methodData = Object.entries(methodCounts).map(([name, value]) => ({
-                    name,
-                    value
-                }));
-
-                const failureReasonDistribution = Object.entries(failureReasonCounts)
-                    .map(([name, value]) => ({ name, value }))
-                    .sort((a, b) => b.value - a.value); // Sort desc (No limit)
 
                 setMetrics({
                     totalSettledAmount: totalSettled,
                     activeLiability: liability,
                     totalRefunds: totalRefundsCount,
                     slaBreachCount: breaches,
-                    volumeData,
-                    methodData,
+                    volumeData: Object.entries(dateCounts).map(([date, count]) => ({ date, count })),
+                    methodData: Object.entries(methodCounts).map(([name, value]) => ({ name, value })),
                     conversionRate: refunds.length > 0 ? (refunds.filter(r => r.status === 'SETTLED').length / refunds.length) * 100 : 0,
                     recentFailures: refunds
                         .filter(r => (r.status || '').toString().toUpperCase().includes('FAILED'))
                         .sort((a, b) => {
-                            const timeA = (typeof a.createdAt === 'object' && a.createdAt && 'seconds' in a.createdAt)
-                                ? (a.createdAt as { seconds: number }).seconds
-                                : 0;
-                            const timeB = (typeof b.createdAt === 'object' && b.createdAt && 'seconds' in b.createdAt)
-                                ? (b.createdAt as { seconds: number }).seconds
-                                : 0;
+                            const timeA = (typeof a.createdAt === 'object' && a.createdAt && 'seconds' in a.createdAt) ? (a.createdAt as { seconds: number }).seconds : 0;
+                            const timeB = (typeof b.createdAt === 'object' && b.createdAt && 'seconds' in b.createdAt) ? (b.createdAt as { seconds: number }).seconds : 0;
                             return timeB - timeA;
-                        }) // Newest first
+                        })
                         .slice(0, 5)
                         .map(r => ({
                             id: r.id,
@@ -182,25 +140,18 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                             failureReason: r.failureReason || 'Unknown',
                             amount: Number(r.amount) || 0
                         })),
-
-                    // New Fields
                     stuckAmount,
-                    failureReasonDistribution
+                    failureReasonDistribution: Object.entries(failureReasonCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
                 });
-
-            } catch (err: unknown) {
-                console.error("Error calculating metrics:", err);
-                if (err instanceof Error) {
-                    setError(err.message);
-                } else {
-                    setError("An unknown error occurred");
-                }
+            } catch (err: any) {
+                console.error("Dashboard Metrics Aggregation Error:", err);
+                setError(err.message);
             } finally {
                 setLoading(false);
             }
-        }
+        });
 
-        fetchMetrics();
+        return () => unsubscribe();
     }, [user, volumeWindowDays]);
 
     return { metrics, loading, error };

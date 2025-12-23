@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { app, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { ShieldAlert, LogOut, Loader2, Lock } from 'lucide-react';
 import { useRouter, redirect } from 'next/navigation';
 import Loading from './loading';
@@ -15,13 +15,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const router = useRouter();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    const userRef = doc(db, 'merchants', user.uid);
-                    const userSnap = await getDoc(userRef);
+        let unsubscribeMerchant: (() => void) | null = null;
 
+        const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userRef = doc(db, 'merchants', user.uid);
+
+                // Start real-time listener for Merchant data
+                unsubscribeMerchant = onSnapshot(userRef, async (userSnap) => {
                     if (!userSnap.exists()) {
+                        // Initialize new user
                         await setDoc(userRef, {
                             email: user.email,
                             brandName: "",
@@ -42,26 +45,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         const userStatus = userData?.subscriptionStatus || "active";
                         setStatus(userStatus);
 
-                        // Task 3: Onboarding Guard Exception for Legacy Users
-                        // If they ALREADY have a brandName and planType, they are technically "onboarded"
                         const isLegacyOnboarded = userData?.brandName && userData?.planType;
-
-                        // IMMEDIATE REDIRECT: Only redirect if they actually LACK the setup
                         if (userStatus === "pending_payment" && !isLegacyOnboarded) {
                             router.replace('/onboarding');
-                            return;
                         }
                     }
-                } catch (error) {
-                    console.error("Layout Init Error:", error);
-                } finally {
                     setLoading(false);
-                }
+                }, (error) => {
+                    console.error("Layout onSnapshot Error:", error);
+                    setLoading(false);
+                });
+
             } else {
                 router.push('/login');
+                setLoading(false);
             }
         });
-        return () => unsubscribe();
+
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeMerchant) unsubscribeMerchant();
+        };
     }, [auth, router]);
 
     const handleLogout = async () => {
