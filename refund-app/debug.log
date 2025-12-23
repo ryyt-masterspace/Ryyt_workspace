@@ -1,0 +1,36 @@
+
+[2025-12-23T18:41:33.790Z] {
+  "context": "RAZORPAY_API_CALL_FAIL",
+  "plan_id": "plan_Rv7wFWV1Bw0mfz",
+  "error": {
+    "statusCode": 400,
+    "error": {
+      "code": "BAD_REQUEST_ERROR",
+      "description": "max_amount is/are not required and should not be sent"
+    }
+  }
+}
+
+[2025-12-23T18:42:20.518Z] {
+  "context": "RAZORPAY_API_CALL_FAIL",
+  "plan_id": "plan_Rv7wFWV1Bw0mfz",
+  "error": {
+    "statusCode": 400,
+    "error": {
+      "code": "BAD_REQUEST_ERROR",
+      "description": "max_amount is/are not required and should not be sent"
+    }
+  }
+}
+
+[2025-12-23T18:43:45.278Z] {
+  "context": "RAZORPAY_API_CALL_FAIL",
+  "plan_id": "plan_Rv7wFWV1Bw0mfz",
+  "error": {
+    "statusCode": 400,
+    "error": {
+      "code": "BAD_REQUEST_ERROR",
+      "description": "max_amount is/are not required and should not be sent"
+    }
+  }
+}

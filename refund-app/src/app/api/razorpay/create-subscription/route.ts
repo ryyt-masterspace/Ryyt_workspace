@@ -3,6 +3,20 @@ import Razorpay from 'razorpay';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { PLANS } from '@/config/plans';
+import fs from 'fs';
+import path from 'path';
+
+// DEBUG LOG HELPER
+const logDebug = (data: any) => {
+    try {
+        const logPath = path.join(process.cwd(), 'debug.log');
+        const timestamp = new Date().toISOString();
+        const content = `\n[${timestamp}] ${JSON.stringify(data, null, 2)}\n`;
+        fs.appendFileSync(logPath, content);
+    } catch (e) {
+        console.error("Failed to write debug log:", e);
+    }
+};
 
 // Initialize Razorpay
 // Note: These should be in your .env.local
@@ -25,32 +39,56 @@ export async function POST(req: Request) {
 
         if (!razorpayPlanId) {
             const errorMsg = `Missing Environment Variable for Plan: ${planKey}`;
-            console.error(errorMsg);
+            logDebug({ error: errorMsg, planKey, envKeys: Object.keys(process.env).filter(k => k.includes('RAZOR')) });
             return NextResponse.json({ error: errorMsg }, { status: 500 });
         }
 
         // 2. Create Subscription
         console.log(`[Razorpay] Creating subscription for Plan ID: ${razorpayPlanId} (User: ${userId})`);
 
-        const subscription: any = await razorpay.subscriptions.create({
-            plan_id: razorpayPlanId,
-            total_count: 12,
-            quantity: 1,
-            customer_notify: 1,
-            max_amount: (PLANS[planType].maxMandateAmount || 10000) * 100, // in paise
-            notes: {
-                merchantId: userId
-            }
-        } as any);
+        try {
+            const subscription: any = await razorpay.subscriptions.create({
+                plan_id: razorpayPlanId,
+                total_count: 12,
+                quantity: 1,
+                customer_notify: 1,
+                // max_amount removed: not supported for fixed-amount plans
+                notes: {
+                    merchantId: userId
+                }
+            } as any);
 
-        return NextResponse.json({
-            subscriptionId: subscription.id
-        });
+            return NextResponse.json({
+                subscriptionId: subscription.id,
+                t: Date.now() // Timestamp for cache busting/verification
+            });
+        } catch (razorError: any) {
+            logDebug({
+                context: "RAZORPAY_API_CALL_FAIL",
+                plan_id: razorpayPlanId,
+                error: razorError
+            });
+            throw razorError;
+        }
 
     } catch (error: any) {
-        console.error("RAZORPAY_ERROR:", error);
+        console.error("RAZORPAY_CREATE_SUBSCRIPTION_ERROR:", {
+            message: error.message,
+            description: error.description,
+            errorProp: error.error,
+            stack: error.stack
+        });
+
+        // Extract the most descriptive error message possible
+        const errorDetail =
+            error.error?.description ||
+            error.description ||
+            error.message ||
+            'Failed to create subscription';
+
         return NextResponse.json({
-            error: error.description || error.message || 'Failed to create subscription'
+            error: errorDetail,
+            debug: process.env.NODE_ENV === 'development' ? error : undefined
         }, { status: 500 });
     }
 }

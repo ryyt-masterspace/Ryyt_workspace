@@ -120,7 +120,7 @@ export default function OnboardingWizard() {
             });
 
             // 2. Create Subscription via Backend
-            const response = await fetch('/api/razorpay/create-subscription', {
+            const response = await fetch(`/api/razorpay/create-subscription?v=${Date.now()}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -172,7 +172,9 @@ export default function OnboardingWizard() {
 
         } catch (error: any) {
             console.error("Checkout Error:", error);
-            alert(`Payment failed: ${error.message}`);
+            // Provide a more descriptive alert
+            const msg = error.message || "An unexpected error occurred during checkout initialization.";
+            alert(`Payment Initialization Failed: ${msg}\n\nPlease try again or contact support if the problem persists.`);
         } finally {
             setPaymentStatus('idle');
         }

@@ -1,15 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
-import { app, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { ShieldAlert, LogOut, Loader2, Lock } from 'lucide-react';
-import { useRouter, redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Loading from './loading';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const auth = getAuth(app);
     const [status, setStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [showRetry, setShowRetry] = useState(false);
@@ -17,20 +16,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     useEffect(() => {
         let unsubscribeMerchant: (() => void) | null = null;
+        console.log("[DashboardLayout] Initializing Guard...");
 
-        // Task 4: Safety Timeout (Show retry link after 5 seconds)
         const timeoutId = setTimeout(() => {
-            if (loading) setShowRetry(true);
+            if (loading) {
+                console.warn("[DashboardLayout] Safety timeout triggered.");
+                setShowRetry(true);
+            }
         }, 5000);
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
             if (user) {
+                console.log("[DashboardLayout] Auth User Found:", user.uid);
                 const userRef = doc(db, 'merchants', user.uid);
 
-                // Start real-time listener for Merchant data
                 unsubscribeMerchant = onSnapshot(userRef, async (userSnap) => {
+                    console.log("[DashboardLayout] Merchant Snapshot received. Exists:", userSnap.exists());
+
                     if (!userSnap.exists()) {
-                        // Initialize new user
+                        console.log("[DashboardLayout] New user detected. Initializing merchant record...");
                         await setDoc(userRef, {
                             email: user.email,
                             brandName: "",
@@ -39,35 +43,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             planType: "startup",
                             subscriptionStatus: "pending_payment",
                             lastPaymentDate: serverTimestamp(),
-                            settings: {
-                                slaDays: 2,
-                                paymentMethod: 'UPI'
-                            }
+                            settings: { slaDays: 2, paymentMethod: 'UPI' }
                         });
                         setStatus("pending_payment");
-                        // Task 2: Instant Redirect
-                        window.location.href = '/onboarding';
+                        console.log("[DashboardLayout] Redirecting to /onboarding...");
+                        window.location.replace('/onboarding');
                     } else {
                         const userData = userSnap.data();
                         const userStatus = userData?.subscriptionStatus || "active";
+                        console.log("[DashboardLayout] Current Subscription Status:", userStatus);
                         setStatus(userStatus);
 
                         const isLegacyOnboarded = userData?.brandName && userData?.planType;
-                        if (userStatus === "pending_payment" && !isLegacyOnboarded) {
-                            // Task 2: Instant Redirect
-                            window.location.href = '/onboarding';
+
+                        // STRICT REDIRECT: If not active or suspended, they MUST go to onboarding
+                        if (userStatus !== "active" && userStatus !== "suspended") {
+                            console.log("[DashboardLayout] Unauthorized status detected. Redirecting...");
+                            window.location.replace('/onboarding');
                         }
                     }
                     setLoading(false);
                     clearTimeout(timeoutId);
                 }, (error) => {
-                    console.error("Layout onSnapshot Error:", error);
+                    console.error("[DashboardLayout] Firestore Snapshot Error:", error);
                     setLoading(false);
                     clearTimeout(timeoutId);
                 });
 
             } else {
-                window.location.href = '/login';
+                console.log("[DashboardLayout] No Auth User. Redirecting to /login...");
+                window.location.replace('/login');
                 setLoading(false);
                 clearTimeout(timeoutId);
             }
@@ -78,19 +83,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (unsubscribeMerchant) unsubscribeMerchant();
             clearTimeout(timeoutId);
         };
-    }, [auth, router]);
+    }, [auth]);
 
     const handleLogout = async () => {
         await signOut(auth);
-        window.location.href = "/login";
+        window.location.replace("/login");
     };
 
     const handleRetry = () => {
         window.location.reload();
     };
 
-    // 4. THE IRON-CLAD GATEKEEPER
-    // 4a. Still Loading
+    // DEBUG UI for hang investigation
     if (loading) {
         return (
             <div className="relative min-h-screen">
@@ -112,7 +116,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         );
     }
 
-    // 4b. Explicit Suspension
     if (status === "suspended") {
         return (
             <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 text-white">
@@ -124,21 +127,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <p className="text-gray-400 text-sm leading-relaxed mb-8">
                         Your subscription has expired or your access has been manually suspended by the administration.
                     </p>
-
                     <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 text-left mb-8">
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Instructions</p>
                         <p className="text-sm text-gray-300">
                             Please complete your pending overage or subscription payment via UPI/Bank transfer and notify your account manager to restore access.
                         </p>
                     </div>
-
-                    <button
-                        onClick={handleLogout}
-                        className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all border border-white/5"
-                    >
+                    <button onClick={handleLogout} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all border border-white/5">
                         <LogOut size={18} /> Sign Out
                     </button>
-
                     <p className="mt-6 text-[10px] text-zinc-700 font-bold uppercase tracking-[0.2em]">
                         Ryyt Security Layer v2.5
                     </p>
@@ -147,11 +144,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         );
     }
 
-    // 4c. Not Active (Wait for Redirect or continue Loading)
+    // FINAL GUARD: Render children ONLY if active
     if (status !== "active") {
+        console.warn("[DashboardLayout] Blocking render: status is not active (", status, ")");
         return <Loading />;
     }
 
-    // 4d. Iron-Clad: Render children ONLY if status === "active"
     return <>{children}</>;
 }
