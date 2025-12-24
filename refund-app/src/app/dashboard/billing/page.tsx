@@ -7,15 +7,20 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { PLANS, BillingPlan } from "@/config/plans";
-import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt, FileText } from "lucide-react";
+import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt, FileText, Loader2 } from "lucide-react";
 import { generateInvoice, InvoiceMerchantData, InvoicePaymentData } from "@/lib/invoiceGenerator";
 import { calculateFinalBill } from "@/lib/taxCalculator";
+import Script from "next/script";
+
 
 // Local extension for this page
 interface BillingMerchantData extends InvoiceMerchantData {
     lastPaymentDate?: { seconds: number };
     subscriptionStatus?: string;
     planType?: string;
+    upcomingPlan?: string;
+    upcomingPlanDate?: any;
+    razorpaySubscriptionId?: string;
 }
 
 export default function BillingPage() {
@@ -83,32 +88,125 @@ export default function BillingPage() {
 
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    // Determines if we should Create New or Update Existing
+    const isResubscribing = merchant?.subscriptionStatus === 'cancelled' || merchant?.subscriptionStatus === 'expired' || merchant?.subscriptionStatus === 'halted';
 
     const handleUpdatePlan = async (newPlanType: string) => {
         if (!user || !merchant) return;
         setIsUpdating(true);
-        try {
-            const res = await fetch('/api/razorpay/update-subscription', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.uid, newPlanType })
-            });
 
-            const data = await res.json();
-            if (data.success) {
-                alert(data.mode === 'upgrade'
-                    ? "Upgrade successful! Your new limits are active."
-                    : `Downgrade scheduled for ${new Date(data.effectiveDate).toLocaleDateString()}.`);
-                window.location.reload();
+        try {
+            if (isResubscribing) {
+                // Scenario: Re-subscribing (Create New)
+                // We need to trigger the Razorpay Payment Modal on the frontend, usually.
+                // But wait, 'create-subscription' API returns a subscriptionId.
+                // The actual generic "Buy" flow usually handles the Razorpay.open() calls.
+                // IF this dashboard is just for "Switching", we might not have the full Razorpay.open() logic here?
+                // Let's check if we can reuse the standard checkout flow or direct to it.
+                // For now, let's assume we call 'create-subscription' and then we need to hand off to a payment handler.
+                // However, "BillingPage" is usually post-onboarding.
+                // If we create a sub here, we need to open the checkout.
+                // Since strict "Re-subscription" isn't fully scaffolded with Razorpay.js script loading here,
+                // ALERNATIVE: Redirect to the Onboarding/Pricing page? Or implement simple checkout here.
+                // Let's implement simple checkout here because redirecting is jarring.
+
+                // 1. Create Subscription
+                const res = await fetch('/api/razorpay/create-subscription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.uid, planType: newPlanType })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                // 2. Open Razorpay
+                const options = {
+                    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_YourKeyHere', // Make sure this is available
+                    subscription_id: data.subscriptionId,
+                    name: "Ryyt",
+                    description: `${PLANS[newPlanType].name} Plan`,
+                    handler: function (response: any) {
+                        setIsVerifying(true);
+                        setIsUpdating(true); // Keep modal loading state too or override?
+
+                        let attempts = 0;
+                        const maxAttempts = 20;
+                        const checkStatus = setInterval(async () => {
+                            attempts++;
+                            if (attempts > maxAttempts) {
+                                clearInterval(checkStatus);
+                                window.location.reload();
+                                return;
+                            }
+                            try {
+                                if (user) {
+                                    // We can use the existing 'getDoc' import or ensure it is imported.
+                                    // Assuming getDoc is imported from correct module.
+                                    // It IS imported from "firebase/firestore" in line 5.
+                                    const verifySnap = await getDoc(doc(db, "merchants", user.uid));
+                                    if (verifySnap.exists() && verifySnap.data().subscriptionStatus === 'active') {
+                                        clearInterval(checkStatus);
+                                        alert("Subscription Reactivated!");
+                                        window.location.reload();
+                                    }
+                                }
+                            } catch (e) { console.error(e); }
+                        }, 1000);
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            if (!isVerifying) setIsUpdating(false); // Only dismiss if not verifying
+                        }
+                    }
+                };
+
+                // We need window.Razorpay. If not loaded, we might error.
+                // Assuming it's loaded in layout or we need to load it. 
+                // For safety, let's alert if missing.
+                if (!(window as any).Razorpay) {
+                    alert("Payment SDK not loaded. Please refresh.");
+                    return;
+                }
+
+                const rzp1 = new (window as any).Razorpay(options);
+                rzp1.open();
+
             } else {
-                alert(data.error || "Failed to change plan.");
+                // Scenario: Updating Active Subscription
+                const res = await fetch('/api/razorpay/update-subscription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.uid, newPlanType })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.mode === 'upgrade'
+                        ? "Upgrade successful! Your new limits are active."
+                        : `Downgrade scheduled for ${new Date(data.effectiveDate).toLocaleDateString()}.`);
+                    window.location.reload();
+                } else {
+                    if (data.error === 'UPI_RESTRICTION') {
+                        alert("UPI Limitation: Automatic switching is not supported on UPI. Please Cancel your current plan and subscribe to the new one.");
+                    } else {
+                        alert(data.error || "Failed to change plan.");
+                    }
+                }
             }
         } catch (err) {
             console.error(err);
             alert("An error occurred.");
         } finally {
-            setIsUpdating(false);
-            setShowPlanModal(false);
+            if (!isResubscribing) { // If resubscribing, 'finally' happens after modal dismiss usually, but here we clear loader
+                setIsUpdating(false);
+                setShowPlanModal(false);
+            }
         }
     };
 
@@ -150,18 +248,20 @@ export default function BillingPage() {
             <Sidebar />
 
             <main className="flex-1 ml-[64px] md:ml-[240px] p-8 bg-[#050505] text-white transition-all duration-300">
+                <Script src="https://checkout.razorpay.com/v1/checkout.js" />
                 <div className="max-w-4xl mx-auto space-y-8">
 
                     {/* Pending Change Alert */}
-                    {(merchant as any)?.pendingPlanChange && (
+                    {/* Upcoming Plan Change Banner */}
+                    {(merchant as any)?.upcomingPlan && (
                         <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between mb-8">
                             <div className="flex items-center gap-3">
                                 <AlertCircle className="text-amber-500" size={20} />
                                 <div>
                                     <p className="text-sm font-bold text-amber-500">Scheduled Plan Change</p>
                                     <p className="text-xs text-amber-500/80">
-                                        Your subscription will switch to <strong>{PLANS[(merchant as any).pendingPlanChange.newPlanType].name}</strong> on {(() => {
-                                            const effectiveDate = (merchant as any).pendingPlanChange.effectiveDate;
+                                        Your subscription will switch to <strong>{PLANS[(merchant as any).upcomingPlan].name}</strong> on {(() => {
+                                            const effectiveDate = (merchant as any).upcomingPlanDate;
                                             try {
                                                 const dateObj = effectiveDate?.toDate ? effectiveDate.toDate() : (effectiveDate ? new Date(effectiveDate) : null);
                                                 if (!dateObj || isNaN(dateObj.getTime())) return nextRenewal.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -361,9 +461,11 @@ export default function BillingPage() {
                         <div className="space-y-6">
                             <div className="bg-blue-600/5 border border-blue-500/10 rounded-2xl p-6">
                                 <Rocket size={32} className="text-blue-500 mb-4" />
-                                <h4 className="font-bold text-white mb-2">Modify Subscription</h4>
+                                <h4 className="font-bold text-white mb-2">{isResubscribing ? 'Reactivate Subscription' : 'Modify Subscription'}</h4>
                                 <p className="text-sm text-gray-500 leading-relaxed mb-6">
-                                    Switch your plan to better align with your monthly refund volume.
+                                    {isResubscribing
+                                        ? "Your plan is currently inactive. Select a plan to restore access immediately."
+                                        : "Switch your plan to better align with your monthly refund volume."}
                                 </p>
                                 <button
                                     onClick={() => setShowPlanModal(true)}
@@ -371,6 +473,9 @@ export default function BillingPage() {
                                 >
                                     Change Plan
                                 </button>
+                                {!isResubscribing && (
+                                    <CancelButton subscriptionId={merchant?.razorpaySubscriptionId} userId={user?.uid || ''} />
+                                )}
                             </div>
 
                             <div className="p-6 border border-white/5 rounded-2xl bg-white/2">
@@ -392,86 +497,140 @@ export default function BillingPage() {
                     </div>
                 </div>
 
+
                 {/* Task 1: Change Plan Modal */}
-                {showPlanModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-[#0A0A0A] border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
-                            <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                                <div>
-                                    <h2 className="text-2xl font-bold">Select New Plan</h2>
-                                    <p className="text-sm text-gray-500">Choose the best fit for your growth.</p>
-                                </div>
-                                <button onClick={() => setShowPlanModal(false)} className="text-gray-500 hover:text-white transition-colors">
-                                    <Zap className="rotate-45" size={24} />
-                                </button>
-                            </div>
-
-                            <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {Object.entries(PLANS).map(([key, p]) => {
-                                    const isCurrent = key === currentPlanKey;
-                                    const isUpgrade = p.basePrice > plan.basePrice;
-                                    const upgradeCost = getUpgradePratatedCost(p);
-
-                                    return (
-                                        <div
-                                            key={key}
-                                            className={`p-6 rounded-2xl border transition-all ${isCurrent ? 'border-blue-500 bg-blue-500/5' : 'border-white/5 bg-white/[0.02] hover:border-white/10'}`}
-                                        >
-                                            <div className="mb-4">
-                                                <h3 className="font-bold text-lg">{p.name}</h3>
-                                                <p className="text-xl font-mono">₹{p.basePrice}</p>
+                {
+                    showPlanModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                            <div className="bg-[#0A0A0A] border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+                                {isVerifying ? (
+                                    <div className="p-12 text-center">
+                                        <Loader2 className="animate-spin text-blue-500 mx-auto mb-4" size={48} />
+                                        <h2 className="text-2xl font-bold text-white mb-2">Verifying Payment</h2>
+                                        <p className="text-gray-400">Please wait while we sync your subscription...</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="p-8 border-b border-white/5 flex justify-between items-center">
+                                            <div>
+                                                <h2 className="text-2xl font-bold">Select New Plan</h2>
+                                                <p className="text-sm text-gray-500">Choose the best fit for your growth.</p>
                                             </div>
-
-                                            <ul className="text-[10px] space-y-2 text-gray-400 mb-6">
-                                                <li>• {p.includedRefunds} Refunds/mo</li>
-                                                <li>• ₹{p.excessRate} Overage Rate</li>
-                                            </ul>
-
-                                            {isCurrent ? (
-                                                <div className="w-full py-2 text-center text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 rounded-lg">
-                                                    Current Plan
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleUpdatePlan(key)}
-                                                    disabled={isUpdating}
-                                                    className="w-full py-2 bg-white text-black rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors disabled:opacity-50"
-                                                >
-                                                    {isUpdating ? 'Wait...' : 'Switch'}
-                                                </button>
-                                            )}
-
-                                            {!isCurrent && isUpgrade && upgradeCost > 0 && (
-                                                <p className="mt-3 text-[9px] text-emerald-400 leading-tight">
-                                                    Upgrade now for ₹{upgradeCost.toFixed(0)}* proration
-                                                </p>
-                                            )}
+                                            <button onClick={() => setShowPlanModal(false)} className="text-gray-500 hover:text-white transition-colors">
+                                                <Zap className="rotate-45" size={24} />
+                                            </button>
                                         </div>
-                                    );
-                                })}
-                            </div>
 
-                            <div className="p-6 bg-white/[0.02] border-t border-white/5 space-y-4">
-                                <div className="flex gap-3">
-                                    <div className="p-2 bg-blue-500/10 rounded-lg h-fit">
-                                        <Info size={16} className="text-blue-400" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-bold text-white">How charges work:</p>
-                                        <p className="text-[10px] text-gray-400 leading-relaxed">
-                                            <strong>Upgrades:</strong> You will be charged the prorated difference for the remainder of this month immediately to activate your new limits.
-                                        </p>
-                                        <p className="text-[10px] text-gray-400 leading-relaxed">
-                                            <strong>Downgrades:</strong> Your plan change will take effect on your next billing date ({nextRenewal.toLocaleDateString()}).
-                                        </p>
-                                    </div>
-                                </div>
-                                <p className="text-[9px] text-gray-600 italic">* Estimated cost includes 18% GST. Actual charge may vary by a few rupees based on exact timing.</p>
+                                        <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {Object.entries(PLANS).map(([key, p]) => {
+                                                const isCurrent = key === currentPlanKey;
+                                                const isUpgrade = p.basePrice > plan.basePrice;
+                                                const upgradeCost = getUpgradePratatedCost(p);
+
+                                                return (
+                                                    <div
+                                                        key={key}
+                                                        className={`p-6 rounded-2xl border transition-all ${isCurrent ? 'border-blue-500 bg-blue-500/5' : 'border-white/5 bg-white/[0.02] hover:border-white/10'}`}
+                                                    >
+                                                        <div className="mb-4">
+                                                            <h3 className="font-bold text-lg">{p.name}</h3>
+                                                            <p className="text-xl font-mono">₹{p.basePrice}</p>
+                                                        </div>
+
+                                                        <ul className="text-[10px] space-y-2 text-gray-400 mb-6">
+                                                            <li>• {p.includedRefunds} Refunds/mo</li>
+                                                            <li>• ₹{p.excessRate} Overage Rate</li>
+                                                        </ul>
+
+                                                        {isCurrent ? (
+                                                            <div className="w-full py-2 text-center text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 rounded-lg">
+                                                                Current Plan
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleUpdatePlan(key)}
+                                                                disabled={isUpdating}
+                                                                className="w-full py-2 bg-white text-black rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                                            >
+                                                                {isUpdating ? 'Wait...' : 'Switch'}
+                                                            </button>
+                                                        )}
+
+                                                        {!isCurrent && isUpgrade && upgradeCost > 0 && (
+                                                            <p className="mt-3 text-[9px] text-emerald-400 leading-tight">
+                                                                Upgrade now for ₹{upgradeCost.toFixed(0)}* proration
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className="p-6 bg-white/[0.02] border-t border-white/5 space-y-4">
+                                            <div className="flex gap-3">
+                                                <div className="p-2 bg-blue-500/10 rounded-lg h-fit">
+                                                    <Info size={16} className="text-blue-400" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-bold text-white">How charges work:</p>
+                                                    <p className="text-[10px] text-gray-400 leading-relaxed">
+                                                        <strong>Upgrades:</strong> You will be charged the prorated difference for the remainder of this month immediately to activate your new limits.
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 leading-relaxed">
+                                                        <strong>Downgrades:</strong> Your plan change will take effect on your next billing date ({nextRenewal.toLocaleDateString()}).
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <p className="text-[9px] text-gray-600 italic">* Estimated cost includes 18% GST. Actual charge may vary by a few rupees based on exact timing.</p>
+                                        </div>
+                                    </>)}
                             </div>
                         </div>
-                    </div>
-                )}
-            </main>
-        </div>
+                    )
+                }
+            </main >
+        </div >
+    );
+}
+
+// Button Component in Main Render
+function CancelButton({ subscriptionId, userId }: { subscriptionId?: string, userId: string }) {
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    if (!subscriptionId) return null;
+
+    const handleCancel = async () => {
+        if (!confirm("Are you sure you want to cancel your subscription? You will lose access to premium features immediately.")) return;
+
+        setIsCancelling(true);
+        try {
+            const res = await fetch('/api/razorpay/cancel-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscriptionId, userId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert("Subscription cancelled successfully.");
+                window.location.reload();
+            } else {
+                alert(data.error || "Failed to cancel.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("An error occurred.");
+        } finally {
+            setIsCancelling(false);
+        }
+    }
+
+    return (
+        <button
+            onClick={handleCancel}
+            disabled={isCancelling}
+            className="w-full mt-3 py-3 bg-red-900/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold hover:bg-red-900/30 transition-all font-mono uppercase tracking-widest text-[10px]"
+        >
+            {isCancelling ? 'Processing...' : 'Cancel Subscription'}
+        </button>
     );
 }

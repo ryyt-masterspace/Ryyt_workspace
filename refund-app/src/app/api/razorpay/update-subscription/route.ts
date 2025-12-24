@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { PLANS } from '@/config/plans';
 
+// Initialize Razorpay
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID || '',
     key_secret: process.env.RAZORPAY_KEY_SECRET || '',
@@ -11,12 +12,24 @@ const razorpay = new Razorpay({
 
 export async function POST(req: Request) {
     try {
-        const { newPlanType, userId } = await req.json();
-
-        if (!userId || !newPlanType) {
-            return NextResponse.json({ error: 'Missing userId or newPlanType' }, { status: 400 });
+        // 1. Input Validation
+        let body;
+        try {
+            body = await req.json();
+        } catch (e) {
+            return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
         }
 
+        const { newPlanType, userId } = body;
+
+        if (!userId || typeof userId !== 'string') {
+            return NextResponse.json({ error: 'Valid userId is required' }, { status: 400 });
+        }
+        if (!newPlanType || !PLANS[newPlanType]) {
+            return NextResponse.json({ error: `Invalid plan type: ${newPlanType}` }, { status: 400 });
+        }
+
+        // 2. Fetch Merchant Data
         const merchantRef = doc(db, 'merchants', userId);
         const merchantSnap = await getDoc(merchantRef);
 
@@ -26,60 +39,142 @@ export async function POST(req: Request) {
 
         const merchantData = merchantSnap.data();
         const currentPlanType = merchantData.planType || 'startup';
+
+        // Validate Plans
         const currentPlan = PLANS[currentPlanType];
         const newPlan = PLANS[newPlanType];
 
-        // 1. Determine if Upgrade or Downgrade
-        const isUpgrade = newPlan.basePrice > currentPlan.basePrice;
+        if (!currentPlan) {
+            console.error(`[Critical] Merchant ${userId} has invalid current plan: ${currentPlanType}`);
+            return NextResponse.json({ error: 'Current plan configuration error' }, { status: 500 });
+        }
 
-        if (isUpgrade) {
-            // Task 2: Immediate Upgrade
-            const razorpaySubscriptionId = merchantData.razorpaySubscriptionId;
-            if (!razorpaySubscriptionId) {
-                return NextResponse.json({ error: 'No active subscription found' }, { status: 400 });
+        const razorpaySubscriptionId = merchantData.razorpaySubscriptionId;
+        if (!razorpaySubscriptionId) {
+            return NextResponse.json({ error: 'No active subscription found to update' }, { status: 400 });
+        }
+
+        // 3. Get Razorpay Plan ID
+        const planKey = `RAZORPAY_PLAN_${newPlanType.toUpperCase()}`;
+        const razorpayPlanId = process.env[planKey];
+
+        if (!razorpayPlanId) {
+            console.error(`[Critical] Missing Env Var: ${planKey}`);
+            return NextResponse.json({ error: 'Internal configuration error (Plan ID missing)' }, { status: 500 });
+        }
+
+        // --- UPI GUARD START ---
+        // Task: Fetch subscription and check payment method
+        try {
+            const sub: any = await razorpay.subscriptions.fetch(razorpaySubscriptionId);
+
+            // Check implicit UPI indicators
+            // Razorpay subscription entity might doesn't directly return 'payment_method' always.
+            // Often it's inferred from the 'notes' or recent invoices, OR we check our DB history.
+
+            let isUpi = false;
+
+            // 1. Check if 'method' or relevant field exists on subscription (User Request)
+            // Some API versions expose `payment_method`.
+            if (sub.payment_method === 'upi' || sub.method === 'upi') {
+                isUpi = true;
             }
 
-            const planKey = `RAZORPAY_PLAN_${newPlanType.toUpperCase()}`;
-            const razorpayPlanId = process.env[planKey];
+            // 2. Fallback: Check our local payments history for the most recent payment
+            if (!isUpi) {
+                const paymentsRef = collection(db, 'merchants', userId, 'payments');
+                const lastPayQuery = query(paymentsRef, orderBy('date', 'desc'), limit(1));
+                const lastPaySnap = await getDocs(lastPayQuery);
 
-            if (!razorpayPlanId) {
-                return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 500 });
-            }
-
-            // Call Razorpay Update API
-            await razorpay.subscriptions.update(razorpaySubscriptionId, {
-                plan_id: razorpayPlanId,
-                schedule_change_at: 'now' // Immediate prorated charge
-            });
-
-            // Sync Firestore
-            await updateDoc(merchantRef, {
-                planType: newPlanType,
-                pendingPlanChange: null // Clear any pending
-            });
-
-            return NextResponse.json({ success: true, mode: 'upgrade' });
-        } else {
-            // Task 3: Scheduled Downgrade
-            // Calculate next billing date (simplified logic: lastPaymentDate + 30 days)
-            const lastPay = merchantData.lastPaymentDate?.seconds
-                ? new Date(merchantData.lastPaymentDate.seconds * 1000)
-                : new Date();
-            const effectiveDate = new Date(lastPay);
-            effectiveDate.setDate(effectiveDate.getDate() + 30);
-
-            await updateDoc(merchantRef, {
-                pendingPlanChange: {
-                    newPlanType: newPlanType,
-                    effectiveDate: effectiveDate
+                if (!lastPaySnap.empty) {
+                    const lastPay = lastPaySnap.docs[0].data();
+                    if (lastPay.method === 'upi') {
+                        isUpi = true;
+                    }
                 }
-            });
+            }
 
-            return NextResponse.json({ success: true, mode: 'downgrade', effectiveDate: effectiveDate.toISOString() });
+            if (isUpi) {
+                return NextResponse.json({
+                    error: 'UPI_RESTRICTION',
+                    message: 'UPI plans cannot be auto-upgraded. Please cancel and re-subscribe.'
+                }, { status: 400 });
+            }
+
+        } catch (fetchErr) {
+            console.warn("Failed to fetch subscription details for UPI check, proceeding with caution:", fetchErr);
+            // We proceed if we can't verify, or we could strict block. 
+            // Proceeding is standard practice unless strict compliance needed.
+        }
+        // --- UPI GUARD END ---
+
+        // 4. Compare Prices
+        const isUpgrade = newPlan.basePrice > currentPlan.basePrice;
+        console.log(`[UpdateSub] User ${userId} requested switch: ${currentPlanType} -> ${newPlanType}. Upgrade? ${isUpgrade}`);
+
+        // 5. Razorpay API Call
+        try {
+            if (isUpgrade) {
+                // Immediate Upgrade
+                await razorpay.subscriptions.update(razorpaySubscriptionId, {
+                    plan_id: razorpayPlanId,
+                    schedule_change_at: 'now',
+                    quantity: 1
+                });
+
+                // Sync DB immediately
+                await updateDoc(merchantRef, {
+                    planType: newPlanType,
+                    upcomingPlan: null,
+                    upcomingPlanDate: null
+                });
+
+                return NextResponse.json({ success: true, mode: 'upgrade' });
+
+            } else {
+                // Downgrade at Cycle End
+                await razorpay.subscriptions.update(razorpaySubscriptionId, {
+                    plan_id: razorpayPlanId,
+                    schedule_change_at: 'cycle_end',
+                    quantity: 1
+                });
+
+                // Calculate estimated effective date for UI
+                const lastPaySeconds = merchantData.lastPaymentDate?.seconds;
+                let effectiveDate = new Date();
+                if (lastPaySeconds) {
+                    const lastPayDate = new Date(lastPaySeconds * 1000);
+                    effectiveDate = new Date(lastPayDate);
+                    effectiveDate.setDate(effectiveDate.getDate() + 30); // Approx next cycle
+
+                    // Safety: If calculated date is in past, default to today + 30
+                    if (effectiveDate < new Date()) {
+                        effectiveDate = new Date();
+                        effectiveDate.setDate(effectiveDate.getDate() + 30);
+                    }
+                }
+
+                // Update DB with "upcoming" status
+                await updateDoc(merchantRef, {
+                    upcomingPlan: newPlanType,
+                    upcomingPlanDate: effectiveDate
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    mode: 'downgrade',
+                    effectiveDate: effectiveDate.toISOString()
+                });
+            }
+
+        } catch (razorError: any) {
+            console.error('[Razorpay API Error]', razorError);
+            const rzpMsg = razorError.error?.description || razorError.description || razorError.message || 'Payment gateway error';
+            return NextResponse.json({ error: `Razorpay Error: ${rzpMsg}` }, { status: 502 });
         }
 
     } catch (error: any) {
-        console.error('Update Subscription Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[UpdateSubscription Fatal]', error);
+        return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
     }
 }

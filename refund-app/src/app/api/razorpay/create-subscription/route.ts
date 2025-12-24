@@ -19,7 +19,6 @@ const logDebug = (data: any) => {
 };
 
 // Initialize Razorpay
-// Note: These should be in your .env.local
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID || '',
     key_secret: process.env.RAZORPAY_KEY_SECRET || '',
@@ -33,7 +32,27 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing userId or planType' }, { status: 400 });
         }
 
-        // 1. Fetch Plan ID from Env
+        // 1. Guard: Check for Existing Active Subscription
+        const merchantRef = doc(db, 'merchants', userId);
+        const merchantSnap = await getDoc(merchantRef);
+
+        if (merchantSnap.exists()) {
+            const data = merchantSnap.data();
+            const status = data.subscriptionStatus; // e.g., 'active', 'created', 'cancelled', 'expired'
+
+            // Allow if null, undefined, 'cancelled', 'expired', 'halted'
+            // Block if 'active', 'authenticated' (rare but possible), 'authorized'
+            const activeStatuses = ['active', 'authenticated', 'authorized'];
+
+            if (status && activeStatuses.includes(status)) {
+                console.warn(`[CreateSub] Blocked duplicate for ${userId}. Status: ${status}`);
+                return NextResponse.json({
+                    error: 'You already have an active subscription. Please manage it from your dashboard instead of buying a new one.'
+                }, { status: 409 }); // 409 Conflict
+            }
+        }
+
+        // 2. Fetch Plan ID from Env
         const planKey = `RAZORPAY_PLAN_${planType.toUpperCase()}`;
         const razorpayPlanId = process.env[planKey];
 
@@ -43,16 +62,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: errorMsg }, { status: 500 });
         }
 
-        // 2. Create Subscription
+        // 3. Create Subscription
         console.log(`[Razorpay] Creating subscription for Plan ID: ${razorpayPlanId} (User: ${userId})`);
 
         try {
             const subscription: any = await razorpay.subscriptions.create({
                 plan_id: razorpayPlanId,
-                total_count: 12,
+                total_count: 120, // 10 years
                 quantity: 1,
                 customer_notify: 1,
-                // max_amount removed: not supported for fixed-amount plans
                 notes: {
                     merchantId: userId
                 }
@@ -60,35 +78,16 @@ export async function POST(req: Request) {
 
             return NextResponse.json({
                 subscriptionId: subscription.id,
-                t: Date.now() // Timestamp for cache busting/verification
+                t: Date.now()
             });
         } catch (razorError: any) {
-            logDebug({
-                context: "RAZORPAY_API_CALL_FAIL",
-                plan_id: razorpayPlanId,
-                error: razorError
-            });
-            throw razorError;
+            const errorDetail = razorError.error?.description || razorError.message || 'Payment gateway error';
+            console.error('[Razorpay Create Fail]', razorError);
+            return NextResponse.json({ error: errorDetail }, { status: 502 });
         }
 
     } catch (error: any) {
-        console.error("RAZORPAY_CREATE_SUBSCRIPTION_ERROR:", {
-            message: error.message,
-            description: error.description,
-            errorProp: error.error,
-            stack: error.stack
-        });
-
-        // Extract the most descriptive error message possible
-        const errorDetail =
-            error.error?.description ||
-            error.description ||
-            error.message ||
-            'Failed to create subscription';
-
-        return NextResponse.json({
-            error: errorDetail,
-            debug: process.env.NODE_ENV === 'development' ? error : undefined
-        }, { status: 500 });
+        console.error("RAZORPAY_CREATE_SUBSCRIPTION_ERROR:", error);
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
