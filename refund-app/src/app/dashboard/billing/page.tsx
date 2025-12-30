@@ -122,83 +122,65 @@ export default function BillingPage() {
                 // 2. Open Razorpay with STRICT Options Construction
                 // "App Integration" Fix: Ensure amount/currency are NEVER passed with subscription_id.
 
-                const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-                if (!rzpKey) {
-                    alert("Paymet Configuration Error: Missing Key ID");
-                    return;
-                }
-
-                // Base options common to all flows
-                const baseOptions = {
-                    key: rzpKey,
+                // 2. Open Razorpay (Strict Mode)
+                const options: any = {
+                    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+                    subscription_id: data.subscriptionId,
                     name: "Ryyt",
                     description: `${PLANS[newPlanType].name} Plan`,
-                    // image: "/logo-white.png", // Add provided logo if available
+                    image: "/logo-white.png",
+                    prefill: {
+                        email: user.email || '',
+                    },
                     modal: {
                         ondismiss: function () {
+                            console.log("Payment cancelled.");
                             if (!isVerifying) setIsUpdating(false);
                         }
                     },
-                    prefill: {
-                        email: user.email || '',
-                        contact: '' // Populated by Razorpay if known, or user enters it
+                    theme: {
+                        color: "#4F46E5",
+                    },
+                    handler: function (response: any) {
+                        setIsVerifying(true);
+                        setIsUpdating(true);
+
+                        // Strict Polling
+                        let attempts = 0;
+                        const maxAttempts = 30;
+                        const checkStatus = setInterval(async () => {
+                            attempts++;
+                            try {
+                                if (!user) return;
+                                const verifySnap = await getDoc(doc(db, "merchants", user.uid));
+                                if (verifySnap.exists() && verifySnap.data().subscriptionStatus === 'active') {
+                                    clearInterval(checkStatus);
+                                    alert("Subscription Reactivated!");
+                                    window.location.reload();
+                                } else if (attempts >= maxAttempts) {
+                                    clearInterval(checkStatus);
+                                    alert("Verification timed out. Please contact support.");
+                                    window.location.reload();
+                                }
+                            } catch (e) { console.error(e); }
+                        }, 1000);
                     }
                 };
 
-                let finalOptions: any = {};
-
+                // CRITICAL FIX: Explicitly remove conflicting keys for Subscription Mode
+                // Razorpay throws "Invalid Link" on UPI if these exist, even as undefined.
                 if (data.subscriptionId) {
-                    // --- SUBSCRIPTION MODE ---
-                    // CRITICAL: razorpay-js throws 'Invalid Link' (UPI) if amount/currency are present here.
-                    finalOptions = {
-                        ...baseOptions,
-                        subscription_id: data.subscriptionId,
-
-                        // Explicitly ensuring these are UNDEFINED
-                        amount: undefined,
-                        currency: undefined,
-                        order_id: undefined,
-
-                        handler: function (response: any) {
-                            setIsVerifying(true);
-                            setIsUpdating(true);
-
-                            // Strict Polling Guard (Server-Side Verification)
-                            let attempts = 0;
-                            const maxAttempts = 30;
-                            const checkStatus = setInterval(async () => {
-                                attempts++;
-                                try {
-                                    if (!user) return;
-                                    const verifySnap = await getDoc(doc(db, "merchants", user.uid));
-                                    if (verifySnap.exists() && verifySnap.data().subscriptionStatus === 'active') {
-                                        clearInterval(checkStatus);
-                                        alert("Subscription Reactivated!");
-                                        window.location.reload();
-                                    } else if (attempts >= maxAttempts) {
-                                        clearInterval(checkStatus);
-                                        alert("Verification timed out. If money was deducted, it will be refunded. Please contact support.");
-                                        window.location.reload();
-                                    }
-                                } catch (e) {
-                                    console.error("Polling Error:", e);
-                                }
-                            }, 1000);
-                        }
-                    };
-                } else {
-                    // --- ONE-TIME PAYMENT MODE (Fallback) ---
-                    // Example structure for future use
-                    throw new Error("Invalid Payment Mode: Missig Subscription ID");
+                    delete options.amount;
+                    delete options.currency;
+                    delete options.order_id;
                 }
 
                 if (!(window as unknown as { Razorpay: unknown }).Razorpay) {
-                    alert("Payment SDK not loaded. Please refresh.");
+                    alert("Payment SDK not loaded.");
                     return;
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const rzp1 = new (window as unknown as { Razorpay: new (options: unknown) => { open: () => void } }).Razorpay(finalOptions);
+                const rzp1 = new (window as unknown as { Razorpay: new (o: any) => { open: () => void } }).Razorpay(options);
                 rzp1.open();
 
             } else {

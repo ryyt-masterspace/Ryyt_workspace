@@ -132,9 +132,10 @@ export default function OnboardingWizard() {
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
-            // 3. Open Razorpay Modal with STRICT CONFIGURATION
-            const baseOptions = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '', // Exposed key
+            // 3. Open Razorpay (Strict Mode)
+            const options: any = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+                subscription_id: data.subscriptionId,
                 name: "RYYT (Calcure Technologies)",
                 description: `${formData.planType.toUpperCase()} Plan Subscription`,
                 image: "/logo-white.png",
@@ -142,34 +143,20 @@ export default function OnboardingWizard() {
                     name: formData.brandName,
                     email: formData.supportEmail,
                 },
-                theme: {
-                    color: "#4F46E5", // Indigo
-                },
+                theme: { color: "#4F46E5" },
                 modal: {
                     ondismiss: function () {
+                        console.log("Payment cancelled.");
                         setPaymentStatus('idle');
                     }
-                }
-            };
-
-            // STRICT SEPARATION: Subscription vs One-Time
-            // This prevents "Invalid Link" or "Order Not Found" errors on UPI
-            const finalOptions = {
-                ...baseOptions,
-                subscription_id: data.subscriptionId, // Pass Subscription ID
-                amount: undefined, // MUST BE UNDEFINED
-                currency: undefined, // MUST BE UNDEFINED
-                order_id: undefined, // MUST BE UNDEFINED
-
+                },
                 handler: function (response: any) {
-                    // CRITICAL SECURITY FIX: Do not trust client-side success.
-                    // Start polling the backend for 'active' status.
-                    setPaymentStatus('idle'); // Hide "Connecting..." spinner
-                    setSaving(true); // Show "Verifying..." spinner (reusing saving state or create new one)
+                    setPaymentStatus('idle');
+                    setSaving(true);
 
+                    // Polling
                     let attempts = 0;
-                    const maxAttempts = 30; // 30 seconds timeout
-
+                    const maxAttempts = 30;
                     const pollInterval = setInterval(async () => {
                         attempts++;
                         try {
@@ -184,16 +171,21 @@ export default function OnboardingWizard() {
                             } else if (attempts >= maxAttempts) {
                                 clearInterval(pollInterval);
                                 setSaving(false);
-                                alert("Payment verification timed out. If money was deducted, it will be refunded or credited shortly. Please contact support.");
+                                alert("Payment verification timed out. If money was deducted, it will be refunded. Please contact support.");
                             }
-                        } catch (err) {
-                            console.error("Polling Error:", err);
-                        }
+                        } catch (err) { console.error("Polling Error:", err); }
                     }, 1000);
                 }
             };
 
-            const rzp = new (window as unknown as { Razorpay: new (o: unknown) => { open: () => void } }).Razorpay(finalOptions);
+            // STRICTLY REMOVE CONFLICTING KEYS
+            if (data.subscriptionId) {
+                delete options.amount;
+                delete options.currency;
+                delete options.order_id;
+            }
+
+            const rzp = new (window as unknown as { Razorpay: new (o: any) => { open: () => void } }).Razorpay(options);
             rzp.open();
 
         } catch (error: unknown) {
