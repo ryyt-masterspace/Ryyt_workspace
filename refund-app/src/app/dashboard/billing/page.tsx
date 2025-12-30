@@ -118,70 +118,87 @@ export default function BillingPage() {
                     return;
                 }
 
-                // 2. Open Razorpay
-                // 2. Open Razorpay with STRICT Options Construction
-                // "App Integration" Fix: Ensure amount/currency are NEVER passed with subscription_id.
-
-                // 2. Open Razorpay (Strict Mode)
-                const options: any = {
-                    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
-                    subscription_id: data.subscriptionId,
-                    name: "Ryyt",
-                    description: `${PLANS[newPlanType].name} Plan`,
-                    image: "/logo-white.png",
-                    prefill: {
-                        email: user.email || '',
-                    },
-                    modal: {
-                        ondismiss: function () {
-                            console.log("Payment cancelled.");
-                            if (!isVerifying) setIsUpdating(false);
-                        }
-                    },
-                    theme: {
-                        color: "#4F46E5",
-                    },
-                    handler: function (response: any) {
-                        setIsVerifying(true);
-                        setIsUpdating(true);
-
-                        // Strict Polling
-                        let attempts = 0;
-                        const maxAttempts = 30;
-                        const checkStatus = setInterval(async () => {
-                            attempts++;
-                            try {
-                                if (!user) return;
-                                const verifySnap = await getDoc(doc(db, "merchants", user.uid));
-                                if (verifySnap.exists() && verifySnap.data().subscriptionStatus === 'active') {
-                                    clearInterval(checkStatus);
-                                    alert("Subscription Reactivated!");
-                                    window.location.reload();
-                                } else if (attempts >= maxAttempts) {
-                                    clearInterval(checkStatus);
-                                    alert("Verification timed out. Please contact support.");
-                                    window.location.reload();
-                                }
-                            } catch (e) { console.error(e); }
-                        }, 1000);
-                    }
-                };
-
-                // CRITICAL FIX: Explicitly remove conflicting keys for Subscription Mode
-                // Razorpay throws "Invalid Link" on UPI if these exist, even as undefined.
-                if (data.subscriptionId) {
-                    delete options.amount;
-                    delete options.currency;
-                    delete options.order_id;
-                }
-
                 if (!(window as unknown as { Razorpay: unknown }).Razorpay) {
-                    alert("Payment SDK not loaded.");
+                    alert("Payment SDK not loaded. Please refresh.");
                     return;
                 }
 
-                const rzp1 = new (window as unknown as { Razorpay: new (o: any) => { open: () => void } }).Razorpay(options);
-                rzp1.open();
+                // ---------------------------------------------------------
+                // LEAD SECURITY ARCHITECT: REWRITTEN PAYMENT FLOW
+                // 1. STRICT OPTIONS: No amount/currency with Subscription ID.
+                // 2. SILENT HANDLER: No client-side DB writes. Polling Only.
+                // ---------------------------------------------------------
+
+                if (data.subscriptionId) {
+                    // Define options strictly for Subscription
+                    const options: any = {
+                        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+                        subscription_id: data.subscriptionId, // ONLY Subscription ID
+                        name: "Ryyt",
+                        description: `${PLANS[newPlanType].name} Plan`,
+                        image: "/logo-white.png",
+                        handler: function (response: any) {
+                            // --- SILENT HANDLER ---
+                            // 1. Set Loading / Verifying State
+                            setIsVerifying(true);
+                            setIsUpdating(true);
+
+                            // 2. Start Polling Loop (Server-Side Check)
+                            let attempts = 0;
+                            const maxAttempts = 15; // 30 seconds (2s interval)
+
+                            const pollInterval = setInterval(async () => {
+                                attempts++;
+                                try {
+                                    // Fetch FRESH document from server
+                                    const freshDoc = await getDoc(doc(db, "merchants", user.uid));
+
+                                    if (freshDoc.exists()) {
+                                        const serverStatus = freshDoc.data().subscriptionStatus;
+
+                                        // CHECK: Only redirect if Server says ACTIVE
+                                        if (serverStatus === 'active') {
+                                            clearInterval(pollInterval);
+                                            alert("Subscription Verified & Active!");
+                                            window.location.reload();
+                                        }
+                                        // TIMEOUT
+                                        else if (attempts >= maxAttempts) {
+                                            clearInterval(pollInterval);
+                                            alert("Payment verification timed out. If money was deducted, it will be refunded automatically. Please try again.");
+                                            setIsVerifying(false); // Reset UI
+                                            setIsUpdating(false);
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error("Polling Error:", err);
+                                }
+                            }, 2000); // Check every 2 seconds
+                        },
+                        modal: {
+                            ondismiss: function () {
+                                console.log("Payment Modal Closed by User");
+                                if (!isVerifying) setIsUpdating(false);
+                            }
+                        },
+                        theme: {
+                            color: "#4F46E5"
+                        }
+                    };
+
+                    // EXPLICIT SECURITY DELETE
+                    // Just in case any object merging happened above (though we defined new)
+                    delete options.amount;
+                    delete options.currency;
+                    delete options.order_id;
+                    if (options.prefill) delete options.prefill.amount;
+
+                    const rzp1 = new (window as unknown as { Razorpay: new (o: any) => { open: () => void } }).Razorpay(options);
+                    rzp1.open();
+
+                } else {
+                    throw new Error("Invalid Payment Mode: Missing Subscription ID");
+                }
 
             } else {
                 // Scenario: Updating Active Subscription
