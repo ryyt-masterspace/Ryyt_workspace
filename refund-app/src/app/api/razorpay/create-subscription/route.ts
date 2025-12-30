@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { PLANS } from '@/config/plans';
 import fs from 'fs';
 import path from 'path';
 
 // DEBUG LOG HELPER
-const logDebug = (data: any) => {
+const logDebug = (data: unknown) => {
     try {
         const logPath = path.join(process.cwd(), 'debug.log');
         const timestamp = new Date().toISOString();
@@ -66,7 +65,7 @@ export async function POST(req: Request) {
         console.log(`[Razorpay] Creating subscription for Plan ID: ${razorpayPlanId} (User: ${userId})`);
 
         try {
-            const subscription: any = await razorpay.subscriptions.create({
+            const subscription = await razorpay.subscriptions.create({
                 plan_id: razorpayPlanId,
                 total_count: 120, // 10 years
                 quantity: 1,
@@ -74,20 +73,22 @@ export async function POST(req: Request) {
                 notes: {
                     merchantId: userId
                 }
-            } as any);
+            }) as { id: string };
 
             return NextResponse.json({
                 subscriptionId: subscription.id,
                 t: Date.now()
             });
-        } catch (razorError: any) {
-            const errorDetail = razorError.error?.description || razorError.message || 'Payment gateway error';
+        } catch (razorError: unknown) {
+            const rError = razorError as { error?: { description: string }, message?: string };
+            const errorDetail = rError.error?.description || rError.message || 'Payment gateway error';
             console.error('[Razorpay Create Fail]', razorError);
             return NextResponse.json({ error: errorDetail }, { status: 502 });
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("RAZORPAY_CREATE_SUBSCRIPTION_ERROR:", error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

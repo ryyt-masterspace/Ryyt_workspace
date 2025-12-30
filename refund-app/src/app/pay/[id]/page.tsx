@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ShieldCheck, Lock, CheckCircle, AlertTriangle, Mail } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { isFeatureEnabled } from "@/config/features";
 import { sendUpdate, NotificationRefundData } from "@/lib/notificationService";
+import Image from "next/image";
 
 export default function PaymentPage() {
     const params = useParams();
@@ -16,7 +17,7 @@ export default function PaymentPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
-    const [refund, setRefund] = useState<any>(null);
+    const [refund, setRefund] = useState<DocumentData | null>(null);
     const [upiId, setUpiId] = useState("");
     const [brandName, setBrandName] = useState("Merchant");
     const [brandLogo, setBrandLogo] = useState<string | null>(null);
@@ -51,14 +52,14 @@ export default function PaymentPage() {
                                 if (mData.brandName) setBrandName(mData.brandName);
                                 if (mData.logo) setBrandLogo(mData.logo);
                             }
-                        } catch (err) {
+                        } catch (err: unknown) {
                             console.error("Error fetching merchant brand:", err);
                         }
                     }
                 } else {
                     setError("Invalid Refund Link");
                 }
-            } catch (err) {
+            } catch (err: unknown) {
                 console.error(err);
                 setError("Error loading details");
             } finally {
@@ -72,8 +73,8 @@ export default function PaymentPage() {
     const maskEmail = (email: string) => {
         if (!email) return "";
         const [name, domain] = email.split("@");
-        if (name.length <= 2) return `${name}**@${domain}`;
-        return `${name.substring(0, 2)}**@${domain}`;
+        if (name.length <= 2) return `${name}***@${domain}`;
+        return `${name.substring(0, 2)}***@${domain}`;
     };
 
     const handleVerifyEmail = (e: React.FormEvent) => {
@@ -112,15 +113,16 @@ export default function PaymentPage() {
             setSuccess(true);
 
             // --- EMAIL TRIGGER START (Phase 5/QA Sync) ---
-            await sendUpdate(refund.merchantId, { id: params.id as string, ...refund } as NotificationRefundData, 'REFUND_INITIATED');
+            if (refund) {
+                await sendUpdate(refund.merchantId, { id: params.id as string, ...refund } as NotificationRefundData, 'REFUND_INITIATED');
+            }
             // ---------------------------------------------
 
             setTimeout(() => {
                 router.push(`/t/${params.id}`);
             }, 1500);
 
-        } catch (err) {
-            console.error(err);
+        } catch {
             setError("Failed to save details. Please try again.");
         } finally {
             setSubmitting(false);
@@ -204,7 +206,14 @@ export default function PaymentPage() {
             <div className="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl">
                 <div className="flex flex-col items-center mb-8 border-b border-white/10 pb-6 w-full">
                     {brandLogo ? (
-                        <img src={brandLogo} alt={brandName} className="h-10 w-auto max-w-[160px] object-contain mb-4" />
+                        <div className="relative h-10 w-auto max-w-[160px] mb-4">
+                            <Image
+                                src={brandLogo}
+                                alt={brandName}
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
                     ) : (
                         <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4">
                             {brandName.charAt(0).toUpperCase()}

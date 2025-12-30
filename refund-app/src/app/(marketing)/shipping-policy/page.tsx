@@ -16,7 +16,7 @@ export default function ShippingPolicyPage() {
                 <p>Access to the Ryyt platform is provided instantly upon successful registration and account verification.</p>
                 <ul className="list-disc pl-5 space-y-2 mt-4">
                     <li><strong>Dashboard Access:</strong> Your credentials allow immediate login to the merchant dashboard.</li>
-                    <li><strong>Integration Links:</strong> Tracking links and "Magic QR" features are generated in real-time.</li>
+                    <li><strong>Integration Links:</strong> Tracking links and &quot;Magic QR&quot; features are generated in real-time.</li>
                 </ul>
             </Section>
 

@@ -2,7 +2,7 @@ import { db } from "../lib/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { migrateMetrics } from "./migrateMetrics";
 
-interface BackfillSummary {
+export interface BackfillSummary {
     totalProcessed: number;
     totalUpdated: number;
     status: "DRY_RUN" | "COMMITTED" | "FAILED";
@@ -32,7 +32,7 @@ export async function backfillMerchants(isDryRun: boolean = true): Promise<Backf
 
         for (const merchantDoc of snapshot.docs) {
             const data = merchantDoc.data();
-            const updates: Record<string, any> = {};
+            const updates: Record<string, unknown> = {};
 
             // Task 1: Field Repair
             if (data.subscriptionStatus === undefined) updates.subscriptionStatus = "active";

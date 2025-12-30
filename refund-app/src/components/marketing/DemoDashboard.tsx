@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 type Screen = "LOGIN" | "DASHBOARD" | "CREATE" | "DETAILS";
 
@@ -22,6 +22,23 @@ export default function DemoDashboard() {
     const isAnimating = useRef(false);
     const isMounted = useRef(true);
 
+    // --- HELPER FUNCTIONS ---
+    const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const click = useCallback(async () => {
+        setIsClicking(true);
+        await wait(150);
+        setIsClicking(false);
+    }, []);
+
+    const typeText = useCallback(async (text: string, setter: (s: string) => void) => {
+        for (let i = 1; i <= text.length; i++) {
+            if (!isMounted.current) break;
+            setter(text.slice(0, i));
+            await wait(Math.random() * 30 + 30); // Random typing speed
+        }
+    }, []);
+
     useEffect(() => {
         isMounted.current = true;
         if (isAnimating.current) return;
@@ -29,7 +46,7 @@ export default function DemoDashboard() {
 
         const runSequence = async () => {
             while (isMounted.current) {
-                // --- RESET STATE ---
+                // ... (rest of the sequence logic stays the same)
                 if (!isMounted.current) break;
                 setScreen("LOGIN");
                 setEmail("");
@@ -45,78 +62,66 @@ export default function DemoDashboard() {
                 if (!isMounted.current) break;
 
                 // --- SCENE 1: LOGIN ---
-                // Move to Email
                 setCursorPos({ x: "50%", y: "42%" });
                 await wait(1000);
                 if (!isMounted.current) break;
                 await typeText("merchant@ryyt.com", setEmail);
                 if (!isMounted.current) break;
 
-                // Move to Password
                 setCursorPos({ x: "50%", y: "55%" });
                 await wait(500);
                 if (!isMounted.current) break;
                 await typeText("********", setPassword);
                 if (!isMounted.current) break;
 
-                // Click Login
                 setCursorPos({ x: "50%", y: "68%" });
                 await wait(800);
                 if (!isMounted.current) break;
                 await click();
                 if (!isMounted.current) break;
 
-                // Transition
                 await wait(500);
                 if (!isMounted.current) break;
                 setScreen("DASHBOARD");
 
-                // --- SCENE 2: DASHBOARD OVERVIEW ---
-                // Move cursor around to show "looking"
-                setCursorPos({ x: "20%", y: "30%" }); // Stats
+                // --- SCENE 2: DASHBOARD ---
+                setCursorPos({ x: "20%", y: "30%" });
                 await wait(800);
                 if (!isMounted.current) break;
-                setCursorPos({ x: "70%", y: "40%" }); // Recent refunds
+                setCursorPos({ x: "70%", y: "40%" });
                 await wait(800);
                 if (!isMounted.current) break;
 
-                // Click "New Refund"
-                setCursorPos({ x: "88%", y: "15%" }); // Top right button
+                setCursorPos({ x: "88%", y: "15%" });
                 await wait(1000);
                 if (!isMounted.current) break;
                 await click();
                 if (!isMounted.current) break;
 
-                // Transition
                 setScreen("CREATE");
 
-                // --- SCENE 3: CREATE REFUND ---
-                // Type Customer Name
+                // --- SCENE 3: CREATE ---
                 setCursorPos({ x: "30%", y: "35%" });
                 await wait(800);
                 if (!isMounted.current) break;
                 await typeText("Ananya Gupta", setCustomerName);
                 if (!isMounted.current) break;
 
-                // Type Amount
                 setCursorPos({ x: "70%", y: "35%" });
                 await wait(500);
                 if (!isMounted.current) break;
                 await typeText("4500", setAmount);
                 if (!isMounted.current) break;
 
-                // Click Create
-                setCursorPos({ x: "85%", y: "85%" }); // Bottom right action
+                setCursorPos({ x: "85%", y: "85%" });
                 await wait(1000);
                 if (!isMounted.current) break;
                 await click();
                 if (!isMounted.current) break;
 
-                // Transition
                 setScreen("DETAILS");
 
-                // --- SCENE 4: TRACKING & UPDATE ---
-                // Move to Update Status
+                // --- SCENE 4: DETAILS ---
                 setCursorPos({ x: "85%", y: "20%" });
                 await wait(1500);
                 if (!isMounted.current) break;
@@ -124,7 +129,6 @@ export default function DemoDashboard() {
                 if (!isMounted.current) break;
                 setShowUtrModal(true);
 
-                // Enter UTR
                 setCursorPos({ x: "50%", y: "50%" });
                 await wait(800);
                 if (!isMounted.current) break;
@@ -133,7 +137,6 @@ export default function DemoDashboard() {
                 await typeText("HDFC00088219", setUtr);
                 if (!isMounted.current) break;
 
-                // Confirm
                 setCursorPos({ x: "50%", y: "70%" });
                 await wait(800);
                 if (!isMounted.current) break;
@@ -143,7 +146,6 @@ export default function DemoDashboard() {
                 setShowUtrModal(false);
                 setStatus("Completed");
 
-                // Admire the result
                 setCursorPos({ x: "90%", y: "90%" });
                 await wait(3000);
             }
@@ -154,23 +156,7 @@ export default function DemoDashboard() {
         return () => {
             isMounted.current = false;
         };
-    }, []);
-
-    // --- HELPER FUNCTIONS ---
-    const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const click = async () => {
-        setIsClicking(true);
-        await wait(150);
-        setIsClicking(false);
-    };
-
-    const typeText = async (text: string, setter: (s: string) => void) => {
-        for (let i = 1; i <= text.length; i++) {
-            setter(text.slice(0, i));
-            await wait(Math.random() * 30 + 30); // Random typing speed
-        }
-    };
+    }, [click, typeText]);
 
     // --- SCROLL ANIMATION ---
     const containerRef = useRef<HTMLDivElement>(null);
@@ -379,7 +365,7 @@ export default function DemoDashboard() {
                                                 <div className="text-2xl font-mono text-green-400 tracking-wide">{utr}</div>
                                                 <div className="text-sm text-gray-400 flex items-center gap-2">
                                                     <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                                    Verified & Notified
+                                                    Verified &amp; Notified
                                                 </div>
                                             </div>
                                         ) : (

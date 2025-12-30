@@ -18,14 +18,14 @@ export default function GlobalConcierge() {
 
     // Stable Mounting Hook
     useEffect(() => {
-        setMounted(true);
+        Promise.resolve().then(() => setMounted(true));
     }, []);
 
     // Stable Idle Detection Hook
     useEffect(() => {
         let timeout: NodeJS.Timeout;
         const resetIdle = () => {
-            setIsIdle(false);
+            Promise.resolve().then(() => setIsIdle(false));
             clearTimeout(timeout);
             timeout = setTimeout(() => setIsIdle(true), 30000);
         };

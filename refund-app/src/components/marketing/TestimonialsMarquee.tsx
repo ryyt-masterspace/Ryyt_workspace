@@ -40,16 +40,14 @@ interface Review {
 const Row = ({ reviews, direction }: { reviews: Review[]; direction: 'left' | 'right' }) => (
     <div className="flex overflow-hidden relative w-full">
         <motion.div
-            // @ts-ignore
             initial={{ x: direction === 'left' ? 0 : "-50%" }}
-            // @ts-ignore
             animate={{ x: direction === 'left' ? "-50%" : 0 }}
             transition={{ duration: 50, ease: "linear", repeat: Infinity }}
             className="flex gap-6 py-4 pr-6 flex-shrink-0"
         >
             {[...reviews, ...reviews].map((review, i) => (
                 <div key={i} className="w-[350px] flex-shrink-0 bg-zinc-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm hover:border-[#0052FF]/30 transition-colors">
-                    <p className="text-zinc-300 text-sm mb-4 leading-relaxed">"{review.text}"</p>
+                    <p className="text-zinc-300 text-sm mb-4 leading-relaxed">&quot;{review.text}&quot;</p>
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center text-xs font-bold text-zinc-500 border border-white/5">
                             {review.name.charAt(0)}
@@ -61,8 +59,8 @@ const Row = ({ reviews, direction }: { reviews: Review[]; direction: 'left' | 'r
                     </div>
                 </div>
             ))}
-        </motion.div>
-    </div>
+        </motion.div >
+    </div >
 );
 
 // Split data into two rows

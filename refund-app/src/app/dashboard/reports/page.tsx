@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { collection, query, where, getDocs, orderBy, limit, addDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
@@ -8,7 +8,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Papa from "papaparse";
-import { FileDown, History, Calendar, Filter, Loader2 } from "lucide-react";
+import { FileDown, History, Loader2 } from "lucide-react";
 
 export default function ReportsPage() {
     const { user } = useAuth();
@@ -17,23 +17,16 @@ export default function ReportsPage() {
 
     // Filters
     const [scope, setScope] = useState("ALL"); // ALL, ACTIVE, BREACH, SETTLED, FAILED
+    const [_dateRange, setDateRange] = useState('30d');
     const [timeRange, setTimeRange] = useState("30"); // 7, 30, 365, CUSTOM
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
 
     // History Data
-    const [history, setHistory] = useState<any[]>([]);
-    const [metrics, setMetrics] = useState<any>(null);
+    const [history, setHistory] = useState<unknown[]>([]);
+    const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
 
-    useEffect(() => {
-        if (user) {
-            fetchHistory();
-            fetchMetrics();
-            setLoading(false);
-        }
-    }, [user]);
-
-    const fetchMetrics = async () => {
+    const fetchMetrics = useCallback(async () => {
         if (!user) return;
         try {
             const mRef = doc(db, "merchants", user.uid, "metadata", "metrics");
@@ -42,9 +35,9 @@ export default function ReportsPage() {
         } catch (err) {
             console.error("Failed to fetch metrics", err);
         }
-    };
+    }, [user]);
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         if (!user) return;
         try {
             const q = query(
@@ -58,7 +51,15 @@ export default function ReportsPage() {
         } catch (err) {
             console.error("Failed to fetch history", err);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (user) {
+            fetchHistory();
+            fetchMetrics();
+            setLoading(false);
+        }
+    }, [user, fetchHistory, fetchMetrics]);
 
     const handleGenerate = async () => {
         if (!user) return;
@@ -86,7 +87,7 @@ export default function ReportsPage() {
             // 2. Build Query
             // Note: Firestore requires composite index for 'merchantId + createdAt' mostly.
             // We fetch somewhat broadly and filter in memory if needed for complex status logic to avoid index hell.
-            let q = query(
+            const q = query(
                 collection(db, "refunds"),
                 where("merchantId", "==", user.uid),
                 where("createdAt", ">=", startDate),
@@ -125,7 +126,7 @@ export default function ReportsPage() {
             const csvData = refunds.map(r => {
                 // Helper to find date for a specific status in the timeline
                 const findDate = (statusKey: string) => {
-                    const entry = r.timeline?.find((t: any) => t.status?.includes(statusKey));
+                    const entry = (r.timeline as Array<{ status?: string; date?: string | number | Date }>)?.find((t) => t.status?.includes(statusKey));
                     return entry?.date ? new Date(entry.date).toLocaleDateString() : "";
                 };
 
@@ -202,15 +203,15 @@ export default function ReportsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-xl">
                             <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 font-mono">Total Settled</p>
-                            <p className="text-2xl font-bold font-mono">₹{metrics?.totalSettledAmount?.toLocaleString('en-IN') || 0}</p>
+                            <p className="text-2xl font-bold font-mono">₹{(metrics?.totalSettledAmount as number)?.toLocaleString('en-IN') || 0}</p>
                         </div>
                         <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-xl">
                             <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 font-mono">Active Liability</p>
-                            <p className="text-2xl font-bold font-mono text-orange-400">₹{metrics?.activeLiability?.toLocaleString('en-IN') || 0}</p>
+                            <p className="text-2xl font-bold font-mono text-orange-400">₹{(metrics?.activeLiability as number)?.toLocaleString('en-IN') || 0}</p>
                         </div>
                         <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-xl">
                             <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1 font-mono">Total Refunds</p>
-                            <p className="text-2xl font-bold font-mono text-blue-400">{metrics?.totalRefunds || 0}</p>
+                            <p className="text-2xl font-bold font-mono text-blue-400">{metrics?.totalRefunds as React.ReactNode || 0}</p>
                         </div>
                     </div>
 
@@ -325,24 +326,27 @@ export default function ReportsPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
-                                            {history.map((log) => (
-                                                <div key={log.id} className="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <span className="text-xs font-bold text-white bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
-                                                            {log.type}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-500">
-                                                            {new Date(log.date).toLocaleDateString()}
-                                                        </span>
+                                            {history.map((item) => {
+                                                const log = item as { id: string; type: string; date: string; count: number; range: string };
+                                                return (
+                                                    <div key={log.id} className="p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <span className="text-xs font-bold text-white bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
+                                                                {log.type}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-500">
+                                                                {new Date(log.date).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-400 mt-2">
+                                                            Exported <span className="text-white font-mono">{log.count}</span> records
+                                                        </p>
+                                                        <p className="text-[10px] text-gray-600 mt-1">
+                                                            Range: {log.range}
+                                                        </p>
                                                     </div>
-                                                    <p className="text-xs text-gray-400 mt-2">
-                                                        Exported <span className="text-white font-mono">{log.count}</span> records
-                                                    </p>
-                                                    <p className="text-[10px] text-gray-600 mt-1">
-                                                        Range: {log.range}
-                                                    </p>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

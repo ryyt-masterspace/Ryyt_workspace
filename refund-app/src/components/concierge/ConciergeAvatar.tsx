@@ -38,7 +38,7 @@ export default function ConciergeAvatar({ isOpen, onClick, isIdle }: ConciergeAv
                         <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
                         Bot Ryyt
                     </div>
-                    <p className="mt-1 text-gray-300">I noticed you're browsing. Need a quick tour?</p>
+                    <p className="mt-1 text-gray-300">I noticed you&apos;re browsing. Need a quick tour?</p>
                 </motion.div>
             )}
 
@@ -58,8 +58,8 @@ export default function ConciergeAvatar({ isOpen, onClick, isIdle }: ConciergeAv
                 whileTap={{ scale: 0.95 }}
                 onClick={onClick}
                 className={`relative w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 backdrop-blur-md ${isOpen
-                        ? "bg-[#0A0A0A] border border-white/20 text-white"
-                        : "bg-gradient-to-tr from-blue-600/90 to-blue-500/90 border border-white/20 text-white"
+                    ? "bg-[#0A0A0A] border border-white/20 text-white"
+                    : "bg-gradient-to-tr from-blue-600/90 to-blue-500/90 border border-white/20 text-white"
                     }`}
             >
                 {isOpen ? (

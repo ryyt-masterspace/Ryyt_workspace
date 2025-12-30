@@ -143,9 +143,9 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                     stuckAmount,
                     failureReasonDistribution: Object.entries(failureReasonCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
                 });
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Dashboard Metrics Aggregation Error:", err);
-                setError(err.message);
+                setError((err as Error).message);
             } finally {
                 setLoading(false);
             }

@@ -1,7 +1,7 @@
 import { db } from "../lib/firebase";
-import { collection, getDocs, doc, setDoc, serverTimestamp, query, limit, orderBy, startAfter, where } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, serverTimestamp, query, limit, orderBy, startAfter, where, QueryConstraint } from "firebase/firestore";
 
-interface MigrationSummary {
+export interface MigrationSummary {
     totalRefunds: number;
     totalAmount: number;
     merchantCount: number;
@@ -25,7 +25,13 @@ export async function migrateMetrics(isDryRun: boolean = true, targetMerchantId?
     };
 
     try {
-        const merchantStats: Record<string, any> = {};
+        const merchantStats: Record<string, {
+            totalRefundsCount: number;
+            totalSettledAmount: number;
+            activeLiabilityAmount: number;
+            stuckAmount: number;
+            failedCount: number;
+        }> = {};
         let lastDoc = null;
         let hasMore = true;
         const BATCH_SIZE = 500;
@@ -33,17 +39,17 @@ export async function migrateMetrics(isDryRun: boolean = true, targetMerchantId?
         while (hasMore) {
             console.log(`Fetching batch of ${BATCH_SIZE} refunds...`);
 
-            let qConstraints: any[] = [orderBy("__name__"), limit(BATCH_SIZE)];
+            let qConstraints: QueryConstraint[] = [orderBy("__name__"), limit(BATCH_SIZE)];
             if (targetMerchantId) {
                 // If targeting, we filter by merchantId
                 // Note: If we use where, we might need an index if combined with orderBy __name__
                 // But for a single merchant, simple where is fine.
-                qConstraints = [where("merchantId", "==", targetMerchantId), limit(BATCH_SIZE)];
+                qConstraints = [where("merchantId", "==", targetMerchantId), orderBy("__name__"), limit(BATCH_SIZE)];
             } else if (lastDoc) {
                 qConstraints = [orderBy("__name__"), startAfter(lastDoc), limit(BATCH_SIZE)];
             }
 
-            let q = query(collection(db, "refunds"), ...qConstraints);
+            const q = query(collection(db, "refunds"), ...qConstraints);
 
             const snapshot = await getDocs(q);
             if (snapshot.empty) {
@@ -53,8 +59,8 @@ export async function migrateMetrics(isDryRun: boolean = true, targetMerchantId?
 
             console.log(`Processing batch of ${snapshot.size} refunds...`);
             snapshot.docs.forEach(d => {
-                const refund = d.data() as any;
-                const mId = refund.merchantId;
+                const refund = d.data();
+                const mId = refund.merchantId as string;
                 if (!mId) return;
 
                 if (!merchantStats[mId]) {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { PLANS } from '@/config/plans';
 
 // Initialize Razorpay
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
         let body;
         try {
             body = await req.json();
-        } catch (e) {
+        } catch {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
         }
 
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
         // --- UPI GUARD START ---
         // Task: Fetch subscription and check payment method
         try {
-            const sub: any = await razorpay.subscriptions.fetch(razorpaySubscriptionId);
+            const sub = await razorpay.subscriptions.fetch(razorpaySubscriptionId) as { payment_method?: string, method?: string };
 
             // Check implicit UPI indicators
             // Razorpay subscription entity might doesn't directly return 'payment_method' always.
@@ -167,14 +167,16 @@ export async function POST(req: Request) {
                 });
             }
 
-        } catch (razorError: any) {
+        } catch (razorError: unknown) {
             console.error('[Razorpay API Error]', razorError);
-            const rzpMsg = razorError.error?.description || razorError.description || razorError.message || 'Payment gateway error';
+            const rError = razorError as { error?: { description: string }, description?: string, message?: string };
+            const rzpMsg = rError.error?.description || rError.description || rError.message || 'Payment gateway error';
             return NextResponse.json({ error: `Razorpay Error: ${rzpMsg}` }, { status: 502 });
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[UpdateSubscription Fatal]', error);
-        return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: 'Internal Server Error', details: message }, { status: 500 });
     }
 }

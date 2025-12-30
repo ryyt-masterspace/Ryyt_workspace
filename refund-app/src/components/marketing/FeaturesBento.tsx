@@ -46,7 +46,7 @@ export default function FeaturesBento() {
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> The Guard
                                     </p>
                                     <p className="text-zinc-200 leading-relaxed text-sm font-medium">
-                                        Automated customer email verification before any UPI data is collected. Your customers' data is locked in a private vault.
+                                        Automated customer email verification before any UPI data is collected. Your customers&apos; data is locked in a private vault.
                                     </p>
                                 </div>
                             </div>
@@ -124,7 +124,7 @@ export default function FeaturesBento() {
                                 <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
                                     <p className="text-red-400 text-[10px] font-bold tracking-widest uppercase mb-2">The Friction</p>
                                     <p className="text-zinc-500 text-xs leading-relaxed">
-                                        Generic, spam-like emails that confuse customers and trigger support tickets asking 'Where is my money?'
+                                        Generic, spam-like emails that confuse customers and trigger support tickets asking &apos;Where is my money?&apos;
                                     </p>
                                 </div>
                                 <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)]">

@@ -2,31 +2,48 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { migrateMetrics } from "@/scripts/migrateMetrics";
-import { backfillMerchants } from "@/scripts/backfillMerchants";
+import { migrateMetrics, MigrationSummary } from "@/scripts/migrateMetrics";
+import { backfillMerchants, BackfillSummary } from "@/scripts/backfillMerchants";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { collection, getDocs, doc, updateDoc, serverTimestamp, addDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
-    AlertTriangle, CheckCircle2, ShieldCheck, Play, KeyRound,
+    AlertTriangle, CheckCircle2, ShieldCheck, KeyRound,
     CreditCard, Users, RefreshCw, Loader2, Search, ChevronRight,
-    Zap, Activity, Settings, Lock, Unlock, FileText, Calendar
+    Zap, Activity, Settings, Lock, Unlock, FileText, Calendar, Copy
 } from "lucide-react";
 import { PLANS } from "@/config/plans";
 import { query, where, orderBy, limit } from "firebase/firestore";
-import { Copy } from "lucide-react";
 import { calculateFinalBill } from "@/lib/taxCalculator";
+
+interface Merchant {
+    id: string;
+    brandName?: string;
+    email?: string;
+    subscriptionStatus?: string;
+    planType?: string;
+    lastPaymentDate?: { seconds: number };
+    logo?: string;
+}
+
+interface Lead {
+    id: string;
+    contact: string;
+    type: 'phone' | 'email';
+    interest?: string;
+    createdAt?: { seconds: number };
+}
 
 // MASTER ADMIN KEY - In a real app, this should be an environment variable
 const MASTER_KEY = "Ryyt-Admin-2025";
 
 export default function AdminMigratePage() {
     const { user, loading: authLoading } = useAuth();
-    const [summary, setSummary] = useState<any>(null);
-    const [backfillSummary, setBackfillSummary] = useState<any>(null);
-    const [isRunning, setIsRunning] = useState(false);
+    const [summary, setSummary] = useState<MigrationSummary | null>(null);
+    const [backfillSummary, setBackfillSummary] = useState<BackfillSummary | null>(null);
+    const [, setIsRunning] = useState(false);
     const [isBackfillRunning, setIsBackfillRunning] = useState(false);
     const [isPaymentRunning, setIsPaymentRunning] = useState(false);
     const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
@@ -34,14 +51,43 @@ export default function AdminMigratePage() {
 
     const [step, setStep] = useState(1);
     const [passkey, setPasskey] = useState("");
-    const [merchants, setMerchants] = useState<any[]>([]);
+    const [merchants, setMerchants] = useState<Merchant[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
 
     const [selectedMerchantId, setSelectedMerchantId] = useState("");
-    const [selectedMerchantData, setSelectedMerchantData] = useState<any>(null);
+    const [selectedMerchantData, setSelectedMerchantData] = useState<Merchant | null>(null);
     const [merchantUsage, setMerchantUsage] = useState<number>(0);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [isUsageLoading, setIsUsageLoading] = useState(false);
+
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [isLeadsLoading, setIsLeadsLoading] = useState(false);
+
+    const fetchLeads = async () => {
+        setIsLeadsLoading(true);
+        try {
+            const q = query(collection(db, "leads"), orderBy("createdAt", "desc"), limit(50));
+            const snap = await getDocs(q);
+            setLeads(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Lead, 'id'>) })));
+        } catch (error) {
+            console.error("Leads Fetch Error", error);
+        } finally {
+            setIsLeadsLoading(false);
+        }
+    };
+
+    const isAuthorized = passkey === MASTER_KEY;
+
+    useEffect(() => {
+        if (isAuthorized) {
+            const fetchMerchants = async () => {
+                const snap = await getDocs(collection(db, "merchants"));
+                setMerchants(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Merchant, 'id'>) })));
+            };
+            fetchMerchants();
+            fetchLeads();
+        }
+    }, [isAuthorized]);
 
     if (authLoading) return <div className="p-8 text-center text-gray-500">Loading Auth...</div>;
 
@@ -56,34 +102,6 @@ export default function AdminMigratePage() {
         );
     }
 
-    const isAuthorized = passkey === MASTER_KEY;
-
-    const [leads, setLeads] = useState<any[]>([]);
-    const [isLeadsLoading, setIsLeadsLoading] = useState(false);
-
-    const fetchLeads = async () => {
-        setIsLeadsLoading(true);
-        try {
-            const q = query(collection(db, "leads"), orderBy("createdAt", "desc"), limit(50));
-            const snap = await getDocs(q);
-            setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        } catch (error) {
-            console.error("Leads Fetch Error", error);
-        } finally {
-            setIsLeadsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (isAuthorized) {
-            const fetchMerchants = async () => {
-                const snap = await getDocs(collection(db, "merchants"));
-                setMerchants(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-            };
-            fetchMerchants();
-            fetchLeads();
-        }
-    }, [isAuthorized]);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -95,7 +113,7 @@ export default function AdminMigratePage() {
         (m.email || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const fetchMerchantUsage = async (mId: string, lastPay: any) => {
+    const fetchMerchantUsage = async (mId: string, lastPay: { seconds: number } | undefined) => {
         setIsUsageLoading(true);
         try {
             const start = lastPay?.seconds ? new Date(lastPay.seconds * 1000) : new Date(0);
@@ -113,7 +131,7 @@ export default function AdminMigratePage() {
         }
     };
 
-    const handleSelectMerchant = (m: any) => {
+    const handleSelectMerchant = (m: Merchant) => {
         setSelectedMerchantId(m.id);
         setSelectedMerchantData(m);
         fetchMerchantUsage(m.id, m.lastPaymentDate);
@@ -128,7 +146,7 @@ export default function AdminMigratePage() {
             await updateDoc(ref, { planType: newPlan });
 
             // Local Update
-            setSelectedMerchantData((prev: any) => ({ ...prev, planType: newPlan }));
+            setSelectedMerchantData((prev) => prev ? ({ ...prev, planType: newPlan }) : null);
             setMerchants(prev => prev.map(m => m.id === selectedMerchantId ? { ...m, planType: newPlan } : m));
         } catch (error) {
             console.error(error);
@@ -150,7 +168,7 @@ export default function AdminMigratePage() {
             await updateDoc(ref, { subscriptionStatus: newStatus });
 
             // Local Update
-            setSelectedMerchantData((prev: any) => ({ ...prev, subscriptionStatus: newStatus }));
+            setSelectedMerchantData((prev) => prev ? ({ ...prev, subscriptionStatus: newStatus }) : null);
             setMerchants(prev => prev.map(m => m.id === selectedMerchantId ? { ...m, subscriptionStatus: newStatus } : m));
         } catch (error) {
             console.error(error);
@@ -175,9 +193,9 @@ export default function AdminMigratePage() {
             const plan = PLANS[planKey];
 
             // 2. Hybrid Billing Calculation
-            const limit = plan.includedRefunds;
+            const limitVal = plan.includedRefunds;
             const currentUsage = merchantUsage; // Captured from state
-            const excess = Math.max(0, currentUsage - limit);
+            const excess = Math.max(0, currentUsage - limitVal);
             const overageFee = excess * plan.excessRate;
 
             // Centralized GST Math
@@ -188,7 +206,7 @@ export default function AdminMigratePage() {
                 amount: totalDue,
                 basePrice: plan.basePrice,
                 usageCount: currentUsage,
-                limit: limit,
+                limit: limitVal,
                 excessRate: plan.excessRate,
 
                 date: serverTimestamp(),
@@ -210,7 +228,7 @@ export default function AdminMigratePage() {
             setTimeout(() => setPaymentSuccess(false), 3000);
 
             setMerchants(prev => prev.map(m => m.id === selectedMerchantId ? { ...m, lastPaymentDate: { seconds: Date.now() / 1000 } } : m));
-            setSelectedMerchantData((prev: any) => ({ ...prev, lastPaymentDate: { seconds: Date.now() / 1000 } }));
+            setSelectedMerchantData((prev) => prev ? ({ ...prev, lastPaymentDate: { seconds: Date.now() / 1000 } }) : null);
 
         } catch (error) {
             console.error("Payment Record Failed", error);
@@ -601,8 +619,8 @@ export default function AdminMigratePage() {
                                 {/* Logs Console */}
                                 {(summary || backfillSummary) && (
                                     <div className="mt-4 p-4 bg-slate-900 rounded-xl border border-slate-800 font-mono text-[10px] text-emerald-400 max-h-40 overflow-y-auto">
-                                        {summary && `[METRICS] ${summary.status}: ${summary.totalRefunds} processed.\n`}
-                                        {backfillSummary && `[REPAIR] ${backfillSummary.status}: ${backfillSummary.totalUpdated} fixed.`}
+                                        {summary && `[METRICS] ${(summary as unknown as { status: string }).status}: ${(summary as unknown as { totalRefunds: number }).totalRefunds} processed.\n`}
+                                        {backfillSummary && `[REPAIR] ${(backfillSummary as unknown as { status: string }).status}: ${(backfillSummary as unknown as { totalUpdated: number }).totalUpdated} fixed.`}
                                     </div>
                                 )}
                             </div>

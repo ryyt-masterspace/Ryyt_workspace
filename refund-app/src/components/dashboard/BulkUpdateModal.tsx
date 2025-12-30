@@ -31,10 +31,19 @@ const normalizeStatus = (input: string): string | null => {
     return null; // Unknown status
 };
 
+interface BulkItem {
+    orderId: string;
+    status: string | null;
+    note: string;
+    isValid: boolean;
+    error: string;
+    raw: unknown;
+}
+
 export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpdateModalProps) {
     const { user } = useAuth();
     const [file, setFile] = useState<File | null>(null);
-    const [parsedData, setParsedData] = useState<any[]>([]);
+    const [parsedData, setParsedData] = useState<BulkItem[]>([]);
     const [validationSummary, setValidationSummary] = useState({ valid: 0, invalid: 0, total: 0 });
     const [isParsing, setIsParsing] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -58,7 +67,7 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
             header: true,
             skipEmptyLines: true,
             complete: (results) => {
-                const rows = results.data as any[];
+                const rows = results.data as unknown[];
                 validateRows(rows);
                 setIsParsing(false);
             },
@@ -70,11 +79,12 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
         });
     };
 
-    const validateRows = (rows: any[]) => {
+    const validateRows = (rows: unknown[]) => {
         let validCount = 0;
         let invalidCount = 0;
 
-        const processed = rows.map(row => {
+        const processed: BulkItem[] = rows.map(r => {
+            const row = r as Record<string, unknown>;
             const orderId = (row['orderId'] || row['Order ID'] || '').toString().trim();
             const rawStatus = (row['newStatus'] || row['Status'] || '').toString().trim();
             const status = normalizeStatus(rawStatus);
@@ -110,12 +120,14 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
     };
 
     const handleUpdate = async () => {
-        if (!user || validationSummary.valid === 0) return;
+        const validRows = parsedData.filter(r => r.isValid);
+        if (validRows.length === 0) return;
+        if (!user) return;
 
+        const userId = user.uid;
         setIsUpdating(true);
         setProgress(0);
         setLogs([]);
-        const validRows = parsedData.filter(r => r.isValid);
         let completed = 0;
         let successCount = 0;
         const newLogs: string[] = [];
@@ -181,12 +193,12 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
 
                         // 4. Update Scoreboard (If Failed)
                         if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION") && item.status === 'FAILED') {
-                            updateScoreboard(user.uid, "FAIL_REFUND", refundData.amount);
+                            updateScoreboard(userId, "FAIL_REFUND", Number(refundData.amount) || 0);
                         }
                     }
 
                     // 4. Trigger Email (ALL Statuses via Branded Notification Service)
-                    await sendUpdate(user.uid, { id: docSnap.id, ...refundData } as NotificationRefundData, item.status, {
+                    await sendUpdate(userId, { id: docSnap.id, ...refundData } as NotificationRefundData, item.status as string, {
                         reason: item.note,      // For FAILED
                         proofValue: item.note   // For SETTLED (UTR)
                     });

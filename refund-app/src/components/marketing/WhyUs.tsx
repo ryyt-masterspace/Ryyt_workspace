@@ -6,7 +6,7 @@ export default function WhyUs() {
     return (
         <section id="why-us" className="py-24 relative z-10 overflow-hidden border-y border-white/5 bg-black">
             <div className="container mx-auto px-4 text-center">
-                <h2 className="text-3xl md:text-5xl font-bold text-white mb-16 tracking-tight">The 'Manual Way' is costing you more than just time.</h2>
+                <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Trust isn&apos;t built on sales.<br />It&apos;s built on <span className="text-blue-500">Refunds.</span></h2>
 
                 {/* GLASS MONOLITH CARD */}
                 <motion.div
@@ -31,7 +31,7 @@ export default function WhyUs() {
                                         <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Manual Grind.</h4>
                                     </div>
                                     <p className="pl-10 text-zinc-600 text-sm leading-relaxed">
-                                        Chasing UPI IDs over WhatsApp and manually updating Excel sheets wastes your team's most valuable hours.
+                                        Chasing UPI IDs over WhatsApp and manually updating Excel sheets wastes your team&apos;s most valuable hours.
                                     </p>
                                 </div>
                                 <div className="group">
@@ -39,18 +39,16 @@ export default function WhyUs() {
                                         <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
                                         <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Support Flood.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-600 text-sm leading-relaxed">
-                                        Vague '7-day' refund windows leave customers anxious, triggering a wave of 'Where is my money?' tickets daily.
-                                    </p>
+                                    <h3 className="text-xl font-bold text-white mb-2">&quot;I didn&apos;t get my refund&quot;</h3>
+                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed">Customers are anxious about their money. Manual tracking means you&apos;re always defensive, not proactive.</p>
                                 </div>
                                 <div className="group">
                                     <div className="flex items-start gap-4 mb-3">
                                         <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
                                         <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Brand Disconnect.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-600 text-sm leading-relaxed">
-                                        Generic, cold notifications make your brand look unreliable. Every return becomes a potential bad review.
-                                    </p>
+                                    <h3 className="text-xl font-bold text-white mb-2">&quot;Where is my money?&quot;</h3>
+                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed">Every COD refund is a support ticket waiting to happen. You ask for UPI, they forget, you get blamed. It&apos;s a &quot;Lose-Lose&quot; cycle.</p>
                                 </div>
                             </div>
                         </div>
@@ -70,9 +68,8 @@ export default function WhyUs() {
                                         <CheckCircle2 className="text-blue-500 shrink-0 mt-1 w-6 h-6 drop-shadow-[0_0_8px_rgba(0,82,255,0.6)]" />
                                         <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Zero-Touch Automation.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-300 text-sm leading-relaxed font-medium">
-                                        Automated portals collect customer data for you. Securely verified and ready for payout in one click. No more chasing.
-                                    </p>
+                                    <h3 className="text-xl font-bold text-white mb-2">You&apos;re not the &quot;Bad Guy&quot;</h3>
+                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed leading-relaxed font-medium">Poor refund experience isn&apos;t your fault, it&apos;s your system&apos;s fault. We fix the system so you keep the customer&apos;s trust.</p>
                                 </div>
                                 <div className="group">
                                     <div className="flex items-start gap-4 mb-3">

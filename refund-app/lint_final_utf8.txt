@@ -1,0 +1,185 @@
+﻿
+> refund-app@0.1.0 lint
+> eslint
+
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\scripts\sync-plans.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:18  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\admin\migrate\page.tsx
+   13:47  warning  'Play' is defined but never used                @typescript-eslint/no-unused-vars
+   45:59  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+   46:75  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+   47:12  warning  'isRunning' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  117:61  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\dashboard\billing\page.tsx
+  127:40  warning  '_response' is defined but never used     @typescript-eslint/no-unused-vars
+  165:33  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  265:54  warning  '_e' is defined but never used            @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\dashboard\layout.tsx
+   91:8   warning  React Hook useEffect has a missing dependency: 'loading'. Either include it or remove the dependency array. Outer scope values like 'auth' aren't valid dependencies because mutating them doesn't re-render the component  react-hooks/exhaustive-deps
+  224:74  warning  '_response' is defined but never used                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  258:85  error    Unexpected any. Specify a different type                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\dashboard\page.tsx
+  13:66  warning  'CartesianGrid' is defined but never used                   @typescript-eslint/no-unused-vars
+  16:42  warning  'IndianRupee' is defined but never used                     @typescript-eslint/no-unused-vars
+  16:55  warning  'Banknote' is defined but never used                        @typescript-eslint/no-unused-vars
+  16:65  warning  'ShieldCheck' is defined but never used                     @typescript-eslint/no-unused-vars
+  17:25  warning  'FileSpreadsheet' is defined but never used                 @typescript-eslint/no-unused-vars
+  17:42  warning  'FileSignature' is defined but never used                   @typescript-eslint/no-unused-vars
+  26:7   warning  'renderCustomizedLabel' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  26:87  warning  'index' is defined but never used                           @typescript-eslint/no-unused-vars
+  26:96  error    Unexpected any. Specify a different type                    @typescript-eslint/no-explicit-any
+  39:38  error    Unexpected any. Specify a different type                    @typescript-eslint/no-explicit-any
+  51:31  warning  'loadingMetrics' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\login\page.tsx
+  25:18  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  25:23  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\onboarding\page.tsx
+  142:42  warning  'response' is defined but never used      @typescript-eslint/no-unused-vars
+  142:52  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:40  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:25  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\pay\[id]\page.tsx
+   19:42  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  207:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\signup\page.tsx
+  58:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\app\t\[id]\page.tsx
+    7:24  warning  'Clock' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+    7:44  warning  'ArrowRight' is defined but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   12:42  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   28:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  150:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  251:52  warning  'isLast' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  251:62  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  265:9   warning  'textClass' is assigned a value but never used                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\concierge\ConciergeAvatar.tsx
+   4:10  warning  'MessageSquare' is defined but never used                        @typescript-eslint/no-unused-vars
+  41:68  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\dashboard\BulkActionBar.tsx
+  22:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\dashboard\BulkActionBar_DRAFT.tsx
+   4:27  warning  'Timestamp' is defined but never used                    @typescript-eslint/no-unused-vars
+   6:8   warning  'Button' is defined but never used                       @typescript-eslint/no-unused-vars
+   7:10  warning  'X' is defined but never used                            @typescript-eslint/no-unused-vars
+   7:13  warning  'CheckCircle2' is defined but never used                 @typescript-eslint/no-unused-vars
+   7:27  warning  'Factory' is defined but never used                      @typescript-eslint/no-unused-vars
+   7:36  warning  'Loader2' is defined but never used                      @typescript-eslint/no-unused-vars
+  15:54  warning  'onClearSelection' is defined but never used             @typescript-eslint/no-unused-vars
+  15:72  warning  'onSuccess' is defined but never used                    @typescript-eslint/no-unused-vars
+  16:12  warning  'isProcessing' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  17:12  warning  'showSettleInput' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  17:29  warning  'setShowSettleInput' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  18:12  warning  'batchUtr' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  18:22  warning  'setBatchUtr' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  22:11  warning  'handleBatchUpdate' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  22:65  error    Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  25:19  warning  'batch' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  29:23  warning  'ref' is assigned a value but never used                 @typescript-eslint/no-unused-vars
+  32:23  warning  'updateData' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  32:35  error    Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  39:23  warning  'timelineEntry' is assigned a value but never used       @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\dashboard\BulkImportModal.tsx
+  60:12  warning  'isParsing' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\dashboard\BulkUpdateModal.tsx
+  40:10  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  48:12  warning  'isParsing' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  52:12  warning  'logs' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  70:46  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  82:33  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\dashboard\RefundDetailsPanel.tsx
+   21:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   75:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  321:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\DemoDashboard.tsx
+  174:19  warning  'elementCenter' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\FinalHero.tsx
+  4:30  warning  'Smartphone' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\Footer.tsx
+  101:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\Hero.tsx
+  4:22  warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\Navbar.tsx
+  11:13  warning  'openLeadModal' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\Pricing.tsx
+  81:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\ProblemSection.tsx
+  15:70   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  15:88   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  16:49   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  16:67   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  30:79   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  30:85   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  32:109  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  32:129  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  46:47   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  46:81   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  46:112  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  47:150  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  60:133  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  60:141  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  61:61   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  61:90   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\TestimonialsMarquee.tsx
+  50:79  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  50:93  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\components\marketing\WhyUs.tsx
+   9:100  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   9:111  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  34:122  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  43:47   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  43:53   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  43:116  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  43:135  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\hooks\useDashboardMetrics.ts
+  146:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\lib\chatbotEngine.ts
+  1:37  warning  'SALES_NUDGES' is defined but never used  @typescript-eslint/no-unused-vars
+  1:73  warning  'Scenario' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\lib\invoiceGenerator.tsx
+  248:11  warning  'safeDate' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\lib\metrics.ts
+  15:5  warning  'previousStatus' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\scripts\backfillMerchants.ts
+  35:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shuva\OneDrive\Desktop\Ryyt Workspace\refund-app\src\scripts\migrateMetrics.ts
+  28:45  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  36:31  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  46:17  error  'q' is never reassigned. Use 'const' instead  prefer-const
+  56:44  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+Γ£û 115 problems (62 errors, 53 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

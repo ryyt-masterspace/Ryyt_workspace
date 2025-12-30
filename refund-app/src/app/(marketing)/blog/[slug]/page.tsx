@@ -43,7 +43,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
                 {/* Conversion Hook */}
                 <div className="mt-20 p-10 rounded-3xl bg-gradient-to-br from-[#0052FF]/20 to-transparent border border-[#0052FF]/30 text-center">
                     <h3 className="text-2xl font-bold text-white mb-4">Facing this problem?</h3>
-                    <p className="text-zinc-300 mb-8">Ryyt automates this entire process so you don't have to worry about compliance or delays.</p>
+                    <p className="text-zinc-300 mb-8">Ryyt automates this entire process so you don&apos;t have to worry about compliance or delays.</p>
                     <Link href="/#features" className="inline-block px-8 py-3 bg-[#0052FF] hover:bg-[#0040DD] text-white font-bold rounded-full transition-all shadow-lg shadow-blue-900/20">
                         Get Started Free
                     </Link>

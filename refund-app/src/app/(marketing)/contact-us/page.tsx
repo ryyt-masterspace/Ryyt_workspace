@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, ShieldCheck, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Phone, MapPin, ShieldCheck, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 

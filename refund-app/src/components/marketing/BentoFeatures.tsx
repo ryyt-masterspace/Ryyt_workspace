@@ -42,7 +42,7 @@ export default function BentoFeatures() {
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> The Solution
                                     </p>
                                     <p className="text-zinc-200 text-sm leading-relaxed font-medium">
-                                        Automated, secure links handle the collection for you. We verify the customer, you just click 'Approve'.
+                                        Automated, secure links handle the collection for you. We verify the customer, you just click &apos;Approve&apos;.
                                     </p>
                                 </div>
                             </div>
@@ -58,7 +58,7 @@ export default function BentoFeatures() {
                                 <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center mb-4 border border-amber-500/20">
                                     <MessageSquare className="w-5 h-5 text-amber-500" />
                                 </div>
-                                <h3 className="text-xl font-bold text-white">Kill the 'Where is my refund?' Tickets</h3>
+                                <h3 className="text-xl font-bold text-white">Kill the &apos;Where is my refund?&apos; Tickets</h3>
                             </div>
 
                             <div className="space-y-4 lg:space-y-0 lg:flex lg:gap-4">
@@ -100,7 +100,7 @@ export default function BentoFeatures() {
                                         <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> The Risk
                                     </p>
                                     <p className="text-zinc-500 text-sm leading-relaxed">
-                                        Generic emails that look like spam. Inconsistent communication makes customers doubt your brand's legitimacy.
+                                        Generic emails that look like spam. Inconsistent communication makes customers doubt your brand&apos;s legitimacy.
                                     </p>
                                 </div>
                                 <div className="w-full lg:w-1/2 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl shadow-[0_0_20px_-5px_rgba(0,82,255,0.1)]">

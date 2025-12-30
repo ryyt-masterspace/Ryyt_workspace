@@ -135,8 +135,8 @@ export async function POST(request: Request) {
         return NextResponse.json(data);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Email API Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message || "Unknown error" }, { status: 500 });
     }
 }

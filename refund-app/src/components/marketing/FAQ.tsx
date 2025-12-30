@@ -6,15 +6,15 @@ import { Plus } from 'lucide-react';
 const faqs = [
     {
         question: "Does Ryyt touch my money?",
-        answer: "No. Ryyt is a 'Financial Control Tower,' not a bank. We generate the payment instructions (QR Codes / UPI Links), but the actual money moves directly from your banking app to the customer. We never hold your funds."
+        answer: "No. Ryyt is a &apos;Financial Control Tower,&apos; not a bank. We generate the payment instructions (QR Codes / UPI Links), but the actual money moves directly from your banking app to the customer. We never hold your funds."
     },
     {
-        question: "How does the 'Scan to Pay' work?",
-        answer: "It's just like paying a vendor at a shop. Ryyt generates a dynamic QR code with the customer's exact refund amount and VPA. You scan it with your business phone (GPay/PhonePe/Paytm), and the refund is instant. No typing required."
+        question: "How does the &apos;Scan to Pay&apos; work?",
+        answer: "It&apos;s just like paying a vendor at a shop. Ryyt generates a dynamic QR code with the customer&apos;s exact refund amount and VPA. You scan it with your business phone (GPay/PhonePe/Paytm), and the refund is instant. No typing required."
     },
     {
         question: "Is this compliant with RBI guidelines?",
-        answer: "Yes. Ryyt is specifically designed to help you meet the RBI's 'T+1 Refund' mandate. Our dashboard tracks SLA breaches automatically so you avoid the ₹100/day penalty for delayed settlements."
+        answer: "Yes. Ryyt is specifically designed to help you meet the RBI&apos;s &apos;T+1 Refund&apos; mandate. Our dashboard tracks SLA breaches automatically so you avoid the ₹100/day penalty for delayed settlements."
     },
     {
         question: "Do I need developer help to integrate?",
@@ -45,8 +45,8 @@ export default function FAQ() {
                             key={i}
                             onClick={() => setOpenIndex(openIndex === i ? null : i)}
                             className={`group cursor-pointer rounded-2xl border transition-all duration-300 overflow-hidden ${openIndex === i
-                                    ? 'bg-zinc-900/80 border-[#0052FF]/50 shadow-[0_0_30px_-10px_rgba(0,82,255,0.15)]'
-                                    : 'bg-zinc-900/20 border-white/5 hover:border-white/10'
+                                ? 'bg-zinc-900/80 border-[#0052FF]/50 shadow-[0_0_30px_-10px_rgba(0,82,255,0.15)]'
+                                : 'bg-zinc-900/20 border-white/5 hover:border-white/10'
                                 }`}
                         >
                             <div className="p-6 flex justify-between items-center">

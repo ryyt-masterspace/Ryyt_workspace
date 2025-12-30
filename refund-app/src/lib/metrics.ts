@@ -11,8 +11,7 @@ export type MetricChangeType = "NEW_REFUND" | "SETTLE_REFUND" | "FAIL_REFUND" | 
 export async function updateScoreboard(
     merchantId: string,
     changeType: MetricChangeType,
-    amount: number,
-    previousStatus?: string
+    amount: number
 ) {
     if (!merchantId) return;
 

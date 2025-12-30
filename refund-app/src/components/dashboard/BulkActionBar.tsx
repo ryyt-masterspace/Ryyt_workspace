@@ -19,7 +19,7 @@ export default function BulkActionBar({ selectedIds, onClearSelection, onSuccess
 
     if (selectedIds.length === 0) return null;
 
-    const executeBatch = async (status: string, note: string, extraData: any = {}) => {
+    const executeBatch = async (status: string, note: string, extraData: Record<string, unknown> = {}) => {
         setIsProcessing(true);
         try {
             const batch = writeBatch(db);

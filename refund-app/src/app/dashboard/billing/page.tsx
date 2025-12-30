@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { doc, getDoc, collection, query, orderBy, getDocs, where, getCountFromServer, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, where, getCountFromServer, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { PLANS, BillingPlan } from "@/config/plans";
-import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt, FileText, Loader2 } from "lucide-react";
+import { CreditCard, Rocket, ShieldCheck, Zap, AlertCircle, History, Info, Receipt, Loader2 } from "lucide-react";
 import { generateInvoice, InvoiceMerchantData, InvoicePaymentData } from "@/lib/invoiceGenerator";
 import { calculateFinalBill } from "@/lib/taxCalculator";
 import Script from "next/script";
@@ -19,14 +18,13 @@ interface BillingMerchantData extends InvoiceMerchantData {
     subscriptionStatus?: string;
     planType?: string;
     upcomingPlan?: string;
-    upcomingPlanDate?: any;
+    upcomingPlanDate?: { seconds: number; nanoseconds: number } | Date | string | number | null;
     razorpaySubscriptionId?: string;
 }
 
 export default function BillingPage() {
     const { user } = useAuth();
     const [merchant, setMerchant] = useState<BillingMerchantData | null>(null);
-    const [metrics, setMetrics] = useState<any>(null);
     const [cycleUsage, setCycleUsage] = useState(0);
     const [payments, setPayments] = useState<InvoicePaymentData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -73,11 +71,6 @@ export default function BillingPage() {
         const pQuery = query(pRef, orderBy("date", "desc"));
         const unsubscribePayments = onSnapshot(pQuery, (snap) => {
             setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as InvoicePaymentData)));
-        });
-
-        // 4. One-time metrics fetch (context only)
-        getDoc(doc(db, "merchants", user.uid, "metadata", "metrics")).then(m => {
-            if (m.exists()) setMetrics(m.data());
         });
 
         return () => {
@@ -131,7 +124,7 @@ export default function BillingPage() {
                     subscription_id: data.subscriptionId,
                     name: "Ryyt",
                     description: `${PLANS[newPlanType].name} Plan`,
-                    handler: function (response: any) {
+                    handler: function () {
                         setIsVerifying(true);
                         setIsUpdating(true); // Keep modal loading state too or override?
 
@@ -169,12 +162,13 @@ export default function BillingPage() {
                 // We need window.Razorpay. If not loaded, we might error.
                 // Assuming it's loaded in layout or we need to load it. 
                 // For safety, let's alert if missing.
-                if (!(window as any).Razorpay) {
+                if (!(window as unknown as { Razorpay: unknown }).Razorpay) {
                     alert("Payment SDK not loaded. Please refresh.");
                     return;
                 }
 
-                const rzp1 = new (window as any).Razorpay(options);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const rzp1 = new (window as unknown as { Razorpay: new (options: unknown) => { open: () => void } }).Razorpay(options);
                 rzp1.open();
 
             } else {
@@ -253,20 +247,22 @@ export default function BillingPage() {
 
                     {/* Pending Change Alert */}
                     {/* Upcoming Plan Change Banner */}
-                    {(merchant as any)?.upcomingPlan && (
+                    {merchant?.upcomingPlan && (
                         <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between mb-8">
                             <div className="flex items-center gap-3">
                                 <AlertCircle className="text-amber-500" size={20} />
                                 <div>
                                     <p className="text-sm font-bold text-amber-500">Scheduled Plan Change</p>
                                     <p className="text-xs text-amber-500/80">
-                                        Your subscription will switch to <strong>{PLANS[(merchant as any).upcomingPlan].name}</strong> on {(() => {
-                                            const effectiveDate = (merchant as any).upcomingPlanDate;
+                                        Your subscription will switch to <strong>{PLANS[merchant.upcomingPlan].name}</strong> on {(() => {
+                                            const effectiveDate = merchant.upcomingPlanDate;
                                             try {
-                                                const dateObj = effectiveDate?.toDate ? effectiveDate.toDate() : (effectiveDate ? new Date(effectiveDate) : null);
+                                                const dateObj = (effectiveDate as unknown as { toDate?: () => Date })?.toDate
+                                                    ? (effectiveDate as unknown as { toDate: () => Date }).toDate()
+                                                    : (effectiveDate ? new Date(effectiveDate as string | number | Date) : null);
                                                 if (!dateObj || isNaN(dateObj.getTime())) return nextRenewal.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
                                                 return dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-                                            } catch (e) {
+                                            } catch {
                                                 return nextRenewal.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
                                             }
                                         })()}.
@@ -427,7 +423,7 @@ export default function BillingPage() {
                                                 payments.map((p) => (
                                                     <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
                                                         <td className="px-6 py-4 text-sm font-mono text-gray-400">
-                                                            {(p.date as any)?.seconds ? new Date((p.date as any).seconds * 1000).toLocaleDateString() : 'Processing'}
+                                                            {(p.date as { seconds: number })?.seconds ? new Date((p.date as { seconds: number }).seconds * 1000).toLocaleDateString() : 'Processing'}
                                                         </td>
                                                         <td className="px-6 py-4 font-mono text-white">
                                                             ₹{p.amount?.toLocaleString()}

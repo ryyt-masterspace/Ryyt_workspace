@@ -44,10 +44,18 @@ const normalizePaymentMethod = (input: string): string => {
     return clean.replace(/\s+/g, '_');
 };
 
+interface BulkImportItem {
+    original: Record<string, string>;
+    isValid: boolean;
+    status: string;
+    paymentMethod: string;
+    amount: number;
+}
+
 export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImportModalProps) {
     const { user } = useAuth();
     const [file, setFile] = useState<File | null>(null);
-    const [parsedData, setParsedData] = useState<any[]>([]);
+    const [parsedData, setParsedData] = useState<BulkImportItem[]>([]);
     const [validationSummary, setValidationSummary] = useState({ valid: 0, invalid: 0, total: 0 });
     const [isParsing, setIsParsing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -85,7 +93,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const validateRows = (rows: Record<string, string>[]) => {
         let validCount = 0;
         let invalidCount = 0;
-        const processed = rows.map((row, index) => {
+        const processed: BulkImportItem[] = rows.map((row) => {
             // Validation Logic
             const hasRequired = row['Order ID'] && row['Amount'] && row['Customer Name'] && row['Customer Email'];
 
@@ -105,7 +113,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                 status = 'GATHERING_DATA';
             }
 
-            const isValid = hasRequired;
+            const isValid = !!hasRequired;
             if (isValid) validCount++; else invalidCount++;
 
             return {

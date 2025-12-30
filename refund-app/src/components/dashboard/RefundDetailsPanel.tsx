@@ -7,9 +7,10 @@ import {
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 
+import { Refund } from '@/types/refund';
+
 interface RefundDetailsPanelProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    refund: any;
+    refund: Refund;
     onClose: () => void;
     onUpdate?: () => Promise<void>;
 }
@@ -19,7 +20,7 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
     const [proofValue, setProofValue] = useState(refund.proofValue || '');
     const [failureReason, setFailureReason] = useState(refund.failureReason || '');
     const [isSaving, setIsSaving] = useState(false);
-    const [computedStatus, setComputedStatus] = useState(refund.status);
+    const [computedStatus, setComputedStatus] = useState<string>(refund.status || 'REFUND_INITIATED');
     const [showQr, setShowQr] = useState(false);
 
     // Initialize state and highlight logic
@@ -39,7 +40,7 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
         setFailureReason(refund.failureReason || '');
 
         // 2. Compute Header Badge
-        const needsUpi = ['COD'].includes(refund.paymentMethod);
+        const needsUpi = ['COD'].includes(refund.paymentMethod || '');
         if (needsUpi && !refund.targetUpi && internalStatus !== 'FAILED') {
             setComputedStatus('GATHERING_DATA');
         } else {
@@ -53,15 +54,15 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
 
         try {
             const refundRef = doc(db, 'refunds', refund.id);
-            const updateData = {
+            const updateData: Record<string, unknown> = {
                 status: status,
                 lastUpdated: Timestamp.now()
             };
 
-            if (status === 'SETTLED') (updateData as any).proofValue = proofValue;
-            if (status === 'FAILED') (updateData as any).failureReason = failureReason;
+            if (status === 'SETTLED') updateData.proofValue = proofValue;
+            if (status === 'FAILED') updateData.failureReason = failureReason;
 
-            (updateData as any).timeline = arrayUnion({
+            updateData.timeline = arrayUnion({
                 label: status === 'SETTLED' ? 'Refund Settled' :
                     status === 'FAILED' ? 'Refund Failed' :
                         status === 'PROCESSING' ? 'Processing at Bank' : 'Status Updated',
@@ -201,7 +202,12 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
                             <label className="text-xs font-medium text-zinc-500 uppercase">Requested On</label>
                             <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 flex items-center gap-2">
                                 <Calendar size={16} />
-                                {new Date(refund.createdAt?.toDate ? refund.createdAt.toDate() : refund.createdAt || new Date()).toLocaleDateString()}
+                                {(() => {
+                                    const val = refund.createdAt;
+                                    if (!val) return '-';
+                                    const date = ('seconds' in val) ? new Date(val.seconds * 1000) : new Date(val as Date);
+                                    return date.toLocaleDateString();
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -299,7 +305,7 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
                             <span className="text-xs font-medium uppercase tracking-wider">Audit Log</span>
                         </div>
                         <div className="space-y-4 pl-2 border-l border-zinc-800">
-                            {(refund.timeline || []).map((event: any, idx: number) => (
+                            {(refund.timeline || []).map((event, idx) => (
                                 <div key={idx} className="relative pl-4">
                                     <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-zinc-700 border-2 border-zinc-950"></div>
                                     <div className="text-sm text-zinc-300 font-medium">{event.label}</div>

@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase';
 import { doc, updateDoc, addDoc, collection, serverTimestamp, getDoc, query, where, getDocs } from 'firebase/firestore';
 import Razorpay from 'razorpay';
 import { calculateOverageAddon, resetMonthlyCounter } from '@/lib/billingService';
-import { PLANS, PlanType } from '@/config/plans';
+import { PLANS } from '@/config/plans';
 
 export async function POST(req: Request) {
     try {
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
                 // Remove empty keys if env vars are missing to avoid false matches on empty strings
                 delete planMap[''];
 
-                let newPlanType = planMap[rzpPlanId];
+                const newPlanType = planMap[rzpPlanId];
 
                 if (!newPlanType) {
                     console.error(`🚨 CRITICAL: Plan ID mismatch! Received: ${rzpPlanId}. Expected one of:`, Object.keys(planMap));
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
                 const merchSnap = await getDoc(merchantRef);
                 const merchData = merchSnap.data();
 
-                let finalizedPlanType = newPlanType || merchData?.planType || 'startup';
+                const finalizedPlanType = newPlanType || merchData?.planType || 'startup';
 
                 console.log(`[Plan Sync] Webhook Plan ID: ${rzpPlanId} -> Mapped: ${newPlanType}. Final: ${finalizedPlanType}`);
 
@@ -183,8 +183,9 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ status: 'ok' });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Webhook Handler Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

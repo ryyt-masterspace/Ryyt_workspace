@@ -1,22 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { app, db } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
 import Sidebar from "@/components/dashboard/Sidebar";
-import { Copy, ExternalLink, Plus, XCircle, Search, CheckSquare, Square } from "lucide-react";
+import { Plus, XCircle, Search, CheckSquare, Square } from "lucide-react";
+
+interface Refund {
+    id: string;
+    orderId?: string;
+    customerName?: string;
+    amount: number;
+    paymentMethod?: string;
+    status?: string;
+    slaDueDate?: string | number | Date;
+    merchantId?: string;
+    createdAt?: { seconds: number; nanoseconds: number } | Date | null;
+}
 
 export default function FailuresPage() {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const [refunds, setRefunds] = useState<any[]>([]);
+    const [refunds, setRefunds] = useState<Refund[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedRefund, setSelectedRefund] = useState<any>(null);
+    const [selectedRefund, setSelectedRefund] = useState<Refund | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -38,7 +50,7 @@ export default function FailuresPage() {
     const router = useRouter();
     const auth = getAuth(app);
 
-    const fetchRefunds = async () => {
+    const fetchRefunds = useCallback(async () => {
         if (!auth.currentUser) return;
         try {
             const q = query(
@@ -50,13 +62,16 @@ export default function FailuresPage() {
             const data = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            })) as any[];
+            })) as Refund[];
 
             // Sort: Newest First
             data.sort((a, b) => {
-                const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(b.createdAt);
-                return dateB.getTime() - dateA.getTime();
+                const getTime = (val: { seconds: number; nanoseconds: number } | Date | null | undefined) => {
+                    if (!val) return 0;
+                    if ('seconds' in val) return val.seconds * 1000;
+                    return new Date(val as Date).getTime();
+                };
+                return getTime(b.createdAt) - getTime(a.createdAt);
             });
 
             // FILTER: Only FAILED
@@ -66,7 +81,7 @@ export default function FailuresPage() {
         } catch (error) {
             console.error("Error fetching refunds:", error);
         }
-    };
+    }, [auth.currentUser]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -78,8 +93,10 @@ export default function FailuresPage() {
     }, [auth, router]);
 
     useEffect(() => {
-        if (user) fetchRefunds();
-    }, [user]);
+        if (user) {
+            Promise.resolve().then(() => fetchRefunds());
+        }
+    }, [user, fetchRefunds]);
 
     // Local Search Logic
     const filteredRefunds = refunds.filter(r => {
@@ -162,7 +179,7 @@ export default function FailuresPage() {
                                     <tr>
                                         <td colSpan={6} className="p-12 text-center text-gray-500 flex flex-col items-center gap-2">
                                             {searchTerm ? (
-                                                <span>No failures match "{searchTerm}"</span>
+                                                <span>No failures match &quot;{searchTerm}&quot;</span>
                                             ) : (
                                                 <span className="text-green-500">No payment failures found. Good job!</span>
                                             )}
@@ -241,7 +258,12 @@ export default function FailuresPage() {
                                                 <div className="flex flex-col items-end">
                                                     <span className="text-xs text-rose-400 font-medium">Action Required</span>
                                                     <span className="text-[10px] text-zinc-500">
-                                                        {new Date(refund.createdAt?.seconds ? refund.createdAt.seconds * 1000 : refund.createdAt).toLocaleDateString()}
+                                                        {(() => {
+                                                            const val = refund.createdAt;
+                                                            if (!val) return '-';
+                                                            const date = ('seconds' in val) ? new Date(val.seconds * 1000) : new Date(val as Date);
+                                                            return date.toLocaleDateString();
+                                                        })()}
                                                     </span>
                                                 </div>
                                             </td>

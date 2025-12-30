@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, setDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { app, db } from "@/lib/firebase";
 import Sidebar from "@/components/dashboard/Sidebar";
@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import { Save, Store, Mail, Clock, CheckCircle2, RotateCcw, ShieldAlert } from "lucide-react";
 
 export default function SettingsPage() {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [isFixing, setIsFixing] = useState(false);
@@ -88,7 +88,7 @@ export default function SettingsPage() {
             const snapshot = await getDocs(q);
 
             // 2. Group by Order ID
-            const groups: { [key: string]: any[] } = {};
+            const groups: { [key: string]: Array<Record<string, unknown> & { id: string; orderId?: string; note?: string; createdAt?: { seconds: number } }> } = {};
             snapshot.docs.forEach(doc => {
                 const data = doc.data();
                 const oid = (data.orderId || "").toString().trim();
@@ -105,7 +105,7 @@ export default function SettingsPage() {
             Object.entries(groups).forEach(([orderId, docs]) => {
                 if (docs.length > 1) {
                     // Sort by creation time (keep oldest) - fallback to existing logic if no createdAt
-                    docs.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                    docs.sort((a, b) => ((a.createdAt?.seconds as number) || 0) - ((b.createdAt?.seconds as number) || 0));
 
                     // Skip the first (original), rename the rest
                     for (let i = 1; i < docs.length; i++) {
@@ -306,7 +306,7 @@ export default function SettingsPage() {
                             <div className="space-y-1">
                                 <h3 className="font-medium text-amber-200">Fix Duplicate Order IDs</h3>
                                 <p className="text-sm text-zinc-400">
-                                    Scans for duplicate 'orderId' fields and renames them to ensure uniqueness.
+                                    Scans for duplicate &apos;orderId&apos; fields and renames them to ensure uniqueness.
                                 </p>
                             </div>
                             <Button

@@ -98,7 +98,7 @@ export default function Footer() {
     );
 }
 
-function SocialIcon({ icon: Icon, href }: { icon: any, href: string }) {
+function SocialIcon({ icon: Icon, href }: { icon: React.ElementType, href: string }) {
     return (
         <a
             href={href}

@@ -78,7 +78,12 @@ export default function Pricing() {
 }
 
 function PricingCard({ plan, features, icon, highlighted = false, delay = 0 }: {
-    plan: any,
+    plan: {
+        name: string;
+        basePrice: number;
+        includedRefunds: number;
+        excessRate: number;
+    },
     features: string[],
     icon: React.ReactNode,
     highlighted?: boolean,

@@ -21,12 +21,12 @@ export default function CancellationRefundPolicyPage() {
             </Section>
 
             <Section title="2. Refund Policy (SaaS)">
-                <p>As a SaaS platform, Ryyt typically does not offer refunds for "change of mind" or "unused days" once a billing cycle has started. However, we evaluate technical failures or billing errors on a case-by-case basis.</p>
+                <p>As a SaaS platform, Ryyt typically does not offer refunds for &quot;change of mind&quot; or &quot;unused days&quot; once a billing cycle has started. However, we evaluate technical failures or billing errors on a case-by-case basis.</p>
             </Section>
 
             <Section title="3. Merchant-to-Customer Refunds">
                 <p className="border-l-2 border-indigo-500 pl-4 bg-white/[0.02] py-4 rounded-r-lg italic">
-                    <strong>IMPORTANT:</strong> Ryyt is a technology platform that facilitates refunds from Merchants to End-Customers. Ryyt does not hold, manage, or transfer the actual funds. All Merchant-to-Customer refunds are governed by the Merchant's own return policy. Ryyt is not liable for delayed or failed funds transfers caused by banking network issues.
+                    <strong>IMPORTANT:</strong> Ryyt is a technology platform that facilitates refunds from Merchants to End-Customers. Ryyt does not hold, manage, or transfer the actual funds. All Merchant-to-Customer refunds are governed by the Merchant&apos;s own return policy. Ryyt is not liable for delayed or failed funds transfers caused by banking network issues.
                 </p>
             </Section>
         </LegalWrapper>

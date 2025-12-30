@@ -139,7 +139,7 @@ export default function OnboardingWizard() {
                 name: "RYYT (Calcure Technologies)",
                 description: `${formData.planType.toUpperCase()} Plan Subscription`,
                 image: "/logo-white.png",
-                handler: async function (response: any) {
+                handler: async function () {
                     // This is triggered on success
                     setPaymentStatus('idle'); // Or 'success' if you want a state
 
@@ -167,13 +167,13 @@ export default function OnboardingWizard() {
                 },
             };
 
-            const rzp = new (window as any).Razorpay(options);
+            const rzp = new (window as unknown as { Razorpay: new (o: unknown) => { open: () => void } }).Razorpay(options);
             rzp.open();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Checkout Error:", error);
             // Provide a more descriptive alert
-            const msg = error.message || "An unexpected error occurred during checkout initialization.";
+            const msg = (error as Error).message || "An unexpected error occurred during checkout initialization.";
             alert(`Payment Initialization Failed: ${msg}\n\nPlease try again or contact support if the problem persists.`);
         } finally {
             setPaymentStatus('idle');

@@ -1,6 +1,28 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
+
+// Reusable Avatar Circle Component
+const AvatarCircle = ({ src, alt, color = "bg-[#111]" }: { src?: string, alt?: string, color?: string }) => (
+    <div className={`w-12 h-12 rounded-full ${color} border-2 border-[#050505] flex items-center justify-center shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300`}>
+        {src ? (
+            <Image
+                src={src}
+                alt={alt || "Avatar"}
+                width={48}
+                height={48}
+                className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+            />
+        ) : (
+            <div className="flex items-center justify-center w-full h-full">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+            </div>
+        )}
+    </div>
+);
 
 export default function SocialProof() {
     const [count, setCount] = useState(0);
@@ -44,21 +66,6 @@ export default function SocialProof() {
 
         return () => clearInterval(timer);
     }, [isVisible]);
-
-    // Reusable Avatar Circle Component
-    const AvatarCircle = ({ src, alt, color = "bg-[#111]" }: { src?: string, alt?: string, color?: string }) => (
-        <div className={`w-12 h-12 rounded-full ${color} border-2 border-[#050505] flex items-center justify-center shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300`}>
-            {src ? (
-                <img src={src} alt={alt} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-            ) : (
-                <div className="flex items-center justify-center w-full h-full">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                    </svg>
-                </div>
-            )}
-        </div>
-    );
 
     return (
         <div ref={ref} className="flex flex-col items-center justify-center py-24 space-y-6 relative z-10 w-full">

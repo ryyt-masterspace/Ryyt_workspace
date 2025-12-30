@@ -29,7 +29,7 @@ export default function Hero() {
                     transition={{ delay: 0.1 }}
                     className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10"
                 >
-                    Stop waiting for new sales. Process refunds directly from your bank account, automate COD payouts, and stop the "Where is my money?" emails forever.
+                    Stop waiting for new sales. Process refunds directly from your bank account, automate COD payouts, and stop the &quot;Where is my money?&quot; emails forever.
                 </motion.p>
 
                 <motion.div
@@ -200,8 +200,8 @@ function TableMockup() {
                     <div><div className="h-3 w-12 bg-zinc-800 rounded" /></div>
                     <div>
                         <div className={`h-5 w-20 rounded-full border flex items-center justify-center text-[9px] font-bold ${i === 1 ? 'bg-[#0052FF]/10 text-[#0052FF] border-[#0052FF]/20' :
-                                i === 2 ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
-                                    'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                            i === 2 ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
+                                'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                             }`}>
                             {i === 1 ? 'INITIATED' : i === 2 ? 'PROCESSING' : 'SETTLED'}
                         </div>

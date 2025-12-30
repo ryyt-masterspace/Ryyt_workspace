@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -10,21 +10,34 @@ import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
 import Sidebar from "@/components/dashboard/Sidebar";
 import BulkActionBar from "@/components/dashboard/BulkActionBar";
-import { Copy, ExternalLink, Plus, Activity, Search, CheckSquare, Square } from "lucide-react";
+import { Plus, Activity, Search, CheckSquare, Square } from "lucide-react";
+import { User } from "firebase/auth";
+
+interface Refund {
+    id: string;
+    orderId?: string;
+    customerName?: string;
+    amount: number;
+    paymentMethod?: string;
+    status?: string;
+    slaDueDate?: string | number | Date;
+    merchantId?: string;
+    createdAt?: { seconds: number; nanoseconds: number } | Date | null;
+}
 
 export default function ActiveRefundsPage() {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const [refunds, setRefunds] = useState<any[]>([]);
+    const [refunds, setRefunds] = useState<Refund[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedRefund, setSelectedRefund] = useState<any>(null);
+    const [selectedRefund, setSelectedRefund] = useState<Refund | null>(null);
     const [searchTerm, setSearchTerm] = useState(""); // New State
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     const router = useRouter();
     const auth = getAuth(app);
 
-    const fetchRefunds = async () => {
+    const fetchRefunds = useCallback(async () => {
         if (!auth.currentUser) return;
         try {
             const q = query(
@@ -36,13 +49,16 @@ export default function ActiveRefundsPage() {
             const data = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            })) as any[];
+            })) as Refund[];
 
             // Sort: Newest First
             data.sort((a, b) => {
-                const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(b.createdAt);
-                return dateB.getTime() - dateA.getTime();
+                const getTime = (val: { seconds: number; nanoseconds: number } | Date | null | undefined) => {
+                    if (!val) return 0;
+                    if ('seconds' in val) return val.seconds * 1000;
+                    return new Date(val as Date).getTime();
+                };
+                return getTime(b.createdAt) - getTime(a.createdAt);
             });
 
             // FILTER: Only Healthy Active (Not Settled, Not Failed, Not Breached)
@@ -56,7 +72,7 @@ export default function ActiveRefundsPage() {
         } catch (error) {
             console.error("Error fetching refunds:", error);
         }
-    };
+    }, [auth.currentUser]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -68,8 +84,10 @@ export default function ActiveRefundsPage() {
     }, [auth, router]);
 
     useEffect(() => {
-        if (user) fetchRefunds();
-    }, [user]);
+        if (user) {
+            Promise.resolve().then(() => fetchRefunds());
+        }
+    }, [user, fetchRefunds]);
 
     // Local Filter Logic
     const filteredRefunds = refunds.filter(r => {
@@ -167,7 +185,7 @@ export default function ActiveRefundsPage() {
                                     <tr>
                                         <td colSpan={6} className="p-12 text-center text-zinc-500">
                                             {searchTerm ? (
-                                                <span>No active refunds match "{searchTerm}"</span>
+                                                <span>No active refunds match &quot;{searchTerm}&quot;</span>
                                             ) : (
                                                 <span>All caught up! No active refunds.</span>
                                             )}

@@ -8,10 +8,10 @@ export default function TermsPage() {
         >
             <div className="space-y-4">
                 <p className="text-sm border-l-2 border-indigo-500 pl-4 bg-white/[0.02] py-4 pr-4 rounded-r-lg italic">
-                    PLEASE READ CAREFULLY: These Terms and Conditions ("Terms") constitute a legally binding agreement between <strong>Calcure Technologies Private Limited</strong> ("Company", "We", "Us", or "Ryyt"), a company incorporated under the Companies Act, 2013, and You ("Merchant", "User", or "Client").
+                    PLEASE READ CAREFULLY: These Terms and Conditions (&quot;Terms&quot;) constitute a legally binding agreement between <strong>Calcure Technologies Private Limited</strong> (&quot;Company&quot;, &quot;We&quot;, &quot;Us&quot;, or &quot;Ryyt&quot;), a company incorporated under the Companies Act, 2013, and You (&quot;Merchant&quot;, &quot;User&quot;, or &quot;Client&quot;).
                 </p>
                 <p>
-                    By creating an account, accessing, or using the Ryyt platform (the "Service"), you agree to be bound by these Terms.
+                    By creating an account, accessing, or using the Ryyt platform (the &quot;Service&quot;), you agree to be bound by these Terms.
                 </p>
             </div>
 
@@ -31,7 +31,7 @@ export default function TermsPage() {
             </Section>
 
             <Section title="3. Regulatory Compliance">
-                <p>You are solely responsible for ensuring your refund policies comply with the Consumer Protection (E-Commerce) Rules, 2020, and RBI’s "Harmonisation of Turn Around Time" (TAT) directions.</p>
+                <p>You are solely responsible for ensuring your refund policies comply with the Consumer Protection (E-Commerce) Rules, 2020, and RBI&apos;s &quot;Harmonisation of Turn Around Time&quot; (TAT) directions.</p>
             </Section>
 
             <Section title="4. Governing Law">

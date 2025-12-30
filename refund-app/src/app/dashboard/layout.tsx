@@ -57,8 +57,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         console.log("[DashboardLayout] Current Subscription Status:", userStatus);
                         setStatus(userStatus);
 
-                        const isLegacyOnboarded = userData?.brandName && userData?.planType;
-
                         // STRICT REDIRECT: If not active or suspended or cancelled, they MUST go to onboarding
                         // We allow 'suspended', 'cancelled', 'expired' to stay here to see their respective screens
                         const allowedStatuses = ["active", "suspended", "cancelled", "expired", "halted"];
@@ -88,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (unsubscribeMerchant) unsubscribeMerchant();
             clearTimeout(timeoutId);
         };
-    }, [auth]);
+    }, [router, loading]);
 
     const handleLogout = async () => {
         await signOut(auth);
@@ -221,7 +219,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                 subscription_id: data.subscriptionId,
                                                 name: "Ryyt",
                                                 description: `${p.name} Reactivation`,
-                                                handler: async function (response: any) {
+                                                handler: function () {
                                                     setIsVerifying(true);
                                                     // Polling Loop
                                                     let attempts = 0;
@@ -245,7 +243,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                             // Note: 'auth' is available in scope? Yes.
                                                             if (auth.currentUser) {
                                                                 const verifySnap = await import('firebase/firestore').then(mod => mod.getDoc(doc(db, 'merchants', auth.currentUser!.uid)));
-                                                                if (verifySnap.exists() && verifySnap.data().subscriptionStatus === 'active') {
+                                                                const verifyData = verifySnap.data() as { subscriptionStatus?: string } | undefined;
+                                                                if (verifySnap.exists() && verifyData?.subscriptionStatus === 'active') {
                                                                     clearInterval(checkStatus);
                                                                     window.location.reload();
                                                                 }
@@ -254,9 +253,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                     }, 1000);
                                                 },
                                             };
-                                            const rzp = new (window as any).Razorpay(options);
-                                            rzp.open();
-                                        } catch (e) {
+                                            if (!(window as unknown as { Razorpay: unknown }).Razorpay) {
+                                                alert("Payment SDK not loaded. Please refresh.");
+                                                return;
+                                            }
+
+                                            const rzp1 = new (window as unknown as { Razorpay: new (options: unknown) => { open: () => void } }).Razorpay(options);
+                                            rzp1.open();
+                                        } catch (e: unknown) {
                                             console.error(e);
                                             alert("Failed to start payment.");
                                         }

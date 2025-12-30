@@ -65,8 +65,6 @@ export async function POST(request: Request) {
             // CASE B: Contextual Help (User asks about "This Page")
             else if (intentPatterns.explainPage.test(lowerMsg)) {
                 const path = context.path || '';
-                const pageName = path.split('/').pop();
-
                 if (path.includes('failures')) {
                     reply = "You are on the **Failures Console**. This is where we flagged refunds that the bank rejected (usually bad UPI IDs). You can retry them here with one click.";
                 } else if (path.includes('reports')) {
@@ -119,8 +117,9 @@ export async function POST(request: Request) {
             id: Date.now().toString()
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Chat API Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Internal Server Error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

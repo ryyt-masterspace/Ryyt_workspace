@@ -10,11 +10,10 @@ import BulkImportModal from "@/components/dashboard/BulkImportModal";
 import RefundMethodModal from "@/components/dashboard/RefundMethodModal";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import {
-    AreaChart, Area, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar
+    AreaChart, Area, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, ResponsiveContainer, BarChart, Bar
 } from 'recharts';
 import {
-    Activity, TrendingUp, AlertTriangle, IndianRupee, Banknote, ShieldCheck,
-    ArrowUpRight, Plus, FileSpreadsheet, FileSignature, WifiOff, UserX, CheckCircle2, RefreshCw, Wallet
+    Activity, TrendingUp, AlertTriangle, ArrowUpRight, Plus, WifiOff, UserX, CheckCircle2, RefreshCw, Wallet
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import BulkUpdateModal from "@/components/dashboard/BulkUpdateModal";
@@ -23,7 +22,7 @@ import BulkUpdateModal from "@/components/dashboard/BulkUpdateModal";
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 const RADIAN = Math.PI / 180;
 
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
+const _renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: { cx: number, cy: number, midAngle: number, innerRadius: number, outerRadius: number, percent: number }) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -36,7 +35,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 export default function DashboardPage() {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<import('firebase/auth').User | null>(null);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -48,7 +47,7 @@ export default function DashboardPage() {
     const auth = getAuth(app);
 
     // Data Hook (Auto-fetches when user is set)
-    const { metrics, loading: loadingMetrics } = useDashboardMetrics(volumeRange);
+    const { metrics, loading: _loadingMetrics, error: metricsError } = useDashboardMetrics(volumeRange);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {

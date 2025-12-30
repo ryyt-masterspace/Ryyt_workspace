@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence, animate } from 'framer-motion';
 import { ArrowRight, Search, Smartphone, Zap } from 'lucide-react';
+import Image from 'next/image';
 
 import { useModal } from '@/context/ModalContext';
 
@@ -54,10 +55,10 @@ export default function FinalHero() {
                     className="mt-8 flex items-center justify-center gap-2 text-sm text-zinc-500"
                 >
                     <div className="flex -space-x-3">
-                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
-                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
-                        <img src="https://randomuser.me/api/portraits/men/86.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
-                        <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
+                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
+                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
+                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/men/86.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
+                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/women/65.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
                     </div>
                     <p>
                         Trusted by <span className="font-bold text-white"><Counter value={1200} />+</span> D2C Founders & Brands
@@ -372,8 +373,8 @@ function QRMockup() {
                 {/* Verification Button */}
                 <button
                     className={`relative overflow-hidden px-6 py-2.5 rounded-full font-bold text-xs tracking-wide transition-all duration-500 flex items-center gap-2 ${verified
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
-                            : "bg-[#0052FF] text-white border border-[#0052FF] shadow-[0_0_15px_rgba(0,82,255,0.4)]"
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                        : "bg-[#0052FF] text-white border border-[#0052FF] shadow-[0_0_15px_rgba(0,82,255,0.4)]"
                         }`}
                 >
                     {/* Shimmer Effect */}

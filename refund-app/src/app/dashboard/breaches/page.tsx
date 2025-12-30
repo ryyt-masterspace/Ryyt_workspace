@@ -1,22 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { app, db } from "@/lib/firebase";
 import Button from "@/components/ui/Button";
 import CreateRefundModal from "@/components/dashboard/CreateRefundModal";
 import RefundDetailsPanel from "@/components/dashboard/RefundDetailsPanel";
 import Sidebar from "@/components/dashboard/Sidebar";
-import { Copy, ExternalLink, Plus, AlertTriangle, CheckSquare, Square } from "lucide-react";
+import { Plus, AlertTriangle, CheckSquare, Square } from "lucide-react";
+
+interface Refund {
+    id: string;
+    orderId?: string;
+    customerName?: string;
+    amount: number;
+    paymentMethod?: string;
+    status?: string;
+    slaDueDate?: string | number | Date;
+    merchantId?: string;
+    createdAt?: { seconds: number; nanoseconds: number } | Date | null;
+}
 
 export default function SLABreachesPage() {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const [refunds, setRefunds] = useState<any[]>([]);
+    const [refunds, setRefunds] = useState<Refund[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedRefund, setSelectedRefund] = useState<any>(null);
+    const [selectedRefund, setSelectedRefund] = useState<Refund | null>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     const toggleSelection = (id: string, e: React.MouseEvent) => {
@@ -37,7 +49,7 @@ export default function SLABreachesPage() {
     const router = useRouter();
     const auth = getAuth(app);
 
-    const fetchRefunds = async () => {
+    const fetchRefunds = useCallback(async () => {
         if (!auth.currentUser) return;
         try {
             const q = query(
@@ -49,13 +61,16 @@ export default function SLABreachesPage() {
             const data = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            })) as any[];
+            })) as Refund[];
 
             // Sort: Newest First
             data.sort((a, b) => {
-                const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(b.createdAt);
-                return dateB.getTime() - dateA.getTime();
+                const getTime = (val: { seconds: number; nanoseconds: number } | Date | null | undefined) => {
+                    if (!val) return 0;
+                    if ('seconds' in val) return val.seconds * 1000;
+                    return new Date(val as Date).getTime();
+                };
+                return getTime(b.createdAt) - getTime(a.createdAt);
             });
 
             // FILTER: Compliance Breaches (Overdue & Not Settled)
@@ -68,7 +83,7 @@ export default function SLABreachesPage() {
         } catch (error) {
             console.error("Error fetching refunds:", error);
         }
-    };
+    }, [auth.currentUser]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -80,8 +95,10 @@ export default function SLABreachesPage() {
     }, [auth, router]);
 
     useEffect(() => {
-        if (user) fetchRefunds();
-    }, [user]);
+        if (user) {
+            Promise.resolve().then(() => fetchRefunds());
+        }
+    }, [user, fetchRefunds]);
 
     if (loading) return <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">Loading...</div>;
     if (!user) return null;
@@ -211,10 +228,9 @@ export default function SLABreachesPage() {
                                             <td className="py-4 px-4 text-right">
                                                 <div className="flex flex-col items-end">
                                                     {(() => {
-                                                        const daysLeft = Math.ceil((new Date(refund.slaDueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                                                         return (
                                                             <span className="text-xs font-bold text-red-500">
-                                                                {Math.abs(daysLeft)} days overdue
+                                                                {refund.slaDueDate ? Math.abs(Math.ceil((new Date(refund.slaDueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0} days overdue
                                                             </span>
                                                         );
                                                     })()}

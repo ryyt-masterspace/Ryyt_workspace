@@ -246,7 +246,7 @@ export const generateInvoice = (merchantData: InvoiceMerchantData, paymentData: 
     // 9. SAVE
     const safeBrandName = brandName.replace(/[^a-zA-Z0-9]/g, "_");
     const safeDate = dateStr.replace(/\//g, "-");
-    const filename = `Invoice_${safeBrandName}_${displayInvoiceId}.pdf`;
+    const filename = `Invoice_${safeBrandName}_${displayInvoiceId}_${safeDate}.pdf`;
 
     doc.save(filename);
 };

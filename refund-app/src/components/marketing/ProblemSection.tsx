@@ -12,8 +12,8 @@ export default function ProblemSection() {
                         <span className="text-gray-500">Refunds take 7 days.</span>
                     </h2>
                     <p className="text-xl text-gray-400 leading-relaxed">
-                        The <span className="text-white font-medium">"Velocity Mismatch"</span> creates a black box where money disappears.
-                        Your customer thinks you're a scammer. You're just waiting for the bank.
+                        The <span className="text-white font-medium">&quot;Velocity Mismatch&quot;</span> creates a black box where money disappears.
+                        Your customer thinks you&apos;re a scammer. You&apos;re just waiting for the bank.
                     </p>
                 </div>
 
@@ -27,9 +27,9 @@ export default function ProblemSection() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-3">The "WISMR" Tax</h3>
+                        <h3 className="text-xl font-bold text-white mb-3">The &quot;WISMR&quot; Tax</h3>
                         <p className="text-gray-400 leading-relaxed">
-                            <span className="text-white font-medium">60%</span> of your support tickets are "Where Is My Refund?".
+                            <span className="text-white font-medium">60%</span> of your support tickets are &quot;Where Is My Refund?&quot;.
                             Each ticket costs you <span className="text-white font-medium">₹50-₹200</span> to resolve, bleeding your margins dry on orders you already lost.
                         </p>
                     </div>
@@ -43,8 +43,8 @@ export default function ProblemSection() {
                         </div>
                         <h3 className="text-xl font-bold text-white mb-3">The Data Black Box</h3>
                         <p className="text-gray-400 leading-relaxed">
-                            Logistics knows it's picked up. The Gateway knows it's initiated. The Bank knows it's settled.
-                            <span className="text-white font-medium"> None of them talk to each other.</span> You are left blind, unable to prove you've paid.
+                            Logistics knows it&apos;s picked up. The Gateway knows it&apos;s initiated. The Bank knows it&apos;s settled.
+                            <span className="text-white font-medium"> None of them talk to each other.</span> You are left blind, unable to prove you&apos;ve paid.
                         </p>
                     </div>
 
@@ -57,8 +57,8 @@ export default function ProblemSection() {
                         </div>
                         <h3 className="text-xl font-bold text-white mb-3">The Liquidity Trap</h3>
                         <p className="text-gray-400 leading-relaxed">
-                            Daily payouts leave your balance at zero. Refunds get stuck in <span className="text-white font-medium">"Pending"</span>
-                            until new sales come in. You can't pay because the system won't let you top up.
+                            Daily payouts leave your balance at zero. Refunds get stuck in <span className="text-white font-medium">&quot;Pending&quot;</span>
+                            until new sales come in. You can&apos;t pay because the system won&apos;t let you top up.
                         </p>
                     </div>
 

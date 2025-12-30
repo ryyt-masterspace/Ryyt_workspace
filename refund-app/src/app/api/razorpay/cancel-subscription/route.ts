@@ -28,10 +28,11 @@ export async function POST(req: Request) {
         // We will cancel immediately.
         try {
             await razorpay.subscriptions.cancel(subscriptionId, false); // false = cancel immediately
-        } catch (razorError: any) {
+        } catch (razorError: unknown) {
             console.error('[Razorpay Cancel Error]', razorError);
+            const rError = razorError as { error?: { code: string } };
             // Verify if it's already cancelled to be idempotent
-            if (razorError.error?.code !== 'BAD_REQUEST_ERROR') {
+            if (rError.error?.code !== 'BAD_REQUEST_ERROR') {
                 throw razorError;
             }
         }
@@ -46,8 +47,9 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, status: 'cancelled' });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[Cancel Subscription Error]', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
