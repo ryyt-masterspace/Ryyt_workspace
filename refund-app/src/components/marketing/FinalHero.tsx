@@ -55,10 +55,10 @@ export default function FinalHero() {
                     className="mt-8 flex items-center justify-center gap-2 text-sm text-zinc-500"
                 >
                     <div className="flex -space-x-3">
-                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
-                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
-                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/men/86.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
-                        <Image width={32} height={32} src="https://randomuser.me/api/portraits/women/65.jpg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A]" />
+                        <Image width={32} height={32} src="/assets/avatars/user1.svg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A] bg-blue-500" />
+                        <Image width={32} height={32} src="/assets/avatars/user2.svg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A] bg-purple-500" />
+                        <Image width={32} height={32} src="/assets/avatars/user3.svg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A] bg-emerald-500" />
+                        <Image width={32} height={32} src="/assets/avatars/user4.svg" alt="User" className="w-8 h-8 rounded-full border-2 border-[#0A0A0A] bg-pink-500" />
                     </div>
                     <p>
                         Trusted by <span className="font-bold text-white"><Counter value={1200} />+</span> D2C Founders & Brands

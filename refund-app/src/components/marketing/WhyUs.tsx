@@ -14,7 +14,7 @@ export default function WhyUs() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8 }}
-                    className="max-w-5xl mx-auto bg-[#0A0A0A]/80 backdrop-blur-2xl border border-white/10 rounded-[32px] overflow-hidden shadow-2xl relative"
+                    className="mt-16 max-w-5xl mx-auto bg-[#0A0A0A]/80 backdrop-blur-2xl border border-white/10 rounded-[32px] overflow-hidden shadow-2xl relative"
                 >
                     {/* Inner Glow */}
                     <div className="absolute top-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
@@ -28,27 +28,27 @@ export default function WhyUs() {
                                 <div className="group">
                                     <div className="flex items-start gap-4 mb-3">
                                         <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
-                                        <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Manual Grind.</h4>
+                                        <h4 className="text-lg font-bold text-white group-hover:text-zinc-300 transition-colors">The Manual Grind.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-600 text-sm leading-relaxed">
+                                    <p className="pl-10 text-sm text-gray-400 mt-2 leading-relaxed">
                                         Chasing UPI IDs over WhatsApp and manually updating Excel sheets wastes your team&apos;s most valuable hours.
                                     </p>
                                 </div>
                                 <div className="group">
                                     <div className="flex items-start gap-4 mb-3">
                                         <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
-                                        <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Support Flood.</h4>
+                                        <h4 className="text-lg font-bold text-white group-hover:text-zinc-300 transition-colors">The Support Flood.</h4>
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">&quot;I didn&apos;t get my refund&quot;</h3>
-                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed">Customers are anxious about their money. Manual tracking means you&apos;re always defensive, not proactive.</p>
+                                    <h3 className="text-xl font-bold text-white mb-2 ml-10">&quot;I didn&apos;t get my refund&quot;</h3>
+                                    <p className="pl-10 text-sm text-gray-400 mt-2 leading-relaxed">Customers are anxious about their money. Manual tracking means you&apos;re always defensive, not proactive.</p>
                                 </div>
                                 <div className="group">
                                     <div className="flex items-start gap-4 mb-3">
                                         <XCircle className="text-zinc-700 shrink-0 mt-1 w-6 h-6 group-hover:text-red-900 transition-colors" />
-                                        <h4 className="text-lg font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">The Brand Disconnect.</h4>
+                                        <h4 className="text-lg font-bold text-white group-hover:text-zinc-300 transition-colors">The Brand Disconnect.</h4>
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">&quot;Where is my money?&quot;</h3>
-                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed">Every COD refund is a support ticket waiting to happen. You ask for UPI, they forget, you get blamed. It&apos;s a &quot;Lose-Lose&quot; cycle.</p>
+                                    <h3 className="text-xl font-bold text-white mb-2 ml-10">&quot;Where is my money?&quot;</h3>
+                                    <p className="pl-10 text-sm text-gray-400 mt-2 leading-relaxed">Every COD refund is a support ticket waiting to happen. You ask for UPI, they forget, you get blamed. It&apos;s a &quot;Lose-Lose&quot; cycle.</p>
                                 </div>
                             </div>
                         </div>
@@ -68,15 +68,15 @@ export default function WhyUs() {
                                         <CheckCircle2 className="text-blue-500 shrink-0 mt-1 w-6 h-6 drop-shadow-[0_0_8px_rgba(0,82,255,0.6)]" />
                                         <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Zero-Touch Automation.</h4>
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">You&apos;re not the &quot;Bad Guy&quot;</h3>
-                                    <p className="pl-10 text-zinc-400 text-sm leading-relaxed leading-relaxed font-medium">Poor refund experience isn&apos;t your fault, it&apos;s your system&apos;s fault. We fix the system so you keep the customer&apos;s trust.</p>
+                                    <h3 className="text-xl font-bold text-white mb-2 ml-10">You&apos;re not the &quot;Bad Guy&quot;</h3>
+                                    <p className="pl-10 text-sm text-gray-400 mt-2 leading-relaxed">Poor refund experience isn&apos;t your fault, it&apos;s your system&apos;s fault. We fix the system so you keep the customer&apos;s trust.</p>
                                 </div>
                                 <div className="group">
                                     <div className="flex items-start gap-4 mb-3">
                                         <CheckCircle2 className="text-blue-500 shrink-0 mt-1 w-6 h-6 drop-shadow-[0_0_8px_rgba(0,82,255,0.6)]" />
                                         <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Proactive Transparency.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-300 text-sm leading-relaxed font-medium">
+                                    <p className="pl-10 text-sm text-gray-400 mt-2 leading-relaxed">
                                         Live, branded tracking links and real-time updates keep customers calm and your support inbox empty.
                                     </p>
                                 </div>
@@ -85,7 +85,7 @@ export default function WhyUs() {
                                         <CheckCircle2 className="text-blue-500 shrink-0 mt-1 w-6 h-6 drop-shadow-[0_0_8px_rgba(0,82,255,0.6)]" />
                                         <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Enterprise Trust.</h4>
                                     </div>
-                                    <p className="pl-10 text-zinc-300 text-sm leading-relaxed font-medium">
+                                    <p className="pl-10 text-sm text-gray-400 mt-2 leading-relaxed">
                                         100% white-labeled emails and professional PDF invoices. Look like a billion-dollar brand to every single customer.
                                     </p>
                                 </div>
