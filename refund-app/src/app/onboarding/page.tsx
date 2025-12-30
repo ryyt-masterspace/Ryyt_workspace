@@ -132,32 +132,12 @@ export default function OnboardingWizard() {
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
-            // 3. Open Razorpay Modal
-            const options = {
+            // 3. Open Razorpay Modal with STRICT CONFIGURATION
+            const baseOptions = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '', // Exposed key
-                subscription_id: data.subscriptionId,
                 name: "RYYT (Calcure Technologies)",
                 description: `${formData.planType.toUpperCase()} Plan Subscription`,
                 image: "/logo-white.png",
-                handler: async function () {
-                    // This is triggered on success
-                    setPaymentStatus('idle'); // Or 'success' if you want a state
-
-                    try {
-                        // Activate Merchant
-                        await updateDoc(doc(db, 'merchants', user.uid), {
-                            subscriptionStatus: 'active',
-                            lastPaymentDate: new Date(),
-                            razorpaySubscriptionId: data.subscriptionId
-                        });
-
-                        alert("Payment Successful! Redirecting to Dashboard...");
-                        router.push('/dashboard');
-                    } catch (err) {
-                        console.error("Activation Error:", err);
-                        alert("Payment received but account activation failed. Please contact support.");
-                    }
-                },
                 prefill: {
                     name: formData.brandName,
                     email: formData.supportEmail,
@@ -165,17 +145,61 @@ export default function OnboardingWizard() {
                 theme: {
                     color: "#4F46E5", // Indigo
                 },
+                modal: {
+                    ondismiss: function () {
+                        setPaymentStatus('idle');
+                    }
+                }
             };
 
-            const rzp = new (window as unknown as { Razorpay: new (o: unknown) => { open: () => void } }).Razorpay(options);
+            // STRICT SEPARATION: Subscription vs One-Time
+            // This prevents "Invalid Link" or "Order Not Found" errors on UPI
+            const finalOptions = {
+                ...baseOptions,
+                subscription_id: data.subscriptionId, // Pass Subscription ID
+                amount: undefined, // MUST BE UNDEFINED
+                currency: undefined, // MUST BE UNDEFINED
+                order_id: undefined, // MUST BE UNDEFINED
+
+                handler: function (response: any) {
+                    // CRITICAL SECURITY FIX: Do not trust client-side success.
+                    // Start polling the backend for 'active' status.
+                    setPaymentStatus('idle'); // Hide "Connecting..." spinner
+                    setSaving(true); // Show "Verifying..." spinner (reusing saving state or create new one)
+
+                    let attempts = 0;
+                    const maxAttempts = 30; // 30 seconds timeout
+
+                    const pollInterval = setInterval(async () => {
+                        attempts++;
+                        try {
+                            const merchantSnap = await getDoc(doc(db, 'merchants', user.uid));
+                            const status = merchantSnap.data()?.subscriptionStatus;
+
+                            if (status === 'active') {
+                                clearInterval(pollInterval);
+                                setSaving(false);
+                                alert("Payment Verified! Redirecting to Dashboard...");
+                                router.push('/dashboard');
+                            } else if (attempts >= maxAttempts) {
+                                clearInterval(pollInterval);
+                                setSaving(false);
+                                alert("Payment verification timed out. If money was deducted, it will be refunded or credited shortly. Please contact support.");
+                            }
+                        } catch (err) {
+                            console.error("Polling Error:", err);
+                        }
+                    }, 1000);
+                }
+            };
+
+            const rzp = new (window as unknown as { Razorpay: new (o: unknown) => { open: () => void } }).Razorpay(finalOptions);
             rzp.open();
 
         } catch (error: unknown) {
             console.error("Checkout Error:", error);
-            // Provide a more descriptive alert
-            const msg = (error as Error).message || "An unexpected error occurred during checkout initialization.";
-            alert(`Payment Initialization Failed: ${msg}\n\nPlease try again or contact support if the problem persists.`);
-        } finally {
+            const msg = (error as Error).message || "An unexpected error occurred.";
+            alert(`Payment Initialization Failed: ${msg}`);
             setPaymentStatus('idle');
         }
     };
@@ -273,7 +297,7 @@ export default function OnboardingWizard() {
                                     disabled={saving}
                                     className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98]"
                                 >
-                                    {saving ? <Loader2 className="animate-spin" /> : <>Next: Choose Plan <ChevronRight size={18} /></>}
+                                    {saving ? <><Loader2 className="animate-spin" /> Saving Profile...</> : <>Next: Choose Plan <ChevronRight size={18} /></>}
                                 </button>
                             </form>
                         </motion.div>
@@ -370,13 +394,18 @@ export default function OnboardingWizard() {
 
                                     <button
                                         onClick={handleProceedToPayment}
-                                        disabled={paymentStatus === 'connecting'}
-                                        className="w-full py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-zinc-200 transition-all shadow-xl shadow-white/5 active:scale-[0.98]"
+                                        disabled={paymentStatus === 'connecting' || saving}
+                                        className="w-full py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-zinc-200 transition-all shadow-xl shadow-white/5 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {paymentStatus === 'connecting' ? (
                                             <>
                                                 <Loader2 className="animate-spin" size={18} />
                                                 Connecting to Razorpay...
+                                            </>
+                                        ) : saving ? (
+                                            <>
+                                                <Loader2 className="animate-spin text-indigo-600" size={18} />
+                                                Verifying Payment...
                                             </>
                                         ) : (
                                             <>

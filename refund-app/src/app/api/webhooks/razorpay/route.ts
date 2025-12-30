@@ -41,6 +41,13 @@ export async function POST(req: Request) {
 
         // 2. Handle Events
         switch (eventName) {
+            case 'subscription.authenticated':
+                // CRITICAL SECURITY FIX: Do NOT set status to 'active' here.
+                // We must wait for 'subscription.charged' to confirm the payment was actually collected.
+                console.log(`[Webhook] Subscription ${subscription.id} authenticated. Waiting for charge to activate.`);
+                // Optionally update ID if it changed, but usually we handle that in 'charged'
+                break;
+
             case 'subscription.charged':
                 const paymentData = payload.payment?.entity;
                 const razorpayPaymentId = paymentData?.id;
