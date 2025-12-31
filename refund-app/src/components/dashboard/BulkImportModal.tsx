@@ -148,8 +148,8 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
                 const batch = validRows.slice(i, i + BATCH_SIZE);
 
-                // Process batch in parallel
-                await Promise.all(batch.map(async (item, batchIdx) => {
+                // Process batch in parallel using allSettled to ensure failure in one row doesn't kill the batch
+                await Promise.allSettled(batch.map(async (item, batchIdx) => {
                     const globalIndex = i + batchIdx;
                     const row = item.original;
 
@@ -169,7 +169,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
 
                         const daysToAdd = SLA_DAYS[item.paymentMethod] || 7;
                         const now = new Date();
-                        const refundDate = new Date(); // Separate instance
+                        const refundDate = new Date();
 
                         // Calculate SLA
                         const dueDate = new Date(refundDate);
@@ -187,7 +187,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                             amount: item.amount,
                             paymentMethod: item.paymentMethod,
                             status: item.status,
-                            targetUpi: row['UPI ID'] || null, // Ensure explicit null
+                            targetUpi: row['UPI ID'] || null,
                             createdAt: Timestamp.fromDate(now),
                             slaDueDate: dueDate.toISOString(),
                             timeline: [
@@ -200,29 +200,35 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                             ]
                         });
 
-                        // --- SCOREBOARD AGGREGATION (Conditional) ---
+                        // --- SCOREBOARD AGGREGATION ---
                         if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
                             updateScoreboard(user.uid, "NEW_REFUND", item.amount);
                         }
-                        // ---------------------------------------------
 
-                        // --- EMAIL TRIGGER (Bulk via branded service) ---
-                        // "Fire and Wait" - we await to ensure it expects success
-                        console.log(`[BulkImport] Processing Row ${globalIndex}: Order=${row['Order ID']}, Method=${item.paymentMethod}, Status=${item.status}`);
+                        // --- EMAIL TRIGGER ---
+                        console.log(`[BulkImport] Processing Row ${globalIndex}: Order=${row['Order ID']}`);
 
-                        await sendUpdate(user.uid, {
-                            id: docRef.id,
-                            ...row,
-                            amount: item.amount,
-                            customerEmail: row['Customer Email'], // Explicit Mappings for robustness
-                            orderId: row['Order ID'],
-                            paymentMethod: item.paymentMethod
-                        } as NotificationRefundData, item.status);
-                        // -----------------------------
-                        successCount++;
-                    } catch (rowErr) {
-                        console.error("Row Error", rowErr);
-                        currentErrors.push(`Row ${globalIndex + 1}: Order ${row['Order ID']} failed to create.`);
+                        try {
+                            await sendUpdate(user.uid, {
+                                id: docRef.id,
+                                ...row,
+                                amount: item.amount,
+                                customerEmail: row['Customer Email'],
+                                orderId: row['Order ID'],
+                                paymentMethod: item.paymentMethod
+                            } as NotificationRefundData, item.status);
+                            successCount++;
+                        } catch (emailErr: any) {
+                            console.error(`[BulkImport] Row ${globalIndex} Email Error:`, emailErr);
+                            currentErrors.push(`Row ${globalIndex + 1}: Created, but Email Failed (${emailErr.message || 'Unknown'})`);
+                            // We still count success if the refund was created? 
+                            // The user says "2 emails received", implying they care about the email.
+                            // But usually "Success" means the row was processed.
+                            // I'll increment successCount only if email sent for strictness here.
+                        }
+                    } catch (rowErr: any) {
+                        console.error(`[BulkImport] Row ${globalIndex} Critical Error:`, rowErr);
+                        currentErrors.push(`Row ${globalIndex + 1}: Failed (${rowErr.message || 'Unknown'})`);
                     } finally {
                         completed++;
                     }
