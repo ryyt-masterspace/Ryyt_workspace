@@ -61,7 +61,7 @@ export async function sendUpdate(
                 refundId: refundData.id,
                 brandName: branding.brandName,
                 brandLogo: branding.logo,
-                link: `${window.location.origin}/t/${refundData.id}`
+                link: `${typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL}/t/${refundData.id}`
             }
         };
 

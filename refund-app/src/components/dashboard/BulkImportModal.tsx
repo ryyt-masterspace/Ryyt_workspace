@@ -140,75 +140,92 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
         const currentErrors: string[] = [];
 
         try {
-            // Process sequentially to handle async queries reliably
-            for (let i = 0; i < validRows.length; i++) {
-                const item = validRows[i];
-                const row = item.original;
+            // Forensic Audit Fix: Implement Batched Processing
+            // prevents browser freeze (sequential) and rate limits (full parallel).
+            const BATCH_SIZE = 5;
+            for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+                const batch = validRows.slice(i, i + BATCH_SIZE);
 
-                try {
-                    // Check for Duplicates
-                    const q = query(
-                        collection(db, "refunds"),
-                        where("merchantId", "==", user.uid),
-                        where("orderId", "==", row['Order ID'])
-                    );
-                    const snapshot = await getDocs(q);
+                // Process batch in parallel
+                await Promise.all(batch.map(async (item, batchIdx) => {
+                    const globalIndex = i + batchIdx;
+                    const row = item.original;
 
-                    if (!snapshot.empty) {
-                        currentErrors.push(`Row ${i + 1}: Order ${row['Order ID']} skipped (Already Exists)`);
-                        continue; // Skip
+                    try {
+                        // Check for Duplicates
+                        const q = query(
+                            collection(db, "refunds"),
+                            where("merchantId", "==", user.uid),
+                            where("orderId", "==", row['Order ID'])
+                        );
+                        const snapshot = await getDocs(q);
+
+                        if (!snapshot.empty) {
+                            currentErrors.push(`Row ${globalIndex + 1}: Order ${row['Order ID']} skipped (Already Exists)`);
+                            return;
+                        }
+
+                        const daysToAdd = SLA_DAYS[item.paymentMethod] || 7;
+                        const now = new Date();
+                        const refundDate = new Date(); // Separate instance
+
+                        // Calculate SLA
+                        const dueDate = new Date(refundDate);
+                        dueDate.setDate(dueDate.getDate() + daysToAdd);
+
+                        const timelineTitle = item.status === 'GATHERING_DATA'
+                            ? "Refund Drafted - Waiting for Details"
+                            : "Refund Initiated";
+
+                        const docRef = await addDoc(collection(db, "refunds"), {
+                            merchantId: user.uid,
+                            orderId: row['Order ID'],
+                            customerName: row['Customer Name'],
+                            customerEmail: row['Customer Email'],
+                            amount: item.amount,
+                            paymentMethod: item.paymentMethod,
+                            status: item.status,
+                            targetUpi: row['UPI ID'] || null, // Ensure explicit null
+                            createdAt: Timestamp.fromDate(now),
+                            slaDueDate: dueDate.toISOString(),
+                            timeline: [
+                                {
+                                    status: item.status,
+                                    title: timelineTitle,
+                                    date: now.toISOString(),
+                                    note: "Bulk Imported via CSV"
+                                }
+                            ]
+                        });
+
+                        // --- SCOREBOARD AGGREGATION (Conditional) ---
+                        if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
+                            updateScoreboard(user.uid, "NEW_REFUND", item.amount);
+                        }
+                        // ---------------------------------------------
+
+                        // --- EMAIL TRIGGER (Bulk via branded service) ---
+                        // "Fire and Wait" - we await to ensure it expects success
+                        await sendUpdate(user.uid, {
+                            id: docRef.id,
+                            ...row,
+                            amount: item.amount,
+                            customerEmail: row['Customer Email'], // Explicit Mappings for robustness
+                            orderId: row['Order ID'],
+                            paymentMethod: item.paymentMethod
+                        } as NotificationRefundData, item.status);
+                        // -----------------------------
+                        successCount++;
+                    } catch (rowErr) {
+                        console.error("Row Error", rowErr);
+                        currentErrors.push(`Row ${globalIndex + 1}: Order ${row['Order ID']} failed to create.`);
+                    } finally {
+                        completed++;
                     }
+                }));
 
-                    const daysToAdd = SLA_DAYS[item.paymentMethod] || 7;
-                    const now = new Date();
-                    const refundDate = new Date();
-
-                    // Calculate SLA
-                    const dueDate = new Date(refundDate);
-                    dueDate.setDate(dueDate.getDate() + daysToAdd);
-
-                    const timelineTitle = item.status === 'GATHERING_DATA'
-                        ? "Refund Drafted - Waiting for Details"
-                        : "Refund Initiated";
-
-                    const docRef = await addDoc(collection(db, "refunds"), {
-                        merchantId: user.uid,
-                        orderId: row['Order ID'],
-                        customerName: row['Customer Name'],
-                        customerEmail: row['Customer Email'],
-                        amount: item.amount,
-                        paymentMethod: item.paymentMethod,
-                        status: item.status,
-                        targetUpi: row['UPI ID'] || null,
-                        createdAt: Timestamp.fromDate(now),
-                        slaDueDate: dueDate.toISOString(),
-                        timeline: [
-                            {
-                                status: item.status,
-                                title: timelineTitle,
-                                date: now.toISOString(),
-                                note: "Bulk Imported via CSV"
-                            }
-                        ]
-                    });
-
-                    // --- SCOREBOARD AGGREGATION (Conditional) ---
-                    if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
-                        updateScoreboard(user.uid, "NEW_REFUND", item.amount);
-                    }
-                    // ---------------------------------------------
-
-                    // --- EMAIL TRIGGER (Bulk via branded service) ---
-                    await sendUpdate(user.uid, { id: docRef.id, ...row, amount: item.amount, customerEmail: row['Customer Email'], orderId: row['Order ID'], paymentMethod: item.paymentMethod } as NotificationRefundData, item.status);
-                    // -----------------------------
-                    successCount++;
-                } catch (rowErr) {
-                    console.error("Row Error", rowErr);
-                    currentErrors.push(`Row ${i + 1}: Order ${row['Order ID']} failed to create.`);
-                } finally {
-                    completed++;
-                    setUploadProgress(Math.round((completed / validRows.length) * 100));
-                }
+                // Update Progress after batch
+                setUploadProgress(Math.round((completed / validRows.length) * 100));
             }
 
             setResultLog({ success: successCount, errors: currentErrors });

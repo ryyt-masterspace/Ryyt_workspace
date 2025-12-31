@@ -8,6 +8,7 @@ import {
 import QRCode from "react-qr-code";
 
 import { Refund } from '@/types/refund';
+import { sendUpdate, NotificationRefundData } from "@/lib/notificationService";
 
 interface RefundDetailsPanelProps {
     refund: Refund;
@@ -75,30 +76,24 @@ export default function RefundDetailsPanel({ refund, onClose, onUpdate }: Refund
 
             await updateDoc(refundRef, updateData);
 
-            // Trigger Email (Silent Background Process)
+            // Trigger Email (Standardized via Notification Service)
             try {
-                const token = await auth.currentUser.getIdToken();
-                // Fire and forget email trigger
-                fetch('/api/email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        triggerType: status,
-                        refundId: refund.id,
-                        paymentMethod: refund.paymentMethod,
+                // Fix Bug 2: Use sendUpdate to ensure OrderId and Branding are present
+                await sendUpdate(
+                    auth.currentUser.uid,
+                    {
+                        id: refund.id,
+                        orderId: refund.orderId, // <--- Fixes #N/A
                         customerEmail: refund.customerEmail,
-                        merchantEmail: auth.currentUser.email,
-                        details: {
-                            proofValue: proofValue,
-                            reason: failureReason,
-                            amount: refund.amount,
-                            link: `${window.location.origin}/t/${refund.id}`
-                        }
-                    })
-                });
+                        paymentMethod: refund.paymentMethod,
+                        amount: refund.amount
+                    } as NotificationRefundData,
+                    status, // Trigger Type
+                    {
+                        reason: failureReason,
+                        proofValue: proofValue
+                    }
+                );
             } catch (e) {
                 console.error("Email trigger warning:", e);
             }

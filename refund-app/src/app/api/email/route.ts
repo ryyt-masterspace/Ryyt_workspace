@@ -38,6 +38,16 @@ export async function POST(request: Request) {
         // --- TEMPLATE LOGIC ---
         let contentHtml = "";
 
+        // --- STANDARD TRACKING BUTTON ---
+        const trackingUrl = details?.link || '#';
+        const trackingButton = `
+            <div style="margin-top: 32px; text-align: center;">
+                <a href="${trackingUrl}" style="background-color: #000000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">
+                    Track Refund Status
+                </a>
+            </div>
+        `;
+
         // Scenario: COD Order Created (Needs Details)
         if (type === 'GATHERING_DATA' || (type === 'CREATED' && paymentMethod === 'COD')) {
             subject = `${brandName}: Action Required for Order #${orderId}`;
@@ -64,6 +74,7 @@ export async function POST(request: Request) {
                     <h2 style="margin-top: 0; color: #333;">Refund Initiated</h2>
                     <p>We have received your details for order #${orderId}. Your refund of <strong>₹${details?.amount || ''}</strong> is now in our queue.</p>
                     <p>We will notify you once <strong>${brandName}</strong> and the bank process it.</p>
+                    ${trackingButton}
                     <p style="font-size: 12px; color: #999; margin-top: 30px;">${brandName} Support Team</p>
             `;
         }
@@ -74,6 +85,7 @@ export async function POST(request: Request) {
                     <h2 style="color: #0052FF; margin-top: 0;">Good News!</h2>
                     <p><strong>${brandName}</strong> has sent your refund request for order #${orderId} to the bank.</p>
                     <p>It usually takes 2-3 business days to reflect in your account depending on your bank's processing speed.</p>
+                    ${trackingButton}
                     <p style="font-size: 12px; color: #999; margin-top: 30px;">${brandName} Support Team</p>
             `;
         }
@@ -91,6 +103,7 @@ export async function POST(request: Request) {
                     </div>
 
                     <p>Please check your bank statement. It should appear under the name <strong>${brandName}</strong> or its payment partner.</p>
+                    ${trackingButton}
                     <p style="font-size: 12px; color: #999; margin-top: 30px;">${brandName} Support Team</p>
             `;
         }
@@ -113,7 +126,10 @@ export async function POST(request: Request) {
                     <p style="font-size: 12px; color: #999; margin-top: 30px;">${brandName} Support Team</p>
             `;
         } else {
-            contentHtml = `<p>There is an update on your refund status for order #${orderId}.</p>`;
+            contentHtml = `
+                <p>There is an update on your refund status for order #${orderId}.</p>
+                ${trackingButton}
+            `;
         }
 
         const html = `

@@ -95,7 +95,11 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
             // LOGIC FIX: Determine Initial Status
             // Only COD implies we definitely lack return details.
             // Prepaid methods (UPI, Card, etc.) start as REFUND_INITIATED.
-            const isCOD = formData.paymentMethod === 'COD';
+            // LOGIC FIX: Determine Initial Status with Robust Check
+            // Only COD implies we definitely lack return details.
+            // Prepaid methods (UPI, Card, etc.) start as REFUND_INITIATED.
+            const paymentMethodNormalized = (formData.paymentMethod || '').toString().toUpperCase().trim();
+            const isCOD = paymentMethodNormalized === 'COD';
             const initialStatus = isCOD ? 'GATHERING_DATA' : 'REFUND_INITIATED';
             const timelineTitle = isCOD ? "Refund Drafted - Waiting for Details" : "Refund Initiated";
 
