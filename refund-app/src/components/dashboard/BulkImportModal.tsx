@@ -39,8 +39,10 @@ const normalizePaymentMethod = (input: string): string => {
     if (clean.includes('NET')) return 'NETBANKING';
     if (clean.includes('COD') || clean.includes('CASH')) return 'COD';
     if (clean.includes('WALLET')) return 'WALLET';
+    if (clean.includes('UPI')) return 'UPI';
 
-    // 3. Default for standard codes like 'UPI'
+    console.warn(`[BulkImport] Unknown Payment Method: "${input}". Defaulting to UPI.`);
+    // 3. Default for standard codes like 'UPI' or unknown
     return clean.replace(/\s+/g, '_');
 };
 
@@ -206,6 +208,8 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
 
                         // --- EMAIL TRIGGER (Bulk via branded service) ---
                         // "Fire and Wait" - we await to ensure it expects success
+                        console.log(`[BulkImport] Processing Row ${globalIndex}: Order=${row['Order ID']}, Method=${item.paymentMethod}, Status=${item.status}`);
+
                         await sendUpdate(user.uid, {
                             id: docRef.id,
                             ...row,
