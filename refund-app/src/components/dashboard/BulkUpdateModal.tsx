@@ -138,7 +138,8 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
             for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
                 const batch = validRows.slice(i, i + BATCH_SIZE);
 
-                await Promise.all(batch.map(async (item, batchIdx) => {
+                // Forensic Fix: Use Promise.allSettled to prevent "Fail Fast" behavior.
+                await Promise.allSettled(batch.map(async (item, batchIdx) => {
                     const globalIndex = i + batchIdx;
                     try {
                         // 1. Find the Refund Doc
@@ -150,12 +151,12 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                         const snapshot = await getDocs(q);
 
                         if (snapshot.empty) {
-                            newLogs.push(`❌ Order ${item.orderId}: Not found.`);
+                            newLogs.push(`❌ Row ${globalIndex + 1}: Order ${item.orderId} Not found.`);
                             return;
                         }
 
                         if (snapshot.size > 1) {
-                            newLogs.push(`⚠️ Order ${item.orderId}: Multiple matches found. Skipped for safety.`);
+                            newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Multiple matches. Skipped.`);
                             return;
                         }
 
@@ -169,22 +170,19 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                             status: item.status
                         };
 
-                        // Extra Fields based on Status
                         if (item.status === 'SETTLED' && item.note) {
-                            updates['proofs.utr'] = item.note; // Use note as UTR/Proof
+                            updates['proofs.utr'] = item.note;
                         }
                         if (item.status === 'FAILED') {
                             updates['failureReason'] = (item.note || '').toString().trim() || 'Unspecified Failure (Bulk Update)';
                         }
 
                         if (item.status === 'SETTLED') {
-                            // --- USE UNIVERSAL PAYOUT SERVICE (PHASE 3/5) ---
                             await processSettlement(docSnap.id, user.uid, "MANUAL", {
                                 utrNumber: item.note,
                                 extraFields: {}
                             });
                         } else {
-                            // 3. Update Firestore (Fallback for non-settled statuses)
                             await updateDoc(docRef, {
                                 ...updates,
                                 timeline: arrayUnion({
@@ -195,22 +193,29 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                                 })
                             });
 
-                            // 4. Update Scoreboard (If Failed)
                             if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION") && item.status === 'FAILED') {
                                 updateScoreboard(userId, "FAIL_REFUND", Number(refundData.amount) || 0);
                             }
                         }
 
-                        // 4. Trigger Email (ALL Statuses via Branded Notification Service)
-                        await sendUpdate(userId, { id: docSnap.id, ...refundData } as NotificationRefundData, item.status as string, {
-                            reason: item.note,      // For FAILED
-                            proofValue: item.note   // For SETTLED (UTR)
-                        });
+                        // 3. Trigger Email (Detailed error handling)
+                        try {
+                            await sendUpdate(userId, { id: docSnap.id, ...refundData } as NotificationRefundData, item.status as string, {
+                                reason: item.note,
+                                proofValue: item.note
+                            });
+                            successCount++;
+                        } catch (emailErr: any) {
+                            console.error(`[BulkUpdate] Row ${globalIndex} Email Failure:`, emailErr);
+                            newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Updated, but Email Failed.`);
+                            // We still count success if DB was updated?
+                            // User likely wants to know about failure.
+                        }
 
-                        successCount++;
-                    } catch (err) {
-                        console.error(`Error updating ${item.orderId}`, err);
-                        newLogs.push(`❌ Order ${item.orderId}: Update Failed.`);
+                    } catch (err: any) {
+                        console.error(`[BulkUpdate] Row ${globalIndex} Critical Failure:`, err);
+                        newLogs.push(`❌ Row ${globalIndex + 1}: Order ${item.orderId} Failed (${err.message || 'Unknown'}).`);
+                        throw err; // Re-throw for allSettled
                     } finally {
                         completed++;
                     }
