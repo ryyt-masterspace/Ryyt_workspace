@@ -138,8 +138,10 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
             for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
                 const batch = validRows.slice(i, i + BATCH_SIZE);
 
-                // Forensic Fix: Use Promise.allSettled to prevent "Fail Fast" behavior.
-                await Promise.allSettled(batch.map(async (item, batchIdx) => {
+                // ARCHITECT FIX: Use Serial Processing (for...of) instead of Promise.all
+                // This prevents "Ghost Emails" by ensuring we don't burst the API.
+                for (const item of batch) {
+                    const batchIdx = batch.indexOf(item);
                     const globalIndex = i + batchIdx;
                     try {
                         // 1. Find the Refund Doc
@@ -152,12 +154,12 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
 
                         if (snapshot.empty) {
                             newLogs.push(`❌ Row ${globalIndex + 1}: Order ${item.orderId} Not found.`);
-                            return;
+                            continue;
                         }
 
                         if (snapshot.size > 1) {
                             newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Multiple matches. Skipped.`);
-                            return;
+                            continue;
                         }
 
                         const docSnap = snapshot.docs[0];
@@ -198,30 +200,34 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                             }
                         }
 
-                        // 3. Trigger Email (Detailed error handling)
+                        // 3. Trigger Email (Detailed error handling + 500ms delay)
                         try {
-                            await sendUpdate(userId, { id: docSnap.id, ...refundData } as NotificationRefundData, item.status as string, {
+                            const emailResult = await sendUpdate(userId, { id: docSnap.id, ...refundData } as NotificationRefundData, item.status as string, {
                                 reason: item.note,
                                 proofValue: item.note
                             });
-                            successCount++;
+
+                            if (emailResult.success) {
+                                successCount++;
+                            } else {
+                                newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Updated, but Email Failed (${emailResult.error || 'Unknown'}).`);
+                            }
                         } catch (emailErr: any) {
                             console.error(`[BulkUpdate] Row ${globalIndex} Email Failure:`, emailErr);
-                            newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Updated, but Email Failed.`);
-                            // We still count success if DB was updated?
-                            // User likely wants to know about failure.
+                            newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Updated, but Email Crashed.`);
                         }
+
+                        // Architect mandated 500ms delay
+                        await new Promise(resolve => setTimeout(resolve, 500));
 
                     } catch (err: any) {
                         console.error(`[BulkUpdate] Row ${globalIndex} Critical Failure:`, err);
                         newLogs.push(`❌ Row ${globalIndex + 1}: Order ${item.orderId} Failed (${err.message || 'Unknown'}).`);
-                        throw err; // Re-throw for allSettled
                     } finally {
                         completed++;
+                        setProgress(Math.round((completed / validRows.length) * 100));
                     }
-                }));
-
-                setProgress(Math.round((completed / validRows.length) * 100));
+                }
             }
 
 

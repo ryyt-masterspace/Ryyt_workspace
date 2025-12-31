@@ -1,4 +1,4 @@
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { isFeatureEnabled } from "@/config/features";
 
@@ -46,7 +46,6 @@ export async function sendUpdate(
         }
 
         // 2. Prepare Email Request
-        // FIX: Order ID Fallback (Handle casing mismatch)
         const safeOrderId = refundData.orderId || refundData.orderID || refundData.id?.slice(-6).toUpperCase() || "N/A";
 
         const payload = {
@@ -65,7 +64,7 @@ export async function sendUpdate(
             }
         };
 
-        // 3. Get Auth Token (FIX: The Badge)
+        // 3. Get Auth Token
         const currentUser = auth.currentUser;
         if (!currentUser) {
             console.error("[NotificationService] Cannot send email: No authenticated user.");
@@ -78,20 +77,42 @@ export async function sendUpdate(
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // FIX: Added Badge
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(payload)
         });
 
+        const result = {
+            success: response.ok,
+            error: null as string | null
+        };
+
         if (!response.ok) {
             const error = await response.json();
             console.error("[NotificationService] API Error:", error);
-            return { success: false, error: error.error };
+            result.error = error.error || "API Error";
         }
 
-        return { success: true };
-    } catch (error) {
+        // 5. ARCHITECT FIX: IMMEDIATE DB LOGGING
+        // This ensures we have a paper trail in Firestore for the "Ghost Email" issue.
+        try {
+            const refundRef = doc(db, "refunds", refundData.id);
+            await updateDoc(refundRef, {
+                emailDebug: {
+                    status: result.success ? 'SENT' : 'FAILED',
+                    timestamp: new Date().toISOString(),
+                    recipient: refundData.customerEmail,
+                    trigger: triggerType,
+                    error: result.error
+                }
+            });
+        } catch (dbErr) {
+            console.error("[NotificationService] Failed to log emailDebug to Firestore:", dbErr);
+        }
+
+        return result;
+    } catch (error: any) {
         console.error("[NotificationService] Failed to send update:", error);
-        return { success: false, error };
+        return { success: false, error: error.message || "Unknown error" };
     }
 }

@@ -148,8 +148,10 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
             for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
                 const batch = validRows.slice(i, i + BATCH_SIZE);
 
-                // Process batch in parallel using allSettled to ensure failure in one row doesn't kill the batch
-                await Promise.allSettled(batch.map(async (item, batchIdx) => {
+                // ARCHITECT FIX: Use Serial Processing (for...of) instead of Promise.all
+                // This prevents "Ghost Emails" by ensuring we don't burst the API.
+                for (const item of batch) {
+                    const batchIdx = batch.indexOf(item);
                     const globalIndex = i + batchIdx;
                     const row = item.original;
 
@@ -164,7 +166,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
 
                         if (!snapshot.empty) {
                             currentErrors.push(`Row ${globalIndex + 1}: Order ${row['Order ID']} skipped (Already Exists)`);
-                            return;
+                            continue; // Skip to next item in serial loop
                         }
 
                         const daysToAdd = SLA_DAYS[item.paymentMethod] || 7;
@@ -200,16 +202,16 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                             ]
                         });
 
-                        // --- SCOREBOARD AGGREGATION ---
+                        // --- SCOREBOARD ---
                         if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
                             updateScoreboard(user.uid, "NEW_REFUND", item.amount);
                         }
 
-                        // --- EMAIL TRIGGER ---
-                        console.log(`[BulkImport] Processing Row ${globalIndex}: Order=${row['Order ID']}`);
+                        // --- EMAIL TRIGGER (Serial with Delay) ---
+                        console.log(`[BulkImport] Serial Process Row ${globalIndex}: Order=${row['Order ID']}`);
 
                         try {
-                            await sendUpdate(user.uid, {
+                            const emailResult = await sendUpdate(user.uid, {
                                 id: docRef.id,
                                 ...row,
                                 amount: item.amount,
@@ -217,30 +219,32 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                                 orderId: row['Order ID'],
                                 paymentMethod: item.paymentMethod
                             } as NotificationRefundData, item.status);
-                            successCount++;
+
+                            if (emailResult.success) {
+                                successCount++;
+                            } else {
+                                currentErrors.push(`Row ${globalIndex + 1}: Created, but Email Failed (${emailResult.error || 'Unknown'})`);
+                            }
                         } catch (emailErr: any) {
-                            console.error(`[BulkImport] Row ${globalIndex} Email Error:`, emailErr);
-                            currentErrors.push(`Row ${globalIndex + 1}: Created, but Email Failed (${emailErr.message || 'Unknown'})`);
-                            // We still count success if the refund was created? 
-                            // The user says "2 emails received", implying they care about the email.
-                            // But usually "Success" means the row was processed.
-                            // I'll increment successCount only if email sent for strictness here.
+                            console.error(`[BulkImport] Row ${globalIndex} Crash:`, emailErr);
+                            currentErrors.push(`Row ${globalIndex + 1}: Created, but Email Crashed.`);
                         }
+
+                        // SERIAL DELAY: Wait 500ms before next row to prevent rate limits
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
                     } catch (rowErr: any) {
                         console.error(`[BulkImport] Row ${globalIndex} Critical Error:`, rowErr);
                         currentErrors.push(`Row ${globalIndex + 1}: Failed (${rowErr.message || 'Unknown'})`);
                     } finally {
                         completed++;
+                        setUploadProgress(Math.round((completed / validRows.length) * 100));
                     }
-                }));
-
-                // Update Progress after batch
-                setUploadProgress(Math.round((completed / validRows.length) * 100));
+                }
             }
 
             setResultLog({ success: successCount, errors: currentErrors });
             onSuccess();
-            // Do not auto-close
 
         } catch (error) {
             console.error("Bulk Import Critical Error:", error);
