@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
 import fs from 'fs';
 import path from 'path';
 
@@ -40,12 +39,11 @@ export async function POST(req: Request) {
         }
 
         // 1. Guard: Check for Existing Active Subscription
-        const merchantRef = doc(db, 'merchants', userId);
-        const merchantSnap = await getDoc(merchantRef);
+        const merchantSnap = await adminDb.collection('merchants').doc(userId).get();
 
-        if (merchantSnap.exists()) {
+        if (merchantSnap.exists) {
             const data = merchantSnap.data();
-            const status = data.subscriptionStatus; // e.g., 'active', 'created', 'cancelled', 'expired'
+            const status = data?.subscriptionStatus; // e.g., 'active', 'created', 'cancelled', 'expired'
 
             // Allow if null, undefined, 'cancelled', 'expired', 'halted'
             // Block if 'active', 'authenticated' (rare but possible), 'authorized'

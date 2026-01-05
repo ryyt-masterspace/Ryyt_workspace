@@ -98,7 +98,6 @@ export default function SignupPage() {
                         />
                     </div>
                     <h1 className="text-xl font-semibold text-white">Create your account</h1>
-                    <p className="text-zinc-500 text-sm mt-1">Start your 14-day free trial</p>
                 </div>
 
                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-8">

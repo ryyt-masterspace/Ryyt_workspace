@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { db } from '@/lib/firebase';
-import { doc, updateDoc, addDoc, collection, serverTimestamp, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
+import * as admin from 'firebase-admin';
 import Razorpay from 'razorpay';
 import { calculateOverageAddon, resetMonthlyCounter } from '@/lib/billingService';
 import { PLANS } from '@/config/plans';
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'No merchantId found' }, { status: 200 });
         }
 
-        const merchantRef = doc(db, 'merchants', merchantId);
+        const merchantRef = adminDb.collection('merchants').doc(merchantId);
 
         // 2. Handle Events
         switch (eventName) {
@@ -58,10 +58,9 @@ export async function POST(req: Request) {
                 }
 
                 // Task 1: Idempotency Check
-                // Check if we already recorded this payment
-                const paymentsRef = collection(db, 'merchants', merchantId, 'payments');
-                const q = query(paymentsRef, where("razorpayPaymentId", "==", razorpayPaymentId));
-                const existingSnap = await getDocs(q);
+                const existingSnap = await adminDb.collection('merchants').doc(merchantId).collection('payments')
+                    .where("razorpayPaymentId", "==", razorpayPaymentId)
+                    .get();
 
                 if (!existingSnap.empty) {
                     console.log(`[Idempotency] Payment ${razorpayPaymentId} already processed. Skipping.`);
@@ -103,7 +102,7 @@ export async function POST(req: Request) {
                 // If found, this is definitive (Immediate Switch or Renewal)
                 // If not found (rare), we fallback to existing or 'startup'
 
-                const merchSnap = await getDoc(merchantRef);
+                const merchSnap = await merchantRef.get();
                 const merchData = merchSnap.data();
 
                 const finalizedPlanType = newPlanType || merchData?.planType || 'startup';
@@ -115,9 +114,9 @@ export async function POST(req: Request) {
                 // Razorpay handles schedule changes by charging the NEW plan at cycle end.
                 // So if we see the new plan ID here, the switch has happened.
 
-                await updateDoc(merchantRef, {
+                await merchantRef.update({
                     subscriptionStatus: 'active',
-                    lastPaymentDate: serverTimestamp(),
+                    lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
                     planType: finalizedPlanType,
                     upcomingPlan: null, // Clear the banner as the switch happened
                     upcomingPlanDate: null,
@@ -127,14 +126,14 @@ export async function POST(req: Request) {
                 // Task 4: Record Payment
                 const baseNetPrice = (paymentData?.amount || subscription.billing_amount || 0) / 100;
 
-                await addDoc(collection(db, 'merchants', merchantId, 'payments'), {
+                await adminDb.collection('merchants').doc(merchantId).collection('payments').add({
                     amount: baseNetPrice,
                     currency: paymentData?.currency || 'INR',
                     razorpayPaymentId: razorpayPaymentId,
                     razorpaySubscriptionId: subscription.id,
                     planName: PLANS[finalizedPlanType]?.name || finalizedPlanType,
                     status: 'paid',
-                    date: serverTimestamp(),
+                    date: admin.firestore.FieldValue.serverTimestamp(),
                     method: paymentData?.method || 'subscription',
                     invoiceId: `CAL-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
                     basePrice: baseNetPrice,
@@ -148,12 +147,12 @@ export async function POST(req: Request) {
                 break;
 
             case 'subscription.halted':
-                await updateDoc(merchantRef, {
+                await merchantRef.update({
                     subscriptionStatus: 'suspended'
                 });
                 break;
             case 'subscription.cancelled':
-                await updateDoc(merchantRef, {
+                await merchantRef.update({
                     subscriptionStatus: 'cancelled'
                 });
                 break;
