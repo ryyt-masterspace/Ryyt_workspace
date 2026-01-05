@@ -17,16 +17,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [isVerifying, setIsVerifying] = useState(false);
     const router = useRouter();
 
+    // Unified Session Guard
     useEffect(() => {
         let unsubscribeMerchant: (() => void) | null = null;
         console.log("[DashboardLayout] Initializing Guard...");
 
+        // Safety timeout to prevent infinite hang
         const timeoutId = setTimeout(() => {
             if (loading) {
-                console.warn("[DashboardLayout] Safety timeout triggered.");
+                console.warn("[DashboardLayout] Safety timeout reached.");
                 setShowRetry(true);
             }
-        }, 5000);
+        }, 8000);
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -38,46 +40,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     if (!userSnap.exists()) {
                         console.log("[DashboardLayout] New user detected. Initializing merchant record...");
-                        await setDoc(userRef, {
-                            email: user.email,
-                            brandName: "",
-                            logo: "",
-                            createdAt: serverTimestamp(),
-                            planType: "startup",
-                            subscriptionStatus: "pending_payment",
-                            lastPaymentDate: serverTimestamp(),
-                            settings: { slaDays: 2, paymentMethod: 'UPI' }
-                        });
-                        setStatus("pending_payment");
-                        console.log("[DashboardLayout] Redirecting to /onboarding...");
-                        window.location.replace('/onboarding');
+                        try {
+                            await setDoc(userRef, {
+                                email: user.email,
+                                brandName: "",
+                                logo: "",
+                                createdAt: serverTimestamp(),
+                                planType: "startup",
+                                subscriptionStatus: "pending_payment",
+                                lastPaymentDate: serverTimestamp(),
+                                settings: { slaDays: 2, paymentMethod: 'UPI' }
+                            });
+                            setStatus("pending_payment");
+                            window.location.replace('/onboarding');
+                        } catch (initError: any) {
+                            console.error("[DashboardLayout] Failed to initialize new user:", initError);
+                            if (initError.code === 'permission-denied') {
+                                setStatus("permission-denied");
+                            }
+                            setLoading(false);
+                        }
                     } else {
                         const userData = userSnap.data();
                         const userStatus = userData?.subscriptionStatus || "active";
                         console.log("[DashboardLayout] Current Subscription Status:", userStatus);
                         setStatus(userStatus);
 
-                        // STRICT REDIRECT: If not active or suspended or cancelled, they MUST go to onboarding
-                        // We allow 'suspended', 'cancelled', 'expired' to stay here to see their respective screens
                         const allowedStatuses = ["active", "suspended", "cancelled", "expired", "halted"];
                         if (!allowedStatuses.includes(userStatus)) {
-                            console.log("[DashboardLayout] Unauthorized status detected. Redirecting...");
+                            console.log("[DashboardLayout] Redirecting to onboarding due to status:", userStatus);
                             window.location.replace('/onboarding');
                         }
+                        setLoading(false);
                     }
-                    setLoading(false);
                     clearTimeout(timeoutId);
-                }, (error) => {
-                    console.error("[DashboardLayout] Firestore Snapshot Error:", error);
+                }, (error: any) => {
+                    console.error("[DashboardLayout] Firestore Connection Error:", error);
+                    if (error.code === 'permission-denied') {
+                        setStatus("permission-denied");
+                    }
                     setLoading(false);
                     clearTimeout(timeoutId);
                 });
 
             } else {
-                console.log("[DashboardLayout] No Auth User. Redirecting to /login...");
+                console.log("[DashboardLayout] No Auth Session. Redirecting to login...");
                 window.location.replace('/login');
-                setLoading(false);
-                clearTimeout(timeoutId);
+                // Don't set loading false yet to avoid flicker
             }
         });
 
@@ -86,7 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (unsubscribeMerchant) unsubscribeMerchant();
             clearTimeout(timeoutId);
         };
-    }, [router, loading]);
+    }, [router]); // Removed 'loading' from dependencies to prevent reset loops
 
     const handleLogout = async () => {
         await signOut(auth);
@@ -119,25 +128,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         );
     }
 
-    if (status === "suspended") {
+    if (status === "suspended" || status === "permission-denied") {
+        const isPermissionError = status === "permission-denied";
+
         return (
             <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 text-white">
                 <div className="max-w-md w-full bg-[#0A0A0A] border border-red-500/20 rounded-2xl p-8 text-center shadow-2xl shadow-red-500/5">
                     <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <ShieldAlert className="text-red-500" size={32} />
                     </div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Access Suspended</h1>
+                    <h1 className="text-2xl font-bold text-white mb-2">
+                        {isPermissionError ? "Security Guard Blocked" : "Access Suspended"}
+                    </h1>
                     <p className="text-gray-400 text-sm leading-relaxed mb-8">
-                        Your subscription has expired or your access has been manually suspended by the administration.
+                        {isPermissionError
+                            ? "Your account access has been blocked by the database security policy. This usually happens if the project rules are in Test Mode and have expired."
+                            : "Your subscription has expired or your access has been manually suspended by the administration."
+                        }
                     </p>
                     <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 text-left mb-8">
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Instructions</p>
                         <p className="text-sm text-gray-300">
-                            Please complete your pending overage or subscription payment via UPI/Bank transfer and notify your account manager to restore access.
+                            {isPermissionError
+                                ? "Please check your Firebase Console and ensure your security rules are published correctly. If they were in Test Mode, they might have expired."
+                                : "Please complete your pending overage or subscription payment and notify your manager to restore access."
+                            }
                         </p>
                     </div>
                     <button onClick={handleLogout} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all border border-white/5">
-                        <LogOut size={18} /> Sign Out
+                        <LogOut size={18} /> Re-authenticate
                     </button>
                     <p className="mt-6 text-[10px] text-zinc-700 font-bold uppercase tracking-[0.2em]">
                         Ryyt Security Layer v2.5
