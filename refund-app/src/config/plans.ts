@@ -1,4 +1,5 @@
 export interface BillingPlan {
+    key: string;
     name: string;
     price: number;
     originalPrice: number;
@@ -35,7 +36,7 @@ export const PLANS: Record<string, BillingPlan> = {
         limit: 1000,
         overageRate: null
     }
-} as any;
+};
 
 export const GST_RATE = 0.18;
 

@@ -123,21 +123,15 @@ export default function BillingPage() {
                     return;
                 }
 
-                // ---------------------------------------------------------
-                // LEAD SECURITY ARCHITECT: REWRITTEN PAYMENT FLOW
-                // 1. STRICT OPTIONS: No amount/currency with Subscription ID.
-                // 2. SILENT HANDLER: No client-side DB writes. Polling Only.
-                // ---------------------------------------------------------
-
                 if (data.subscriptionId) {
-                    // Define options strictly for Subscription
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const options: any = {
                         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
                         subscription_id: data.subscriptionId, // ONLY Subscription ID
                         name: "Ryyt",
                         description: `${PLANS[newPlanType].name} Plan`,
                         image: "/logo-white.png",
-                        handler: function (response: any) {
+                        handler: function (response: { razorpay_payment_id: string; razorpay_subscription_id?: string; razorpay_signature: string }) {
                             // --- SILENT HANDLER ---
                             // 1. Set Loading / Verifying State
                             setIsVerifying(true);
@@ -193,6 +187,7 @@ export default function BillingPage() {
                     delete options.order_id;
                     if (options.prefill) delete options.prefill.amount;
 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const rzp1 = new (window as unknown as { Razorpay: new (o: any) => { open: () => void } }).Razorpay(options);
                     rzp1.open();
 

@@ -53,12 +53,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             });
                             setStatus("pending_payment");
                             window.location.replace('/onboarding');
-                        } catch (initError: any) {
+                        } catch (initError: unknown) {
                             console.error("[DashboardLayout] Failed to initialize new user:", initError);
-                            if (initError.code === 'permission-denied') {
+                            if ((initError as { code?: string }).code === 'permission-denied') {
                                 setStatus("permission-denied");
+                            } else {
+                                setStatus("error");
                             }
-                            setLoading(false);
                         }
                     } else {
                         const userData = userSnap.data();
@@ -74,10 +75,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         setLoading(false);
                     }
                     clearTimeout(timeoutId);
-                }, (error: any) => {
+                }, (error: Error) => {
                     console.error("[DashboardLayout] Firestore Connection Error:", error);
-                    if (error.code === 'permission-denied') {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    if ((error as any).code === 'permission-denied') {
                         setStatus("permission-denied");
+                    } else {
+                        setStatus("error");
                     }
                     setLoading(false);
                     clearTimeout(timeoutId);

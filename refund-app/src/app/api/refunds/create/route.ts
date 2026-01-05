@@ -51,8 +51,9 @@ export async function POST(req: Request) {
             id: docRef.id
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("REFUND_CREATE_API_ERROR:", error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return NextResponse.json({ error: (error as any).message || 'Internal Server Error' }, { status: 500 });
     }
 }

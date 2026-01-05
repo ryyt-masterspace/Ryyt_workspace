@@ -111,8 +111,8 @@ export async function sendUpdate(
         }
 
         return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[NotificationService] Failed to send update:", error);
-        return { success: false, error: error.message || "Unknown error" };
+        return { success: false, error: (error as Error).message || "Unknown error" };
     }
 }

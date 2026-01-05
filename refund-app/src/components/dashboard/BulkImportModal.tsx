@@ -241,9 +241,10 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                             if (emailResult.success) {
                                 successCount++;
                             } else {
-                                currentErrors.push(`Row ${globalIndex + 1}: Created, but Email Failed (${emailResult.error || 'Unknown'})`);
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                currentErrors.push(`Row ${globalIndex + 1}: Created, but Email Failed (${(emailResult as any).error || 'Unknown'})`);
                             }
-                        } catch (emailErr: any) {
+                        } catch (emailErr: unknown) {
                             console.error(`[BulkImport] Row ${globalIndex} Crash:`, emailErr);
                             currentErrors.push(`Row ${globalIndex + 1}: Created, but Email Crashed.`);
                         }
@@ -251,9 +252,10 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                         // SERIAL DELAY: Wait 500ms before next row to prevent rate limits
                         await new Promise(resolve => setTimeout(resolve, 500));
 
-                    } catch (rowErr: any) {
+                    } catch (rowErr: unknown) {
                         console.error(`[BulkImport] Row ${globalIndex} Critical Error:`, rowErr);
-                        currentErrors.push(`Row ${globalIndex + 1}: Failed (${rowErr.message || 'Unknown'})`);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        currentErrors.push(`Row ${globalIndex + 1}: Failed (${(rowErr as any).message || 'Unknown'})`);
                     } finally {
                         completed++;
                         setUploadProgress(Math.round((completed / validRows.length) * 100));

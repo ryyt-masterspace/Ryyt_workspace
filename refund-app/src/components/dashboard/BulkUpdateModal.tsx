@@ -210,9 +210,10 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                             if (emailResult.success) {
                                 successCount++;
                             } else {
-                                newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Updated, but Email Failed (${emailResult.error || 'Unknown'}).`);
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Updated, but Email Failed (${(emailResult as any).error || 'Unknown'}).`);
                             }
-                        } catch (emailErr: any) {
+                        } catch (emailErr: unknown) {
                             console.error(`[BulkUpdate] Row ${globalIndex} Email Failure:`, emailErr);
                             newLogs.push(`⚠️ Row ${globalIndex + 1}: Order ${item.orderId} Updated, but Email Crashed.`);
                         }
@@ -220,9 +221,10 @@ export default function BulkUpdateModal({ isOpen, onClose, onSuccess }: BulkUpda
                         // Architect mandated 500ms delay
                         await new Promise(resolve => setTimeout(resolve, 500));
 
-                    } catch (err: any) {
+                    } catch (err: unknown) {
                         console.error(`[BulkUpdate] Row ${globalIndex} Critical Failure:`, err);
-                        newLogs.push(`❌ Row ${globalIndex + 1}: Order ${item.orderId} Failed (${err.message || 'Unknown'}).`);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        newLogs.push(`❌ Row ${globalIndex + 1}: Order ${item.orderId} Failed (${(err as any).message || 'Unknown'}).`);
                     } finally {
                         completed++;
                         setProgress(Math.round((completed / validRows.length) * 100));

@@ -133,6 +133,7 @@ export default function OnboardingWizard() {
             if (data.error) throw new Error(data.error);
 
             // 3. Open Razorpay (Strict Mode)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const options: any = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
                 subscription_id: data.subscriptionId,
@@ -150,7 +151,7 @@ export default function OnboardingWizard() {
                         setPaymentStatus('idle');
                     }
                 },
-                handler: function (response: any) {
+                handler: function (response: { razorpay_payment_id: string; razorpay_subscription_id?: string; razorpay_signature: string }) {
                     setPaymentStatus('idle');
                     setSaving(true);
 
@@ -184,7 +185,7 @@ export default function OnboardingWizard() {
                 delete options.currency;
                 delete options.order_id;
             }
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const rzp = new (window as unknown as { Razorpay: new (o: any) => { open: () => void } }).Razorpay(options);
             rzp.open();
 
