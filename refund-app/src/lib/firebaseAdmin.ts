@@ -1,32 +1,55 @@
 import * as admin from 'firebase-admin';
 
-// 1. Get the key
-const rawKey = process.env.FIREBASE_PRIVATE_KEY;
+// Helper: Robust Private Key Formatter
+function formatPrivateKey(key: string | undefined) {
+    if (!key) return undefined;
 
-// 2. Sanitize: Replace literal "\n" with actual newlines
-// Use a robust check to ensure we don't crash if the key is missing
-const privateKey = rawKey
-    ? rawKey.replace(/\\n/g, '\n')
-    : undefined;
+    // 1. Remove wrapping double quotes if they exist (Common Vercel/Env issue)
+    if (key.startsWith('"') && key.endsWith('"')) {
+        key = key.slice(1, -1);
+    }
 
-// 3. Validation
-if (!privateKey) {
-    console.error("❌ FIREBASE_PRIVATE_KEY is missing or empty. (Skipping for build)");
+    // 2. Replace escaped newlines
+    const formattedKey = key.replace(/\\n/g, '\n');
+
+    // 3. Check for the header
+    if (!formattedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        console.error("❌ Invalid Key Format. Starts with:", formattedKey.substring(0, 10));
+        return undefined;
+    }
+
+    return formattedKey;
 }
 
-// 4. Initialize (with safety check)
+// Initialize Firebase Admin (Singleton)
 if (!admin.apps.length) {
-    if (privateKey) {
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: privateKey,
-            }),
-        });
-        console.log('[FirebaseAdmin] Initialized Successfully');
+    // Attempt to format the key if it exists
+    const privateKey = formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY);
+
+    // Only attempt initialization if specific credentials are present
+    // This allows the build to pass if env vars are missing
+    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && privateKey) {
+        try {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: process.env.FIREBASE_PROJECT_ID,
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                    privateKey: privateKey,
+                }),
+            });
+            console.log('[FirebaseAdmin] Initialized Successfully');
+        } catch (error) {
+            console.error('[FirebaseAdmin] Initialization Error:', error);
+        }
     } else {
-        console.warn('[FirebaseAdmin] Missing credentials. Skipping initialization.');
+        // Detailed warning to help debug
+        if (!process.env.FIREBASE_PRIVATE_KEY) {
+            console.warn('[FirebaseAdmin] Missing FIREBASE_PRIVATE_KEY. Skipping initialization.');
+        } else if (!privateKey) {
+            console.error('[FirebaseAdmin] FIREBASE_PRIVATE_KEY present but invalid. Skipping initialization.');
+        } else {
+            console.warn('[FirebaseAdmin] Missing Project ID or Client Email. Skipping initialization.');
+        }
     }
 }
 
