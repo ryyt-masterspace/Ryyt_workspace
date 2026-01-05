@@ -1,0 +1,61 @@
+﻿
+> refund-app@0.1.0 build
+> next build
+
+node.exe :  ΓÜá Warning: Next.js inferred your 
+workspace root, but it may not be correct.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Users\shuva\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( ΓÜá Wa 
+   rning: N...not be correct.:String) [], RemoteExc  
+  eption
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ We detected multiple lockfiles and selected the 
+directory of C:\Users\shuva\package-lock.json as the 
+root directory.
+ To silence this warning, set `turbopack.root` in 
+your Next.js config, or consider removing one of the 
+lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/conf
+ig/next-config-js/turbopack#root-directory for more 
+information.
+ Detected additional lockfiles: 
+   * C:\Users\shuva\OneDrive\Desktop\Ryyt 
+Workspace\refund-app\package-lock.json
+
+   Γû▓ Next.js 16.0.7 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 15.3s
+   Running TypeScript ...
+Failed to compile.
+
+./src/app/admin/migrate/page.tsx:196:35
+Type error: Property 'includedRefunds' does not 
+exist on type 'BillingPlan'.
+
+[0m [90m 194 |[39m
+ [90m 195 |[39m             [90m// 2. Hybrid 
+Billing Calculation[39m
+[31m[1m>[22m[39m[90m 196 |[39m             
+[36mconst[39m limitVal [33m=[39m 
+plan[33m.[39mincludedRefunds[33m;[39m
+ [90m     |[39m                                   
+[31m[1m^[22m[39m
+ [90m 197 |[39m             [36mconst[39m 
+currentUsage [33m=[39m merchantUsage[33m;[39m 
+[90m// Captured from state[39m
+ [90m 198 |[39m             [36mconst[39m excess 
+[33m=[39m 
+[33mMath[39m[33m.[39mmax([35m0[39m[33m,[39m 
+currentUsage [33m-[39m limitVal)[33m;[39m
+ [90m 199 |[39m             [36mconst[39m 
+overageFee [33m=[39m excess [33m*[39m 
+plan[33m.[39mexcessRate[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: 
+null

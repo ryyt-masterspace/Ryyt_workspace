@@ -18,11 +18,11 @@ export interface InvoicePaymentData {
     planName?: string;
     date?: { seconds: number } | Date | string | number;
 
-    // Hybrid Billing Details
-    basePrice?: number;
+    // Billing Details
+    price?: number;
     usageCount?: number;
     limit?: number; // Included Refunds
-    excessRate?: number;
+    overageRate?: number;
     email?: string; // Optional override
 }
 
@@ -134,42 +134,31 @@ export const generateInvoice = (merchantData: InvoiceMerchantData, paymentData: 
     if (merchantData.gstin) doc.text(`GSTIN: ${merchantData.gstin}`, 110, sectionY + (merchantData.address ? 21 : 16));
 
 
-    // 6. HYBRID LINE ITEMS LOGIC
+    // 6. LINE ITEMS LOGIC
     const tableBody = [];
 
     // Item 1: Base Subscription
-    // If basePrice is provided, use it. Else validation fallback logic could go here, 
-    // but we assume paymentData implies a fulfilled cycle or prepaid start.
-    const basePrice = paymentData.basePrice !== undefined ? paymentData.basePrice : totalAmount;
-    // Note: If strictly usage based, base might be 0, but usually it's a plan price.
+    const price = paymentData.price !== undefined ? paymentData.price : totalAmount;
 
     tableBody.push([
         `Software Subscription - ${planName.charAt(0).toUpperCase() + planName.slice(1)} (Prepaid)`,
         "1 Month",
-        `Rs. ${basePrice.toLocaleString()}`
+        `Rs. ${price.toLocaleString()}`
     ]);
 
-    // Item 2: Overage (Conditional)
-    if (
-        paymentData.usageCount !== undefined &&
-        paymentData.limit !== undefined &&
-        paymentData.usageCount > paymentData.limit
-    ) {
-        const excess = paymentData.usageCount - paymentData.limit;
-        const rate = paymentData.excessRate || 15; // Default fallback
-        const overageCost = excess * rate;
-
+    // Item 2: Setup Fee (If applicable - based on total amount if it exceeds base price significantly)
+    const possibleSetupFee = Math.max(0, totalAmount - (price * 1.18)); // Rough check for setup fee
+    if (possibleSetupFee > 1000) { // If there's a significant extra amount
         tableBody.push([
-            `Usage Overage (Previous Cycle: ${paymentData.usageCount} refunds)`,
-            `${excess} @ Rs.${rate}`,
-            `Rs. ${overageCost.toLocaleString()}`
+            "One-time Setup & Integration Fee",
+            "1 Unit",
+            `Rs. ${Math.round(possibleSetupFee / 1.18).toLocaleString()}`
         ]);
     }
 
     // 6.5 Calculate GST Breakdown
-    const { subtotal, gstAmount, total: grandTotal } = calculateFinalBill(basePrice + (paymentData.usageCount && paymentData.limit && paymentData.usageCount > paymentData.limit ? (paymentData.usageCount - paymentData.limit) * (paymentData.excessRate || 15) : 0));
-    // Fallback if paymentData.amount was already stored as total inclusive in DB
-    const finalTotal = paymentData.amount || grandTotal;
+    const { subtotal, gstAmount } = calculateFinalBill(Math.round(totalAmount / 1.18));
+    const finalTotal = paymentData.amount || totalAmount;
 
     // 7. GENERATE TABLE
     autoTable(doc, {

@@ -103,24 +103,38 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
             const initialStatus = isCOD ? 'GATHERING_DATA' : 'REFUND_INITIATED';
             const timelineTitle = isCOD ? "Refund Drafted - Waiting for Details" : "Refund Initiated";
 
-            const docRef = await addDoc(collection(db, "refunds"), {
-                merchantId: user.uid,
-                orderId: formData.orderId,
-                customerName: formData.customerName,
-                customerEmail: formData.customerEmail,
-                amount: Number(formData.amount),
-                paymentMethod: formData.paymentMethod,
-                status: initialStatus,
-                createdAt: Timestamp.fromDate(selectedDate),
-                slaDueDate: dueDate.toISOString(),
-                timeline: [
-                    {
-                        status: initialStatus,
-                        title: timelineTitle,
-                        date: selectedDate.toISOString(),
-                    },
-                ],
+            // ARCHITECT FIX: Use centralized API for Hard Limit Enforcement
+            const response = await fetch('/api/refunds/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    merchantId: user.uid,
+                    orderId: formData.orderId,
+                    customerName: formData.customerName,
+                    customerEmail: formData.customerEmail,
+                    amount: Number(formData.amount),
+                    paymentMethod: formData.paymentMethod,
+                    status: initialStatus,
+                    slaDueDate: dueDate.toISOString(),
+                    timeline: [
+                        {
+                            status: initialStatus,
+                            title: timelineTitle,
+                            date: selectedDate.toISOString(),
+                        },
+                    ],
+                })
             });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                alert(result.error || "Failed to create refund.");
+                setIsLoading(false);
+                return;
+            }
+
+            const refundId = result.id;
 
             // --- SCOREBOARD AGGREGATION (Conditional) ---
             if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
@@ -129,7 +143,7 @@ export default function CreateRefundModal({ isOpen, onClose, onSuccess }: Create
             // ---------------------------------------------
 
             // --- EMAIL TRIGGER START (Phase 5: Branded) ---
-            await sendUpdate(user.uid, { id: docRef.id, ...formData, amount: Number(formData.amount) } as NotificationRefundData, initialStatus);
+            await sendUpdate(user.uid, { id: refundId, ...formData, amount: Number(formData.amount) } as NotificationRefundData, initialStatus);
             // --- EMAIL TRIGGER END ---
 
             onSuccess(); // <--- Trigger refresh in parent

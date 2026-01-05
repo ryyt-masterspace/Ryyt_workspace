@@ -17,6 +17,8 @@ const logDebug = (data: unknown) => {
     }
 };
 
+import { PLANS } from '@/config/plans';
+
 // Initialize Razorpay
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID || '',
@@ -29,6 +31,12 @@ export async function POST(req: Request) {
 
         if (!userId || !planType) {
             return NextResponse.json({ error: 'Missing userId or planType' }, { status: 400 });
+        }
+
+        // 0. Fetch Selected Plan Config
+        const selectedPlan = PLANS[planType];
+        if (!selectedPlan) {
+            return NextResponse.json({ error: 'Invalid planType' }, { status: 400 });
         }
 
         // 1. Guard: Check for Existing Active Subscription
@@ -62,7 +70,7 @@ export async function POST(req: Request) {
         }
 
         // 3. Create Subscription
-        console.log(`[Razorpay] Creating subscription for Plan ID: ${razorpayPlanId} (User: ${userId})`);
+        console.log(`[Razorpay] Creating subscription for Plan ID: ${razorpayPlanId} (User: ${userId}) with Setup Fee: ${selectedPlan.setupFee}`);
 
         try {
             const subscription = await razorpay.subscriptions.create({
@@ -70,6 +78,15 @@ export async function POST(req: Request) {
                 total_count: 120, // 10 years
                 quantity: 1,
                 customer_notify: 1,
+                addons: [
+                    {
+                        item: {
+                            name: "One-time Setup Fee",
+                            amount: selectedPlan.setupFee * 100, // INR to Paise
+                            currency: "INR"
+                        }
+                    }
+                ],
                 notes: {
                     merchantId: userId
                 }

@@ -181,26 +181,44 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
                             ? "Refund Drafted - Waiting for Details"
                             : "Refund Initiated";
 
-                        const docRef = await addDoc(collection(db, "refunds"), {
-                            merchantId: user.uid,
-                            orderId: row['Order ID'],
-                            customerName: row['Customer Name'],
-                            customerEmail: row['Customer Email'],
-                            amount: item.amount,
-                            paymentMethod: item.paymentMethod,
-                            status: item.status,
-                            targetUpi: row['UPI ID'] || null,
-                            createdAt: Timestamp.fromDate(now),
-                            slaDueDate: dueDate.toISOString(),
-                            timeline: [
-                                {
-                                    status: item.status,
-                                    title: timelineTitle,
-                                    date: now.toISOString(),
-                                    note: "Bulk Imported via CSV"
-                                }
-                            ]
+                        // ARCHITECT FIX: Use centralized API for Hard Limit Enforcement
+                        const response = await fetch('/api/refunds/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                merchantId: user.uid,
+                                orderId: row['Order ID'],
+                                customerName: row['Customer Name'],
+                                customerEmail: row['Customer Email'],
+                                amount: item.amount,
+                                paymentMethod: item.paymentMethod,
+                                status: item.status,
+                                targetUpi: row['UPI ID'] || null,
+                                slaDueDate: dueDate.toISOString(),
+                                timeline: [
+                                    {
+                                        status: item.status,
+                                        title: timelineTitle,
+                                        date: now.toISOString(),
+                                        note: "Bulk Imported via CSV"
+                                    }
+                                ]
+                            })
                         });
+
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            if (response.status === 403) {
+                                currentErrors.push(`Row ${globalIndex + 1}: STOPPED - Plan Limit Reached.`);
+                                alert("Plan Limit Reached. Bulk import stopped.");
+                                break; // Halt entire import
+                            }
+                            currentErrors.push(`Row ${globalIndex + 1}: Failed (${result.error || 'Unknown Error'})`);
+                            continue;
+                        }
+
+                        const refundId = result.id;
 
                         // --- SCOREBOARD ---
                         if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
@@ -212,7 +230,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
 
                         try {
                             const emailResult = await sendUpdate(user.uid, {
-                                id: docRef.id,
+                                id: refundId,
                                 ...row,
                                 amount: item.amount,
                                 customerEmail: row['Customer Email'],

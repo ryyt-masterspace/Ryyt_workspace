@@ -181,7 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <div className="mb-4 relative z-10">
                                     <h3 className="font-bold text-lg">{p.name}</h3>
                                     <div className="flex items-baseline gap-1 mt-1">
-                                        <p className="text-2xl font-mono text-white">₹{p.basePrice}</p>
+                                        <p className="text-2xl font-mono text-white">₹{p.price}</p>
                                         <span className="text-xs text-gray-500">/mo</span>
                                     </div>
                                 </div>
@@ -189,11 +189,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <ul className="text-xs space-y-3 text-gray-400 mb-8 flex-1 relative z-10">
                                     <li className="flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                        {p.includedRefunds} Monthly Refunds
+                                        {p.limit} Monthly Refunds
                                     </li>
                                     <li className="flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                        ₹{p.excessRate} Overage per unit
+                                        Hard Limit Protection
                                     </li>
                                     <li className="flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />

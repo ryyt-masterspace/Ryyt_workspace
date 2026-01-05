@@ -109,7 +109,7 @@ export async function POST(req: Request) {
         // --- UPI GUARD END ---
 
         // 4. Compare Prices
-        const isUpgrade = newPlan.basePrice > currentPlan.basePrice;
+        const isUpgrade = newPlan.price > currentPlan.price;
         console.log(`[UpdateSub] User ${userId} requested switch: ${currentPlanType} -> ${newPlanType}. Upgrade? ${isUpgrade}`);
 
         // 5. Razorpay API Call

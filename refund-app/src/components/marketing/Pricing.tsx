@@ -80,9 +80,11 @@ export default function Pricing() {
 function PricingCard({ plan, features, icon, highlighted = false, delay = 0 }: {
     plan: {
         name: string;
-        basePrice: number;
-        includedRefunds: number;
-        excessRate: number;
+        price: number;
+        originalPrice: number;
+        setupFee: number;
+        limit: number;
+        overageRate: null;
     },
     features: string[],
     icon: React.ReactNode,
@@ -112,19 +114,19 @@ function PricingCard({ plan, features, icon, highlighted = false, delay = 0 }: {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
                 <div className="flex flex-col mb-4">
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-white">₹{plan.basePrice.toLocaleString()}</span>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-sm text-zinc-500 line-through">₹{plan.originalPrice.toLocaleString()}</span>
+                        <span className="text-4xl font-bold text-white">₹{plan.price.toLocaleString()}</span>
                         <span className="text-zinc-500 text-sm">/mo</span>
                     </div>
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-1">+ 18% GST</span>
-                    <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Billed Monthly</span>
+                    <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">+ ₹{plan.setupFee.toLocaleString()} Setup Fee</span>
                 </div>
                 <div className="bg-white/5 border border-white/5 rounded-xl p-4">
                     <p className="text-white font-bold text-sm">
-                        {plan.includedRefunds.toLocaleString()} Refunds Included
+                        {plan.limit.toLocaleString()} Refunds Included
                     </p>
                     <p className="text-zinc-500 text-[11px] mt-1">
-                        ₹{plan.excessRate} per additional refund.
+                        Hard Monthly Limit
                     </p>
                 </div>
             </div>

@@ -21,20 +21,21 @@ export async function calculateOverageAddon(merchantId: string) {
     const metricsRef = doc(db, "merchants", merchantId, "metadata", "metrics");
     const metricsSnap = await getDoc(metricsRef);
     if (!metricsSnap.exists()) {
-        return { amountInPaise: 0, usage: 0, limit: plan.includedRefunds, excessRate: plan.excessRate };
+        return { amountInPaise: 0, usage: 0, limit: plan.limit, excessRate: plan.overageRate || 0 };
     }
 
     const usage = metricsSnap.data().totalRefundsCount || 0;
-    const overageCount = Math.max(0, usage - plan.includedRefunds);
+    const overageCount = Math.max(0, usage - (plan.limit || 0));
 
     // Amount in Paise (INR * 100)
-    const amountInPaise = overageCount * plan.excessRate * 100;
+    const rate = plan.overageRate || 0;
+    const amountInPaise = overageCount * rate * 100;
 
     return {
         amountInPaise,
         usage,
-        limit: plan.includedRefunds,
-        excessRate: plan.excessRate
+        limit: plan.limit,
+        excessRate: rate
     };
 }
 

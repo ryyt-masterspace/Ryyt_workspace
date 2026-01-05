@@ -70,34 +70,8 @@ export async function POST(req: Request) {
 
                 console.log(`[Billing] Processing renewal for ${merchantId}. Payment ID: ${razorpayPaymentId}`);
 
-                // Task 2: Calculate Overage BEFORE resetting counter
-                let overageData = { amountInPaise: 0, usage: 0, limit: 0, excessRate: 0 };
-                try {
-                    overageData = await calculateOverageAddon(merchantId);
-
-                    // Create Add-on if needed
-                    if (overageData.amountInPaise > 0) {
-                        try {
-                            const rzp = new Razorpay({
-                                key_id: process.env.RAZORPAY_KEY_ID || '',
-                                key_secret: process.env.RAZORPAY_KEY_SECRET || '',
-                            });
-
-                            await rzp.subscriptions.createAddon(subscription.id, {
-                                item: {
-                                    name: "Usage Overage Fee",
-                                    amount: overageData.amountInPaise,
-                                    currency: "INR"
-                                }
-                            });
-                            console.log(`[Billing] Created Overage Add-on: ₹${overageData.amountInPaise / 100}`);
-                        } catch (addonError) {
-                            console.error(`[Admin Critical] Failed to charge overage:`, addonError);
-                        }
-                    }
-                } catch (calcError) {
-                    console.error(`[Billing Error] Failed to calculate overage:`, calcError);
-                }
+                // Task 2: Reset counter and sync plan
+                console.log(`[Billing] Processing renewal for ${merchantId}. Payment ID: ${razorpayPaymentId}`);
 
                 // Task 3: Plan Sync & Status Update
                 // Get the plan ID from the payload and map it to our PlanType
@@ -164,9 +138,9 @@ export async function POST(req: Request) {
                     method: paymentData?.method || 'subscription',
                     invoiceId: `CAL-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
                     basePrice: baseNetPrice,
-                    usageCount: overageData.usage,
-                    limit: overageData.limit,
-                    excessRate: overageData.excessRate
+                    usageCount: 0,
+                    limit: PLANS[finalizedPlanType]?.limit || 0,
+                    excessRate: 0
                 });
 
                 // Task 5: Scoreboard Reset

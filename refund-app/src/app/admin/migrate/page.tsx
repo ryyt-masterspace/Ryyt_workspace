@@ -192,22 +192,21 @@ export default function AdminMigratePage() {
             const planKey = mData?.planType || "startup";
             const plan = PLANS[planKey];
 
-            // 2. Hybrid Billing Calculation
-            const limitVal = plan.includedRefunds;
+            // 2. Billing Calculation
+            const limitVal = plan.limit;
             const currentUsage = merchantUsage; // Captured from state
-            const excess = Math.max(0, currentUsage - limitVal);
-            const overageFee = excess * plan.excessRate;
+            const overageFee = 0; // Overage billing removed
 
             // Centralized GST Math
-            const { total: totalDue } = calculateFinalBill(plan.basePrice + overageFee);
+            const { total: totalDue } = calculateFinalBill(plan.price + overageFee);
 
             // 3. Record Payment with ELITE Details
             await addDoc(collection(db, "merchants", selectedMerchantId, "payments"), {
                 amount: totalDue,
-                basePrice: plan.basePrice,
+                basePrice: plan.price,
                 usageCount: currentUsage,
                 limit: limitVal,
-                excessRate: plan.excessRate,
+                excessRate: 0,
 
                 date: serverTimestamp(),
                 planName: plan.name,
@@ -407,7 +406,7 @@ export default function AdminMigratePage() {
                                                     {PLANS[selectedMerchantData.planType || 'startup']?.name || 'Startup'}
                                                 </div>
                                                 <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">
-                                                    ₹{calculateFinalBill(PLANS[selectedMerchantData.planType || 'startup']?.basePrice).total.toLocaleString()} /mo (Inc. GST)
+                                                    ₹{calculateFinalBill(PLANS[selectedMerchantData.planType || 'startup']?.price).total.toLocaleString()} /mo (Inc. GST)
                                                 </p>
                                             </div>
                                         </div>
@@ -543,13 +542,13 @@ export default function AdminMigratePage() {
                                                     </div>
                                                 </div>
                                                 <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Usage Overage</p>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
                                                     <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold">
-                                                        <Activity size={14} className="text-orange-500" />
+                                                        <Activity size={14} className="text-blue-500" />
                                                         {isUsageLoading ? "..." : (
-                                                            (merchantUsage || 0) > (PLANS[selectedMerchantData.planType || 'startup']?.includedRefunds || 0)
-                                                                ? `+${(merchantUsage || 0) - (PLANS[selectedMerchantData.planType || 'startup']?.includedRefunds || 0)}`
-                                                                : "None"
+                                                            (merchantUsage || 0) >= (PLANS[selectedMerchantData.planType || 'startup']?.limit || 0)
+                                                                ? "Limit Reached"
+                                                                : "Within Limit"
                                                         )}
                                                     </div>
                                                 </div>
@@ -566,7 +565,7 @@ export default function AdminMigratePage() {
                                                             <FileText size={18} /> Apply Payment & Renew Cycle
                                                         </div>
                                                         <span className="text-[10px] opacity-80">
-                                                            Total to be Paid via UPI (Inc. GST): ₹{calculateFinalBill(PLANS[selectedMerchantData.planType || 'startup']?.basePrice + (Math.max(0, (merchantUsage || 0) - (PLANS[selectedMerchantData.planType || 'startup']?.includedRefunds || 100)) * (PLANS[selectedMerchantData.planType || 'startup']?.excessRate || 15))).total.toLocaleString()}
+                                                            Total to be Paid via UPI (Inc. GST): ₹{calculateFinalBill(PLANS[selectedMerchantData.planType || 'startup']?.price).total.toLocaleString()}
                                                         </span>
                                                     </>
                                                 )}

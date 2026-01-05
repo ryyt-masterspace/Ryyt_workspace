@@ -238,7 +238,7 @@ export default function BillingPage() {
     const currentPlanKey = merchant?.planType || "startup";
     const plan: BillingPlan = PLANS[currentPlanKey];
     const usage = cycleUsage;
-    const limit = plan.includedRefunds;
+    const limit = plan.limit;
     const usagePercent = Math.min((usage / limit) * 100, 100);
 
     // Date Logic
@@ -252,19 +252,19 @@ export default function BillingPage() {
     // Task 5: Upgrade Cost Preview
     const getUpgradePratatedCost = (targetPlan: BillingPlan) => {
         const remainingDays = Math.max(1, Math.ceil((nextRenewal.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-        const diff = targetPlan.basePrice - plan.basePrice;
+        const diff = targetPlan.price - plan.price;
         if (diff <= 0) return 0;
         const prorated = (diff / 30) * remainingDays;
         return calculateFinalBill(prorated).total;
     };
 
     // Calculations
-    const overageCount = Math.max(0, usage - limit);
-    const overageFee = overageCount * plan.excessRate;
-    const baseFee = plan.basePrice;
+    const overageCount = 0;
+    const overageFee = 0;
+    const baseFee = plan.price;
 
     // Centralized GST Math
-    const { subtotal, gstAmount, total: totalUpcoming } = calculateFinalBill(baseFee + overageFee);
+    const { subtotal, gstAmount, total: totalUpcoming } = calculateFinalBill(baseFee);
 
     return (
         <div className="flex min-h-screen bg-[#050505]">
@@ -328,12 +328,16 @@ export default function BillingPage() {
 
                                 <div className="grid grid-cols-2 gap-8 mb-8">
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-1">Monthly Base</p>
-                                        <p className="text-xl font-bold text-white">₹{plan.basePrice.toLocaleString()}</p>
+                                        <p className="text-xs text-gray-500 mb-1">Monthly Recurring</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-sm text-gray-500 line-through">₹{plan.originalPrice.toLocaleString()}</span>
+                                            <p className="text-xl font-bold text-white">₹{plan.price.toLocaleString()}</p>
+                                        </div>
+                                        <p className="text-[10px] text-blue-400 mt-1">+ ₹{plan.setupFee.toLocaleString()} One-time Setup Fee</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-1">Included Refunds</p>
-                                        <p className="text-xl font-bold text-white">{plan.includedRefunds}</p>
+                                        <p className="text-xs text-gray-500 mb-1">Monthly Refunds</p>
+                                        <p className="text-xl font-bold text-white">{plan.limit}</p>
                                     </div>
                                 </div>
 
@@ -348,13 +352,13 @@ export default function BillingPage() {
                                     </div>
                                     <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                                         <div
-                                            className={`h-full transition-all duration-500 ${usage > limit ? "bg-orange-500" : "bg-blue-600"}`}
+                                            className={`h-full transition-all duration-500 ${usage >= limit ? "bg-red-500" : "bg-blue-600"}`}
                                             style={{ width: `${usagePercent}%` }}
                                         ></div>
                                     </div>
-                                    {usage > limit && (
-                                        <p className="text-[10px] text-orange-400 flex items-center gap-1 mt-2 font-mono">
-                                            <AlertCircle size={10} /> {overageCount} EXCESS UNITS DETECTED (₹{plan.excessRate}/ea)
+                                    {usage >= limit && (
+                                        <p className="text-[10px] text-red-500 flex items-center gap-1 mt-2 font-mono">
+                                            <AlertCircle size={10} /> PLAN LIMIT REACHED. PLEASE UPGRADED TO PROCESS MORE REFUNDS.
                                         </p>
                                     )}
                                 </div>
@@ -413,7 +417,7 @@ export default function BillingPage() {
                                         <Zap size={14} /> Automated Billing Active
                                     </p>
                                     <p className="text-[10px] text-gray-400 leading-relaxed">
-                                        Your subscription is managed via Razorpay. Overage charges are calculated and billed automatically at the end of each cycle.
+                                        Your subscription is managed via Razorpay. Your monthly limit is refreshed automatically at the start of each billing cycle.
                                     </p>
                                 </div>
                                 <p className="text-[10px] text-gray-600 mt-4 flex items-center gap-1.5 italic">
@@ -549,7 +553,7 @@ export default function BillingPage() {
                                         <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                                             {Object.entries(PLANS).map(([key, p]) => {
                                                 const isCurrent = key === currentPlanKey;
-                                                const isUpgrade = p.basePrice > plan.basePrice;
+                                                const isUpgrade = p.price > plan.price;
                                                 const upgradeCost = getUpgradePratatedCost(p);
 
                                                 return (
@@ -559,12 +563,17 @@ export default function BillingPage() {
                                                     >
                                                         <div className="mb-4">
                                                             <h3 className="font-bold text-lg">{p.name}</h3>
-                                                            <p className="text-xl font-mono">₹{p.basePrice}</p>
+                                                            <div className="flex items-baseline gap-2">
+                                                                <span className="text-xs text-gray-500 line-through">₹{p.originalPrice}</span>
+                                                                <p className="text-xl font-mono">₹{p.price}</p>
+                                                            </div>
+                                                            <p className="text-[10px] text-blue-400 mt-1">+ ₹{p.setupFee} Setup Fee</p>
                                                         </div>
 
                                                         <ul className="text-[10px] space-y-2 text-gray-400 mb-6">
-                                                            <li>• {p.includedRefunds} Refunds/mo</li>
-                                                            <li>• ₹{p.excessRate} Overage Rate</li>
+                                                            <li>• {p.limit} Refunds/mo</li>
+                                                            <li>• No Overage Charges</li>
+                                                            <li>• Hard Usage Limit</li>
                                                         </ul>
 
                                                         {isCurrent ? (

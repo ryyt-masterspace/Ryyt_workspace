@@ -335,14 +335,17 @@ export default function OnboardingWizard() {
                                             </div>
 
                                             <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
-                                            <div className="flex items-baseline gap-1 mb-4">
-                                                <span className="text-2xl font-mono">₹{plan.basePrice.toLocaleString()}</span>
-                                                <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">/ mo</span>
+                                            <div className="flex flex-col mb-4">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-2xl font-mono">₹{plan.price.toLocaleString()}</span>
+                                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">/ mo</span>
+                                                </div>
+                                                <p className="text-[10px] text-blue-400 font-bold">+ ₹{plan.setupFee.toLocaleString()} Setup Fee</p>
                                             </div>
 
                                             <div className="space-y-3 pt-6 border-t border-white/5">
                                                 <p className="text-[11px] text-zinc-400 leading-relaxed font-medium">
-                                                    <span className="text-white font-bold">{plan.includedRefunds.toLocaleString()}</span> monthly refunds included.
+                                                    <span className="text-white font-bold">{plan.limit.toLocaleString()}</span> monthly refunds included.
                                                 </p>
                                             </div>
                                         </div>
@@ -372,7 +375,8 @@ export default function OnboardingWizard() {
                                         <div className="flex justify-between items-end">
                                             <div>
                                                 <p className="text-[10px] text-zinc-500 font-bold uppercase">Due Today (Inc. GST)</p>
-                                                <p className="text-3xl font-mono font-bold">₹{calculateFinalBill(PLANS[formData.planType].basePrice).total.toLocaleString()}</p>
+                                                <p className="text-3xl font-mono font-bold">₹{calculateFinalBill(PLANS[formData.planType].price).total.toLocaleString()}</p>
+                                                <p className="text-[10px] text-blue-400 mt-1">+ ₹{PLANS[formData.planType].setupFee.toLocaleString()} one-time setup fee</p>
                                             </div>
                                             <Lock size={16} className="text-green-500/50 mb-1" />
                                         </div>

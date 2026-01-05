@@ -1,34 +1,41 @@
 export interface BillingPlan {
     name: string;
-    basePrice: number;
-    includedRefunds: number;
-    excessRate: number;
-    maxMandateAmount: number;
+    price: number;
+    originalPrice: number;
+    setupFee: number;
+    limit: number;
+    overageRate: null;
 }
 
 export const PLANS: Record<string, BillingPlan> = {
     startup: {
-        name: "Startup",
-        basePrice: 999,
-        includedRefunds: 100,
-        excessRate: 15,
-        maxMandateAmount: 2500
+        key: 'startup',
+        name: 'Startup',
+        price: 1999,
+        originalPrice: 2499,
+        setupFee: 4999,
+        limit: 150,
+        overageRate: null
     },
     growth: {
-        name: "Growth",
-        basePrice: 2499,
-        includedRefunds: 300,
-        excessRate: 13,
-        maxMandateAmount: 6000
+        key: 'growth',
+        name: 'Growth',
+        price: 3999,
+        originalPrice: 4999,
+        setupFee: 4999,
+        limit: 400,
+        overageRate: null
     },
     scale: {
-        name: "Scale",
-        basePrice: 4999,
-        includedRefunds: 1000,
-        excessRate: 12,
-        maxMandateAmount: 15000
+        key: 'scale',
+        name: 'Scale',
+        price: 7999,
+        originalPrice: 9999,
+        setupFee: 4999,
+        limit: 1000,
+        overageRate: null
     }
-};
+} as any;
 
 export const GST_RATE = 0.18;
 
