@@ -105,16 +105,21 @@ export function useDashboardMetrics(volumeWindowDays: number = 30) {
                     }
                 });
 
-                // O(1) Override
+                // O(1) Override with Error Resilience
                 if (isFeatureEnabled("ENABLE_SCOREBOARD_AGGREGATION")) {
-                    const metricsRef = doc(db, "merchants", user.uid, "metadata", "metrics");
-                    const mSnap = await getDoc(metricsRef);
-                    if (mSnap.exists()) {
-                        const data = mSnap.data();
-                        totalSettled = data.totalSettledAmount ?? totalSettled;
-                        liability = data.activeLiabilityAmount ?? liability;
-                        stuckAmount = data.stuckAmount ?? stuckAmount;
-                        totalRefundsCount = data.totalRefundsCount ?? totalRefundsCount;
+                    try {
+                        const metricsRef = doc(db, "merchants", user.uid, "metadata", "metrics");
+                        const mSnap = await getDoc(metricsRef);
+                        if (mSnap.exists()) {
+                            const data = mSnap.data();
+                            totalSettled = data.totalSettledAmount ?? totalSettled;
+                            liability = data.activeLiabilityAmount ?? liability;
+                            stuckAmount = data.stuckAmount ?? stuckAmount;
+                            totalRefundsCount = data.totalRefundsCount ?? totalRefundsCount;
+                        }
+                    } catch (ovrError) {
+                        console.warn("[DashboardMetrics] O(1) metadata unreachable. Falling back to real-time calculation.", ovrError);
+                        // No need to throw; we already have the local 'refunds' calculations as a fallback
                     }
                 }
 
