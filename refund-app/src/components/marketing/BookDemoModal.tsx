@@ -13,18 +13,12 @@ export default function BookDemoModal() {
     useEffect(() => {
         setMounted(true);
         // Check localStorage logic
-        const closedAt = localStorage.getItem('ryyt_demo_modal_closed');
         const submittedAt = localStorage.getItem('ryyt_demo_modal_submitted');
         const now = Date.now();
 
         if (submittedAt) {
             const daysSinceSubmit = (now - parseInt(submittedAt)) / (1000 * 60 * 60 * 24);
             if (daysSinceSubmit < 30) return; // Suppress for 30 days if submitted
-        }
-
-        if (closedAt) {
-            const daysSinceClose = (now - parseInt(closedAt)) / (1000 * 60 * 60 * 24);
-            if (daysSinceClose < 3) return; // Suppress for 3 days if closed
         }
 
         const handleScroll = () => {
@@ -53,7 +47,7 @@ export default function BookDemoModal() {
 
     const handleClose = () => {
         setIsOpen(false);
-        localStorage.setItem('ryyt_demo_modal_closed', Date.now().toString());
+        // Removed localStorage setItem to allow reopening on reload
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +103,7 @@ export default function BookDemoModal() {
 
                         <button
                             onClick={handleClose}
-                            className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+                            className="absolute top-4 right-4 z-50 p-2 text-zinc-500 hover:text-white transition-colors"
                         >
                             <X size={20} />
                         </button>
