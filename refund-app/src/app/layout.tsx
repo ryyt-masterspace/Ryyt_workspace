@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: "Ryyt - Refund Transparency Layer",
   description: "The missing middleware for e-commerce refunds.",
   icons: {
-    icon: "/assets/ryyt-custom-favicon.png",
-    shortcut: "/assets/ryyt-custom-favicon.png",
+    icon: "/favicon.ico?v=2",
+    apple: "/favicon.ico?v=2",
   }
 };
 
